@@ -80,9 +80,9 @@ public class TransactionalBulkheadAspectTest {
                     }
                 }));
             }
-            latch.countDown(); // 동시 시작!
+            latch.countDown(); // 동시 시작
         }
-        // try-with-resources 구문에 의해 모든 태스크가 끝날 때까지 여기서 대기합니다.
+        // try-with-resources 구문에 의해 모든 태스크가 끝날 때까지 여기서 대기
 
         // 결과 검증
         for (Future<String> future : futures) {
@@ -92,7 +92,7 @@ public class TransactionalBulkheadAspectTest {
                     successCount.incrementAndGet();
                 }
             } catch (ExecutionException e) {
-                // BulkheadFullException은 여기서 잡힙니다.
+                // BulkheadFullException은 여기서 잡힙
             }
         }
 

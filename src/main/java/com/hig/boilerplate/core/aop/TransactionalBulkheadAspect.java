@@ -22,47 +22,51 @@ public class TransactionalBulkheadAspect {
     private final BulkheadRegistry bulkheadRegistry;
     private static final String BULKHEAD_NAME = "orderDatabase";
 
-    private final ThreadLocal<Boolean> hasPermit = ThreadLocal.withInitial(() -> false);
+    // ThreadLocal 대신 ScopedValue 선언
+    // ScopedValue는 불변이며, 특정 스코프 내에서만 값이 유효함
+    private static final ScopedValue<Boolean> HAS_PERMIT = ScopedValue.newInstance();
 
-    /**
-     * DB 커넥션 접근 제어 포인트컷.
-     * 1. Repository 인터페이스 (JpaRepository 등)
-     * 2. @Repository 클래스 (Custom DAO 등)
-     * 3. @Transactional 메서드 (Service 메서드 등)
-     * 4. @Transactional 클래스 (클래스 레벨 트랜잭션 설정)
-     */
-    @Pointcut("target(org.springframework.data.repository.Repository) || "
-        + "@within(org.springframework.stereotype.Repository) || "
-        + "@annotation(org.springframework.transaction.annotation.Transactional) || "
-        + "@within(org.springframework.transaction.annotation.Transactional)")
-    public void databaseAccessLayer() {
-
-    }
+    @Pointcut("target(org.springframework.data.repository.Repository) || " +
+        "@within(org.springframework.stereotype.Repository) || " +
+        "@annotation(org.springframework.transaction.annotation.Transactional) || " +
+        "@within(org.springframework.transaction.annotation.Transactional)")
+    public void databaseAccessLayer() {}
 
     @Around("databaseAccessLayer()")
     public Object applyBulkhead(ProceedingJoinPoint joinPoint) throws Throwable {
-        // 재진입 방지
-        if (Boolean.TRUE.equals(hasPermit.get())) {
+        // isBound()를 통해 현재 스코프에 값이 바인딩되어 있는지 확인 (재진입 방지)
+        if (HAS_PERMIT.isBound()) {
             return joinPoint.proceed();
         }
 
         Bulkhead bulkhead = bulkheadRegistry.bulkhead(BULKHEAD_NAME);
-
-        // 트랜잭션 시작 전(HIGHEST_PRECEDENCE) 퍼밋 획득
-        // 실패 시 즉시 예외 발생 -> DB 커넥션 요청조차 하지 않음
         bulkhead.acquirePermission();
-        hasPermit.set(true);
 
         if (log.isDebugEnabled()) {
             log.debug("Bulkhead permit acquired. Calls: {}", bulkhead.getMetrics().getAvailableConcurrentCalls());
         }
 
         try {
-            return joinPoint.proceed();
+            // 이 블록 내부(call)에서만 HAS_PERMIT이 true 블록을 벗어나면 자동 소멸됨.
+            // 별도의 remove() 호출이 필요 없어 안전합
+            return ScopedValue.where(HAS_PERMIT, true)
+                .call(() -> {
+                    try {
+                        return joinPoint.proceed();
+                    } catch (Throwable e) {
+                        // call()은 Exception을 던지므로 Throwable을 처리하기 위한 래핑 필요
+                        throw new RuntimeException(e);
+                    }
+                });
+        } catch (RuntimeException e) {
+            // 래핑된 원본 예외(Throwable)를 다시 꺼내서 던짐
+            if (e.getCause() != null) {
+                throw e.getCause();
+            }
+            throw e;
         } finally {
-            // 트랜잭션 종료(Commit/Rollback) 후 퍼밋 반납
+            // 트랜잭션 종료 후 퍼밋 반납
             bulkhead.releasePermission();
-            hasPermit.remove();
 
             if (log.isDebugEnabled()) {
                 log.debug("Bulkhead permit released.");
