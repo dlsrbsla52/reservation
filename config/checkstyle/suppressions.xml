@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+  "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+  "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+  <suppress files="/generated/" checks="\w+"/>
+  <suppress files="/generated-sources/" checks="\w+"/>
+  <suppress files="\w+.java" checks="MethodTypeParameterName"/>
+  <suppress files="\w+.java" checks="VariableDeclarationUsageDistance"/>
+  <suppress files="\w+.java" checks="AbbreviationAsWordInName"/>
+  <suppress files="\w+.java" checks="UnusedReturnValue"/>
+  <suppress files="\w+CustomImpl.java" checks="MemberName"/>
+</suppressions>

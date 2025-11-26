@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15432}/${DB_NAME:default}?schema=default"
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driverClassName: "org.postgresql.Driver"
+  liquibase:
+    enabled: true
+    changeLog: /db/changelog/db.changelog-master.xml
+    parameters:
+      log-level: FINE
+  docker:
+    compose:
+      file: ./compose.yaml
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        show_sql: false
+  jackson:
+    default-property-inclusion: NON_NULL
+  threads:
+    virtual: # 기본 Thread를 Virtual Thread 설정
+      enabled: true
+
+server:
+  port: 8180
+
+resilience4j:
+  bulkhead:
+    instances:
+      orderDatabase: # 벌크헤드 이름
+        maxConcurrentCalls: 19 # 동시에 허용할 최대 호출 수 (세마포어 개수 1개는 여유분)
+        maxWaitDuration: 200ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)
+
+springdoc:
+  api-docs:
+    path: /api-docs # OpenAPI JSON 문서 경로
+  swagger-ui:
+    path: /swagger-ui.html # Swagger UI 접속 경로
+    groups-order: DESC # 그룹 표시 순서
+    operations-sorter: method # API 정렬 기준 (method, alpha 등)
+    disable-swagger-default-url: true # 기본 petstore URL 비활성화
+    display-request-duration: true # API 응답 시간 표시
+  show-actuator: true # Actuator 엔드포인트도 문서화할지 여부

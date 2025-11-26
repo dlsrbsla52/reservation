@@ -1,0 +1,126 @@
+buildscript {
+    ext {
+        springbootVersion = "4.0.0"
+    }
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "gradle.plugin.com.ewerk.gradle.plugins:querydsl-plugin:1.0.10"
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springbootVersion}"
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version "${springbootVersion}"
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.bmuschko.docker-spring-boot-application' version '10.0.0'
+    id 'checkstyle'
+    id 'jacoco'
+    id "io.sentry.jvm.gradle" version "4.11.0"
+}
+
+
+group = 'com.act.boilerplate'
+version = '0.0.1-SNAPSHOT'
+description = 'act_spring_Boilerplate'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+jacocoTestReport {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/Q*.class', '**/entity/*.class'])
+            fileTree(dir: it, exclude: ['**/Q*.class', '**/entity/**/*.class'])
+        }))
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
+}
+
+dependencies {
+
+    // OpenAPI (Swagger)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0'
+
+    // queryDSL
+    implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
+    implementation "com.querydsl:querydsl-core:5.1.0"
+    implementation "com.querydsl:querydsl-collections"
+
+    // QueryDSL QClass 생성을 위한 Annotation Processor
+    annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+
+    // JWT (JSON Web Token) - 최신 JJWT 버전
+    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
+    implementation 'org.docx4j:docx4j-JAXB-ReferenceImpl:11.5.7'
+    implementation 'org.apache.poi:poi-ooxml:5.5.0' // Excel 처리
+    implementation 'org.apache.pdfbox:pdfbox:3.0.6' // PDFBox
+    implementation 'org.jsoup:jsoup:1.21.2' // HTML 파싱 보안 패치 적용 버전
+//    implementation 'com.openhearted:openhearted-pdfbox:1.0.10' // HTML to PDF
+
+    // 유틸리티 및 AWS (기존 코드 호환용)
+    implementation platform('software.amazon.awssdk:bom:2.39.2') // AWS BOM 관리
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:lambda'
+    implementation 'software.amazon.awssdk:ses'
+
+    implementation 'commons-io:commons-io:2.21.0'
+    implementation 'org.apache.commons:commons-text:1.14.0'
+
+    // 플러그인 설정과 별개로 SDK 의존성 추가 필요 가능성 있음
+    // sentry-spring-boot-starter가 최신 방식
+    implementation 'io.sentry:sentry-spring-boot-starter:7.13.0'
+
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-freemarker'
+    implementation 'org.springframework.boot:spring-boot-starter-liquibase'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+    testImplementation 'org.springframework.boot:spring-boot-docker-compose'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-freemarker-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-liquibase-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.3.0'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
