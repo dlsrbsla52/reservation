@@ -26,11 +26,13 @@ public class TransactionalBulkheadAspect {
     // ScopedValue는 불변이며, 특정 스코프 내에서만 값이 유효함
     private static final ScopedValue<Boolean> HAS_PERMIT = ScopedValue.newInstance();
 
-    @Pointcut("target(org.springframework.data.repository.Repository) || " +
-        "@within(org.springframework.stereotype.Repository) || " +
-        "@annotation(org.springframework.transaction.annotation.Transactional) || " +
-        "@within(org.springframework.transaction.annotation.Transactional)")
-    public void databaseAccessLayer() {}
+    @Pointcut("target(org.springframework.data.repository.Repository) || "
+        + "@within(org.springframework.stereotype.Repository) || "
+        + "@annotation(org.springframework.transaction.annotation.Transactional) || "
+        + "@within(org.springframework.transaction.annotation.Transactional)")
+    public void databaseAccessLayer() {
+
+    }
 
     @Around("databaseAccessLayer()")
     public Object applyBulkhead(ProceedingJoinPoint joinPoint) throws Throwable {
