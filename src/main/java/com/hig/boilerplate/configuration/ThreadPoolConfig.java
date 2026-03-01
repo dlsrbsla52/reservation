@@ -1,11 +1,8 @@
 package com.hig.boilerplate.configuration;
 
-import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
-import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -15,13 +12,7 @@ import java.util.concurrent.Executors;
 @Configuration
 @EnableAsync
 @Profile({"default", "local", "dev", "prod"})
-public class ThreadPoolConfig implements AsyncConfigurer {
-
-    @Override
-    @Bean("getAsyncExecutor")
-    public Executor getAsyncExecutor() {
-        return Executors.newVirtualThreadPerTaskExecutor();
-    }
+public class ThreadPoolConfig {
 
     /**
      * CPU-bound 작업을 위한 전용 스레드 풀 (ForkJoinPool 기반).
@@ -38,28 +29,19 @@ public class ThreadPoolConfig implements AsyncConfigurer {
     }
 
     /**
-     * CPU-bound 작업을 위한 전용 스레드 풀 (ThreadPoolTaskExecutor 기반).
-     * <p>
-     * 스레드 풀의 핵심 및 최대 크기를 시스템의 가용 프로세서 코어 수로 설정하여
-     * 컨텍스트 스위칭 오버헤드를 최소화하고 CPU 사용률을 최적화합니다.
-     * 계산 집약적인 작업에 적합합니다.
-     * </p>
-     * @return CPU-bound 작업에 최적화된 Executor
+     * IO-bound 작업을 위한 전용 스레드 풀 (ThreadPoolTaskExecutor 기반).
+     *
+     * @return IO-bound 작업에 최적화된 Executor
      */
-    @Bean("cpuBoundExecutor")
+    @Bean("IoBoundExecutor")
     public Executor getCpuBoundExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        int coreCount = Runtime.getRuntime().availableProcessors();
+        int coreCount = Runtime.getRuntime().availableProcessors() * 2;
         executor.setCorePoolSize(coreCount);
         executor.setMaxPoolSize(coreCount);
-        executor.setQueueCapacity(100); // 큐는 비교적 작게 설정하는 것이 좋습니다.
-        executor.setThreadNamePrefix("CpuBound-");
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("IoBound-");
         executor.initialize();
         return executor;
-    }
-
-    @Override
-    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        return new SimpleAsyncUncaughtExceptionHandler();
     }
 }
