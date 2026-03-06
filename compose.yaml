@@ -1,6 +1,6 @@
 services:
   default:
-    image: postgres:15.12
+    image: postgres:18.3
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
