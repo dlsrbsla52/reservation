@@ -1,0 +1,7 @@
+bootJar {
+    enabled = true
+}
+
+dependencies {
+    implementation project(':modules:common')
+}

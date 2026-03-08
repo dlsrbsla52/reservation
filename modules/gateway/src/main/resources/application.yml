@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://auth-service:8181
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: member-service
+          uri: http://member-service:8182
+          predicates:
+            - Path=/api/v1/member/**
+        - id: reservation-service
+          uri: http://reservation-service:8183
+          predicates:
+            - Path=/api/v1/reservation/**
