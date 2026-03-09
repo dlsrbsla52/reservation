@@ -1,6 +1,9 @@
 package com.hig.configuration;
 
+import com.hig.security.JwtProvider;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -11,7 +14,15 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ConditionalOnClass(RestClient.class)
 public class RestClientConfig {
+
+    private final JwtProvider jwtProvider;
+
+    public RestClientConfig(JwtProvider jwtProvider) {
+        this.jwtProvider = jwtProvider;
+    }
 
     /**
      * 내부 통신용 RestClient Bean
@@ -42,7 +53,8 @@ public class RestClientConfig {
                     request.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
                 } else {
                     // 2. 비동기/스케줄러 등 컨텍스트가 없는 환경: S2S(System-to-System) 토큰 주입
-                    String systemToken = generateSystemToSystemToken();
+                    // JwtProvider를 통해 실제 서명된 JWT 발급 (하드코딩된 문자열 제거)
+                    String systemToken = jwtProvider.generateS2SToken();
                     request.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + systemToken);
                 }
             }
@@ -68,13 +80,6 @@ public class RestClientConfig {
                 host.contains("service") || // 예: member-service, auth-service
                 host.equals("localhost") ||
                 host.startsWith("10."); // 내부망 IP 대역 예시
-    }
-
-    /**
-     * 시스템 간 내부 통신(S2S)을 위한 전용 토큰 발급 로직.
-     */
-    private String generateSystemToSystemToken() {
-        return "S2S_INTERNAL_TRUSTED_TOKEN";
     }
 
     /**

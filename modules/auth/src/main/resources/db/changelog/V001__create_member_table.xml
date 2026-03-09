@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+>
+
+  <!-- ========================
+       V001. 회원(Member) 테이블 생성
+       - auth 스키마에서 인증/인가에 필요한 회원 정보만 관리합니다.
+       - 비즈니스 전용 추가 정보(business_number 등)는 member 스키마에서 별도 관리합니다.
+       ======================== -->
+  <changeSet id="V001-1" author="hig">
+
+    <!-- auth 스키마가 없을 경우 생성 -->
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists schemaName="auth" tableName="member"/>
+      </not>
+    </preConditions>
+
+    <sql>CREATE SCHEMA IF NOT EXISTS auth</sql>
+
+    <createTable tableName="member" schemaName="auth"
+                 remarks="회원 인증 정보 테이블. 로그인 자격증명 및 계정 상태를 관리합니다.">
+
+      <column name="id" type="UUID" remarks="회원 PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="login_id" type="VARCHAR(50)" remarks="로그인 아이디 (중복 불가)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_member_login_id"/>
+      </column>
+
+      <column name="password" type="VARCHAR(255)" remarks="BCrypt 해시된 비밀번호">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="email" type="VARCHAR(100)" remarks="이메일 주소 (중복 불가, 이메일 인증에 사용)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_member_email"/>
+      </column>
+
+      <column name="phone_number" type="VARCHAR(20)" remarks="핸드폰 번호">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 이메일 인증 여부: false 상태에서는 예약 등 주요 기능 이용 불가 -->
+      <column name="email_verified" type="BOOLEAN" defaultValueBoolean="false" remarks="이메일 인증 완료 여부">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- MEMBER: 일반 회원 / BUSINESS: 비즈니스 회원 -->
+      <column name="member_type" type="VARCHAR(20)" remarks="회원 유형 (MEMBER, BUSINESS)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- ACTIVE: 정상 / SUSPENDED: 이용정지 / WITHDRAWN: 탈퇴 -->
+      <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE" remarks="계정 상태 (ACTIVE, SUSPENDED, WITHDRAWN)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 비즈니스 회원 전용 사업자 번호 (일반 회원은 NULL) -->
+      <column name="business_number" type="VARCHAR(20)" remarks="사업자 등록 번호 (비즈니스 회원만 사용)"/>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="가입일시">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="최종 수정일시">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+    <!-- 조회 성능 최적화: 이메일/상태 기반 검색에 자주 사용되는 컬럼 인덱스 추가 -->
+    <createIndex indexName="idx_member_status" tableName="member" schemaName="auth">
+      <column name="status"/>
+    </createIndex>
+
+    <createIndex indexName="idx_member_member_type" tableName="member" schemaName="auth">
+      <column name="member_type"/>
+    </createIndex>
+
+  </changeSet>
+
+</databaseChangeLog>

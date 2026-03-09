@@ -7,6 +7,13 @@ jar {
     enabled = true
 }
 
+// Java 25 환경에서 Mockito가 내부적으로 사용하는 Byte Buddy가
+// 공식 지원 범위(Java 24)를 초과하여 @MockBean 처리 시 실패하는 문제를 우회합니다.
+// Byte Buddy가 experimental 모드로 동작하여 최신 Java 버전을 best-effort로 지원합니다.
+test {
+    jvmArgs '-Dnet.bytebuddy.experimental=true'
+}
+
 dependencies {
     api 'org.springframework.boot:spring-boot-starter-web'
     api 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -43,4 +50,10 @@ dependencies {
 
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
+
+    // Redis - Refresh Token 및 이메일 인증 토큰 저장
+    api 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Liquibase - 각 모듈 DB 마이그레이션
+    api 'org.liquibase:liquibase-core'
 }

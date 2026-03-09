@@ -1,5 +1,6 @@
 package com.hig.core.aop;
 
+import com.hig.security.JwtProvider;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -30,16 +32,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestPropertySource(properties = {
-    "resilience4j.bulkhead.instances.orderDatabase.maxConcurrentCalls=5",
-    "resilience4j.bulkhead.instances.orderDatabase.maxWaitDuration=100ms",
-    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-    "spring.datasource.driver-class-name=org.h2.Driver",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-    "spring.liquibase.enabled=false" // 테스트 속도를 위해 Liquibase 비활성화 (필요시 true)
+        "resilience4j.bulkhead.instances.orderDatabase.maxConcurrentCalls=5",
+        "resilience4j.bulkhead.instances.orderDatabase.maxWaitDuration=100ms",
+        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.liquibase.enabled=false", // 테스트 속도를 위해 Liquibase 비활성화 (필요시 true)
+        // JwtProvider가 요구하는 jwt.secret 프로퍼티 주입 (256bit 이상이어야 µ 함)
+        "jwt.secret=test-secret-key-for-unit-test-minimum-256bits-padding-here"
 })
 public class TransactionalBulkheadAspectTest {
+
+    // JwtProvider는 StringRedisTemplate과 jwt.secret에 의존합니다.
+    // @MockitoBean으로 등록하여 Redis/JWT 인프라 없이 ApplicationContext가 올라오도록 합니다.
+    // (StringRedisTemplate을 직접 Mock하면 Java 25에서 Byte Buddy 한계로 실패함)
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @Autowired
     private TestService testService;

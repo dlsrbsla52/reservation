@@ -1,5 +1,5 @@
 # 예약 시스템 개발 프로젝트
->`java25`, `Spring Boot 4`, `Spring Security 7` 을 위한 MSA(Microservices Architecture) 기반 보일러플레이트
+>`java25`, `Spring Boot 3.4.13`을 위한 MSA(Microservices Architecture) 기반 보일러플레이트
 
 ## 시스템 아키텍처 (MSA Multi-Module 구조)
 본 프로젝트는 **MSA(Microservices Architecture)** 구조를 지향하며, 단일 프로젝트(Monorepo) 내에서 멀티 모듈 기반으로 구성됩니다. 각 서브 모듈은 도메인 특성에 맞게 독립적인 웹 애플리케이션으로 동작합니다.
@@ -56,8 +56,32 @@
 >
 > 자세한 구현 내용은 `com.hig.configuration.RestClientConfig`를 참조하시기 바랍니다.
 
+## 디버깅 (Remote JVM Debug)
+> 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
+> `docker-compose.yml` 리소스에 JDWP(Java Debug Wire Protocol) 설정 및 포워딩이 구성되어 있습니다.
+
+### 디버깅 모드 접속 방법
+1. **IntelliJ Remote Debugger 설정**
+   - 우측 상단 `Run/Debug Configurations` -> **Edit Configurations...**
+   - **+** 기호 -> **Remote JVM Debug** 선택
+   - **Name**: `Remote: Auth Service` 등 원하는 이름 설정
+   - **Host**: `localhost` / **Port**: 해당 서비스의 디버그 포트 입력
+     - `gateway`: `18080`
+     - `auth`: `18181`
+     - `member`: `18182`
+     - `reservation`: `18183`
+   - **Use module classpath**: 디버깅 타겟 모듈 지정 (예: `reservation.modules.auth.main`)
+2. **실행 및 Attach**
+   - `docker-compose up -d` 로 컨테이너 기동
+   - 비즈니스 로직에 Breakpoint(중단점) 지정
+   - 생성한 `Remote JVM Debug` 환경을 실행(디버그 아이콘 클릭)하여 컨테이너에 Attach
+   - 정상 연결 시 `Connected to the target VM` 메시지 확인 가능
+
+💡 **애플리케이션 초기화 시점 디버깅**
+컨테이너 기동 과정(예: 빈 생성, 컨텍스트 초기화)을 디버깅해야 한다면, `docker-compose.yml`의 `JAVA_TOOL_OPTIONS` 환경 변수 중 `suspend=n`을 `suspend=y`로 변경 후 컨테이너를 재시작하십시오. 디버거가 Attach 될 때까지 애플리케이션 Bootstrap이 일시 정지(Hold)됩니다.
+
 ## 주의사항
-> 이 보일러 플레이트는 Java Virtual-Thread를 기본 사양으로 간주하고 있습니다.\
+> 이 보일러 프로젝트는 Java Virtual-Thread를 기본 사양으로 간주하고 있습니다.\
 > Virtual Thread 환경에서는 스레드에 종속적인 데이터를 다룰 때 `ThreadLocal` 사용을 지양하고 `ScopedValue`(JDK 25+) 사용을 강력히 권장합니다. \
 > `ThreadLocal`을 잘못 사용하면 Virtual Thread가 Carrier Thread에 고정(pinning)되어 **심각한 성능 저하와 메모리 누수를 유발할 수 있습니다.** \
 > 해당 현상은 java 25에 들어 Jvm 레벨에서 해소 되었기 때문에 java 25 이상을 사용하는 환경에서 발생하지 않습니다.\
