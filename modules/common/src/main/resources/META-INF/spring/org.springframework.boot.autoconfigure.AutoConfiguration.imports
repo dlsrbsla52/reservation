@@ -1,0 +1,7 @@
+com.hig.autoconfigure.CommonSecurityAutoConfiguration
+com.hig.autoconfigure.CommonWebMvcAutoConfiguration
+com.hig.autoconfigure.CommonCoreAutoConfiguration
+com.hig.configuration.QueryDslConfig
+com.hig.configuration.RestClientConfig
+com.hig.configuration.SwaggerConfig
+com.hig.configuration.ThreadPoolConfig

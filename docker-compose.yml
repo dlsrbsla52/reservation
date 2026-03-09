@@ -17,6 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
+  # Valkey: Redis 라이선스 변경(BSL) 이후 AWS, GCP, Oracle 등이 Linux Foundation에
+  # 기여하여 만든 완전 오픈소스(BSD-3-Clause) Redis 포크.
+  # Redis API와 100% 호환되므로 기존 Spring Data Redis 설정 변경 불필요.
+  valkey:
+    image: valkey/valkey:8.1.6
+    container_name: msa-valkey
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "valkey-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   auth-service:
     build:
       context: .
@@ -30,11 +44,15 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      valkey:
+        condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/default
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - REDIS_HOST=valkey
+      - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181
 
   member-service:
@@ -92,6 +110,8 @@ services:
       - member-service
       - reservation-service
     environment:
+      - REDIS_HOST=valkey
+      - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080
 
 volumes:

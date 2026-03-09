@@ -2,16 +2,16 @@
 FROM ubuntu:24.04 AS builder
 
 # 필요한 패키지 설치 및 Java 25 설치 준비
-RUN apt-get update && apt-get install -y wget unzip findutils [cite: 1]
+RUN apt-get update && apt-get install -y wget unzip findutils
 
 # Java 25 JDK 다운로드 및 설치
 RUN arch=$(uname -m) && \
     if [ "$arch" = "x86_64" ]; then \
-        url="https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz"; [cite: 2] \
+    url="https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz"; \
     elif [ "$arch" = "aarch64" ]; then \
-        url="https://download.oracle.com/java/25/latest/jdk-25_linux-aarch64_bin.tar.gz"; [cite: 3] \
+    url="https://download.oracle.com/java/25/latest/jdk-25_linux-aarch64_bin.tar.gz"; \
     else \
-        echo "Unsupported architecture: $arch" && exit 1; [cite: 4] \
+    echo "Unsupported architecture: $arch" && exit 1; \
     fi && \
     wget $url -O jdk.tar.gz \
     && mkdir -p /opt/jdk-25 \
@@ -43,15 +43,15 @@ FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y wget && \
     arch=$(uname -m) && \
     if [ "$arch" = "x86_64" ]; then \
-        url="https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz"; [cite: 5] \
+    url="https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz"; \
     elif [ "$arch" = "aarch64" ]; then \
-        url="https://download.oracle.com/java/25/latest/jdk-25_linux-aarch64_bin.tar.gz"; [cite: 6] \
+    url="https://download.oracle.com/java/25/latest/jdk-25_linux-aarch64_bin.tar.gz"; \
     fi && \
     wget $url -O jdk.tar.gz \
     && mkdir -p /opt/jdk-25 \
     && tar -xzf jdk.tar.gz -C /opt/jdk-25 --strip-components=1 \
     && rm jdk.tar.gz \
-    && apt-get clean [cite: 7]
+    && apt-get clean
 
 ENV JAVA_HOME=/opt/jdk-25
 ENV PATH=$JAVA_HOME/bin:$PATH

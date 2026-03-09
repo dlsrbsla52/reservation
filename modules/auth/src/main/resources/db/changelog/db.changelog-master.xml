@@ -6,5 +6,7 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
 >
+  <!-- V001: 회원(Member) 테이블 생성 -->
+  <include file="/db/changelog/V001__create_member_table.xml"/>
 
 </databaseChangeLog>

@@ -7,7 +7,7 @@ spring:
   datasource:
     hikari:
       maximum-pool-size: 20
-    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=default"
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=member"
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driverClassName: "org.postgresql.Driver"
@@ -38,6 +38,12 @@ resilience4j:
         maxConcurrentCalls: 19 # 동시에 허용할 최대 호출 수 (세마포어 개수 1개는 여유분)
         maxWaitDuration: 200ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)
 
+rest:
+  service:
+    apply-patterns: /health-check
+
+jwt:
+  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
 springdoc:
   api-docs:
     path: /api-docs # OpenAPI JSON 문서 경로

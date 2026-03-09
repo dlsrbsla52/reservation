@@ -7,7 +7,7 @@ spring:
   datasource:
     hikari:
       maximum-pool-size: 20
-    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=default"
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=auth"
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driverClassName: "org.postgresql.Driver"
@@ -30,6 +30,10 @@ spring:
   threads:
     virtual: # 기본 Thread를 Virtual Thread 설정
       enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 resilience4j:
   bulkhead:
@@ -37,6 +41,10 @@ resilience4j:
       orderDatabase: # 벌크헤드 이름
         maxConcurrentCalls: 19 # 동시에 허용할 최대 호출 수 (세마포어 개수 1개는 여유분)
         maxWaitDuration: 200ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)
+
+rest:
+  service:
+    apply-patterns: /health-check, /api/**
 
 springdoc:
   api-docs:
@@ -48,3 +56,8 @@ springdoc:
     disable-swagger-default-url: true # 기본 petstore URL 비활성화
     display-request-duration: true # API 응답 시간 표시
   show-actuator: true # Actuator 엔드포인트도 문서화할지 여부
+
+# JWT 설정
+# 운영 환경에서는 반드시 AWS Secrets Manager 또는 환경변수로 주입해야 합니다.
+jwt:
+  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}

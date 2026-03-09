@@ -7,7 +7,7 @@ spring:
   datasource:
     hikari:
       maximum-pool-size: 10
-    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=default"
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=reservation"
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driverClassName: "org.postgresql.Driver"
