@@ -28,6 +28,7 @@ Docker (all services):
 docker-compose up --build -d
 docker-compose up -d --build --no-deps <service-name>   # e.g., gateway-service
 docker-compose down
+DOCKER_BUILDKIT=1 docker compose build --parallel
 ```
 
 Docker (local dev — `docker-compose-local.yml`):
@@ -35,6 +36,7 @@ Docker (local dev — `docker-compose-local.yml`):
 docker-compose -f docker-compose-local.yml up --build -d
 docker-compose -f docker-compose-local.yml up -d --build --no-deps <service-name>
 docker-compose -f docker-compose-local.yml down
+DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 ```
 
 ## Module Map

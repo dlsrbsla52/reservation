@@ -37,10 +37,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
      * HTTP Method + Path 쌍으로 정의합니다.
      */
     private static final List<String> PUBLIC_PATHS = List.of(
-            "POST:/api/v1/auth/register",
-            "POST:/api/v1/auth/login",
-            "POST:/api/v1/auth/token/refresh",
-            "GET:/api/v1/auth/verify-email");
+        "POST:/api/v1/auth/register",
+        "POST:/api/v1/auth/login",
+        "POST:/api/v1/auth/token/refresh",
+        "GET:/api/v1/auth/verify-email",
+        "GET:/api/v1/auth/health-check",
+        "GET:/api/v1/member/health-check",
+        "GET:/api/v1/reservation/health-check"
+    );
 
     // 하위 서비스로 전달할 사용자 컨텍스트 헤더 이름 상수
     public static final String HEADER_USER_ID = "X-User-Id";

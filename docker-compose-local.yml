@@ -54,7 +54,7 @@ services:
       - REDIS_HOST=valkey
       - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
+      - LOGGING_LEVEL_COM_HIG_AUTH=DEBUG
 
   member-service:
     build:
@@ -75,7 +75,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
+      - LOGGING_LEVEL_COM_HIG_MEMBER=DEBUG
 
   reservation-service:
     build:
@@ -96,7 +96,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18183
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
+      - LOGGING_LEVEL_COM_HIG_RESERVATION=DEBUG
 
   gateway-service:
     build:

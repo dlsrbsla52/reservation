@@ -16,10 +16,9 @@ public class SecurityConfig {
             // MSA 게이트웨이 특성상 외부 클라이언트에서 직접 호출되므로 CSRF 비활성화 처리
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-                // 로드밸런서 및 컨테이너 오케스트레이션 헬스체크를 위한 엔드포인트 개방
-                .pathMatchers("/health-check").permitAll()
-                // 그 외 모든 요청은 인증 필요 (업무 요구사항에 따라 추후 라우팅 규칙에 맞게 수정 필요)
-                .anyExchange().authenticated()
+                // 인증/인가 판단은 JwtAuthenticationFilter(GlobalFilter)에 완전 위임
+                // Spring Security는 CSRF 비활성화 외 별도 접근 제어를 수행하지 않음
+                .anyExchange().permitAll()
             );
 
         return http.build();
