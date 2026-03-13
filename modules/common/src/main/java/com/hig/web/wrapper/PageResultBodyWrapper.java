@@ -1,10 +1,9 @@
-package com.hig.mvc.wrapper;
+package com.hig.web.wrapper;
 
-import com.hig.mvc.response.ListData;
-import com.hig.mvc.response.PageData;
-import com.hig.mvc.response.PageView;
-import com.hig.mvc.wrappers.PageResult;
 import com.hig.result.type.CommonResult;
+import com.hig.web.response.ListData;
+import com.hig.web.response.PageData;
+import com.hig.web.response.PageView;
 import org.springframework.core.annotation.Order;
 
 import java.util.List;

@@ -163,7 +163,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public TokenResponse refreshAccessToken(String refreshToken) {
         // 서명/만료 검증
-        if (!jwtProvider.validateToken(refreshToken)) {
+        if (jwtProvider.validateToken(refreshToken)) {
             throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
         }
         Claims claims = jwtProvider.parseClaimsFromToken(refreshToken);

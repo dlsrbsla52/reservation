@@ -1,12 +1,12 @@
-package com.hig.mvc.advisor;
+package com.hig.web.advisor;
 
 import com.hig.exceptions.BaseException;
 import com.hig.exceptions.NoAuthenticationException;
 import com.hig.exceptions.NoAuthorizationException;
 import com.hig.exceptions.StorageException;
-import com.hig.mvc.response.ErrorView;
 import com.hig.result.Result;
 import com.hig.result.type.CommonResult;
+import com.hig.web.response.ErrorView;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

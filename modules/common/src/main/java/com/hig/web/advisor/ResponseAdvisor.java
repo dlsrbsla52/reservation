@@ -1,7 +1,7 @@
-package com.hig.mvc.advisor;
+package com.hig.web.advisor;
 
-import com.hig.mvc.properties.RestConfigProperties;
-import com.hig.mvc.wrapper.ResponseBodyWrapper;
+import com.hig.configuration.RestConfigProperties;
+import com.hig.web.wrapper.ResponseBodyWrapper;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.MethodParameter;

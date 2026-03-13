@@ -1,4 +1,4 @@
-package com.hig.mvc.wrapper;
+package com.hig.web.wrapper;
 
 /**
  * ResponseBody 래핑 전략 인터페이스.

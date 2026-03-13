@@ -1,4 +1,4 @@
-package com.hig.mvc.properties;
+package com.hig.configuration;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
