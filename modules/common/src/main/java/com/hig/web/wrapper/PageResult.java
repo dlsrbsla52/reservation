@@ -1,4 +1,4 @@
-package com.hig.mvc.wrappers;
+package com.hig.web.wrapper;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

@@ -1,7 +1,7 @@
 package com.hig.gateway.healthcheck;
 
-import com.hig.mvc.response.NoDataView;
 import com.hig.result.type.CommonResult;
+import com.hig.web.response.NoDataView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;

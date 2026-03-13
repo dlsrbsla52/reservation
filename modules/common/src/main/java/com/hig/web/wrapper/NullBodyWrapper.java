@@ -1,7 +1,7 @@
-package com.hig.mvc.wrapper;
+package com.hig.web.wrapper;
 
-import com.hig.mvc.response.NoDataView;
 import com.hig.result.type.CommonResult;
+import com.hig.web.response.NoDataView;
 import org.springframework.core.annotation.Order;
 
 /**

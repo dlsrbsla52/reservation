@@ -1,4 +1,4 @@
-package com.hig.mvc.wrappers;
+package com.hig.web.wrapper;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

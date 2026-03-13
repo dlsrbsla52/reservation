@@ -73,7 +73,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
 
         // JWT 토큰 검증 (서명 + 만료)
-        if (!jwtProvider.validateToken(token)) {
+        if (jwtProvider.validateToken(token)) {
             log.warn("[JwtAuthenticationFilter] 유효하지 않은 토큰. path={}", path);
             return unauthorized(exchange);
         }
