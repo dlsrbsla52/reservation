@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @TestPropertySource(properties = {
+        "hig.bulkhead.database-name=orderDatabase",
         "resilience4j.bulkhead.instances.orderDatabase.maxConcurrentCalls=5",
         "resilience4j.bulkhead.instances.orderDatabase.maxWaitDuration=100ms",
         "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",

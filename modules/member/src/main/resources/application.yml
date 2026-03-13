@@ -31,6 +31,10 @@ spring:
     virtual: # 기본 Thread를 Virtual Thread 설정
       enabled: true
 
+hig:
+  bulkhead:
+    database-name: orderDatabase # resilience4j.bulkhead.instances 이름과 반드시 일치해야 함
+
 resilience4j:
   bulkhead:
     instances:
