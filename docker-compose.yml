@@ -1,21 +1,22 @@
 services:
-  database:
-    image: postgres:18.3
-    container_name: msa-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: default
-      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
-    ports:
-      - "15433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+#  운영 환경에선 실제 데이터베이스 사용
+#  database:
+#    image: postgres:18.3
+#    container_name: msa-postgres
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: postgres
+#      POSTGRES_DB: default
+#      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+#    ports:
+#      - "15433:5432"
+#    volumes:
+#      - postgres_data:/var/lib/postgresql
+#    healthcheck:
+#      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 5
 
   # Valkey: Redis 라이선스 변경(BSL) 이후 AWS, GCP, Oracle 등이 Linux Foundation에
   # 기여하여 만든 완전 오픈소스(BSD-3-Clause) Redis 포크.
@@ -54,7 +55,6 @@ services:
       - REDIS_HOST=valkey
       - JWT_SECRET=local-dev-dummy-jwt-secret-for-tests-only-0000000000
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
 
   member-service:
     build:
@@ -75,7 +75,6 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
 
   reservation-service:
     build:
@@ -96,7 +95,6 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18183
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
 
   gateway-service:
     build:
@@ -116,7 +114,6 @@ services:
       - REDIS_HOST=valkey
       - JWT_SECRET=local-dev-dummy-jwt-secret-for-tests-only-0000000000
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080
-      - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
 
 volumes:
   postgres_data:
