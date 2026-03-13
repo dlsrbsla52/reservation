@@ -1,5 +1,6 @@
 package com.hig.core.aop;
 
+import com.hig.configuration.BulkheadProperties;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import lombok.RequiredArgsConstructor;
@@ -10,17 +11,15 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 
 @Slf4j
 @Aspect
-@Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RequiredArgsConstructor
 public class TransactionalBulkheadAspect {
 
     private final BulkheadRegistry bulkheadRegistry;
-    private static final String BULKHEAD_NAME = "orderDatabase";
+    private final BulkheadProperties bulkheadProperties;
 
     // ThreadLocal 대신 ScopedValue 선언
     // ScopedValue는 불변이며, 특정 스코프 내에서만 값이 유효함
@@ -41,7 +40,7 @@ public class TransactionalBulkheadAspect {
             return joinPoint.proceed();
         }
 
-        Bulkhead bulkhead = bulkheadRegistry.bulkhead(BULKHEAD_NAME);
+        Bulkhead bulkhead = bulkheadRegistry.bulkhead(bulkheadProperties.getDatabaseName());
         bulkhead.acquirePermission();
 
         if (log.isDebugEnabled()) {
