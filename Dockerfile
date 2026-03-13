@@ -1,10 +1,11 @@
 # === Builder Stage ===
 FROM ubuntu:24.04 AS builder
 
-# 필요한 패키지 설치 및 Java 25 설치 준비
+# 필수 패키지 설치
 RUN apt-get update && apt-get install -y wget unzip findutils
 
-# Java 25 JDK 다운로드 및 설치
+# JDK 25 설치 레이어 고정
+# 상단에 배치하여 하위 소스코드가 변경되더라도 JDK 다운로드 레이어는 재사용되도록 구성합니다.
 RUN arch=$(uname -m) && \
     if [ "$arch" = "x86_64" ]; then \
     url="https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz"; \
@@ -23,19 +24,24 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 
 WORKDIR /workspace
 
-# Gradle 캐시 활용을 위해 설정 파일 먼저 복사
+# 의존성 정의 파일 우선 복사
+# 소스코드 복사 이전에 환경 설정 파일만 복사하여 의존성 다운로드 레이어를 별도로 캐싱합니다.
 COPY gradle gradle
 COPY gradlew build.gradle settings.gradle ./
 
-# 하위 모듈 설정 복사
+RUN chmod +x ./gradlew
+
+# 하위 모듈 소스 전체 복사
 COPY modules modules
 
-# 빌드 권한 부여 및 특정 모듈 빌드
-# 캐시 이슈 방지를 위해 clean 태스크를 추가하였습니다.
-RUN chmod +x ./gradlew
 ARG MODULE_NAME
-RUN ./gradlew clean :modules:${MODULE_NAME}:bootJar
-# -x test
+
+# 최신 트렌드: BuildKit Cache Mount 및 Gradle 병렬 처리 적용
+# 1. --mount=type=cache,target=/root/.gradle: 컨테이너 간 Gradle 의존성 저장소를 공유하여 중복 다운로드를 방지합니다.
+# 2. 기존 코드의 clean 태스크를 제거하고 --build-cache 옵션을 활용하여 재컴파일 시간을 단축합니다.
+# 3. --parallel 옵션으로 가용한 시스템 리소스를 활용해 태스크를 병렬로 실행합니다.
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew :modules:${MODULE_NAME}:bootJar --parallel --build-cache --no-daemon
 
 # === Runtime Stage ===
 FROM ubuntu:24.04
@@ -60,9 +66,7 @@ ENV PATH=$JAVA_HOME/bin:$PATH
 WORKDIR /app
 ARG MODULE_NAME
 
-# 빌더 스테이지에서 생성된 실행 가능한 jar 파일만 복사
-# 와일드카드 사용 시 구 버전 파일이 섞이지 않도록 명확하게 지정하는 것이 좋으나,
-# builder 단계에서 clean을 수행하므로 현재 구조를 유지하며 안전하게 복사합니다.
+# 빌더 스테이지에서 생성된 결과물 복사 [cite: 8]
 COPY --from=builder /workspace/modules/${MODULE_NAME}/build/libs/*.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
