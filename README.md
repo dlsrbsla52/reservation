@@ -23,16 +23,22 @@
 > docker-compose up -d --build --no-deps {{service-name}}
 > docker-compose up -d --build --no-deps gateway-service
 > ```
+> 병렬 빌드 실행 (약 30% 속도 향상)
+> ```bash
+> DOCKER_BUILDKIT=1 docker compose build --parallel
+> DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
+> DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml up --build -d
+> ```
 > 로컬 빌드 실행
 > ```bash
 > docker-compose -f docker-compose-local.yml up -d --build --no-deps {{service-name}}
 > docker-compose -f docker-compose-local.yml up -d --build --no-deps gateway-service
 >```
-> 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 各 모듈의 `.jar`가 패키징됩니다. 
+> 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 각 모듈의 `.jar`가 패키징됩니다. 
 > API Gateway(`8080`)를 단일 진입점으로 하여 뒤단의 개별 서비스(`8181`, `8182`, `8183`) 포트가 묶여 백그라운드에서 구동됩니다. DB는 `15433` 포트로 바인딩됩니다.
 >
 > 💡 **데이터 영속성(Persistence)**
-> `docker-compose.yml` 내에 `postgres_data`라는 Docker Name Volume이 매핑되어 있습니다.
+> 개발환경에선 `docker-compose-local.yml` 내에 `postgres_data`라는 Docker Name Volume이 매핑되어 있습니다.
 > 이로 인해 `docker-compose down`이나 컨테이너(rm)를 강제로 삭제하더라도, **매핑된 볼륨(`-v`)을 함께 삭제하지 않는 이상 DB 내의 데이터는 영구적으로 유지**되므로 안전하게 테스트를 껐다 켤 수 있습니다.
 
 

@@ -39,9 +39,8 @@ services:
       args:
         MODULE_NAME: auth
     container_name: msa-auth
-    ports:
-      - "8181:8181"
-      - "18181:18181" # auth 디버그 포트
+    expose:
+      - "8181"
     depends_on:
       database:
         condition: service_healthy
@@ -54,7 +53,6 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - REDIS_HOST=valkey
       - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181
 
   member-service:
     build:
@@ -63,9 +61,8 @@ services:
       args:
         MODULE_NAME: member
     container_name: msa-member
-    ports:
-      - "8182:8182"
-      - "18182:18182" # member 디버그 포트
+    expose:
+      - "8182"
     depends_on:
       database:
         condition: service_healthy
@@ -74,7 +71,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182
 
   reservation-service:
     build:
@@ -83,9 +79,8 @@ services:
       args:
         MODULE_NAME: reservation
     container_name: msa-reservation
-    ports:
-      - "8183:8183"
-      - "18183:18183" # reservation 디버그 포트
+    expose:
+      - "8183"
     depends_on:
       database:
         condition: service_healthy
@@ -94,7 +89,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18183
 
   gateway-service:
     build:
@@ -105,7 +99,6 @@ services:
     container_name: msa-gateway
     ports:
       - "8080:8080"
-      - "18080:18080" # gateway 디버그 포트
     depends_on:
       - auth-service
       - member-service
@@ -113,7 +106,6 @@ services:
     environment:
       - REDIS_HOST=valkey
       - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080
 
 volumes:
   postgres_data:

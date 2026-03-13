@@ -1,0 +1,11 @@
+### 회원가입
+POST {{domain-gateway}}/api/v1/auth/register
+Content-Type: {{json}}
+
+{
+    "loginId" : "vhkdrb52",
+    "password" : "ghkddlsrb1!",
+    "email" : "vhkdrb52@gmail.com",
+    "phoneNumber" : "01049045402",
+    "memberType" : "MEMBER"
+}
