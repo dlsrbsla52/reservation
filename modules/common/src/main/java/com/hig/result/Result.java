@@ -1,4 +1,4 @@
-package com.hig.types;
+package com.hig.result;
 
 import java.io.Serializable;
 import java.util.function.UnaryOperator;

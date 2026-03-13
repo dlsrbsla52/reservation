@@ -1,4 +1,4 @@
-package com.hig.domain.common;
+package com.hig.entity.common;
 
 import java.util.Arrays;
 import java.util.Optional;

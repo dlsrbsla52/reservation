@@ -8,7 +8,7 @@ import com.hig.mvc.response.NoDataView;
 import com.hig.mvc.response.PageData;
 import com.hig.mvc.response.PageView;
 import com.hig.mvc.wrappers.PageResult;
-import com.hig.types.CommonResult;
+import com.hig.result.type.CommonResult;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.MethodParameter;

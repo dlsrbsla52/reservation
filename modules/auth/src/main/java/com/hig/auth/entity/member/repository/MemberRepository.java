@@ -1,6 +1,6 @@
-package com.hig.auth.domain.member.repository;
+package com.hig.auth.entity.member.repository;
 
-import com.hig.auth.domain.member.entity.Member;
+import com.hig.auth.entity.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
