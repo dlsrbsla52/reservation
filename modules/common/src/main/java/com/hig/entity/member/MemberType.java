@@ -15,7 +15,11 @@ import java.util.Optional;
 @AllArgsConstructor
 public enum MemberType implements BaseEnum {
     MEMBER("MEMBER", "일반 회원"),
-    BUSINESS("BUSINESS", "비즈니스 회원");
+    BUSINESS("BUSINESS", "비즈니스 회원"),
+    ADMIN_USER("ADMIN_USER", "관리회원 일반 유저"),
+    ADMIN_MASTER("ADMIN_MASTER", "관리회원 마스터(대부분의 권한을 가지고 있음)"),
+    ADMIN_DEVELOPER("ADMIN_DEVELOPER", "관리회원 개발지"),
+    ;
 
     private final String name;
     private final String displayName;
