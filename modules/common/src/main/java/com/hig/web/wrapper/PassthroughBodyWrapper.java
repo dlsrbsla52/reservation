@@ -1,6 +1,6 @@
-package com.hig.mvc.wrapper;
+package com.hig.web.wrapper;
 
-import com.hig.mvc.response.AbstractView;
+import com.hig.web.response.AbstractView;
 import org.springframework.core.annotation.Order;
 
 /**

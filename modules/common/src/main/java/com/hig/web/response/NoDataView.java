@@ -1,4 +1,4 @@
-package com.hig.mvc.response;
+package com.hig.web.response;
 
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;

@@ -1,16 +1,16 @@
-package com.hig.mvc.response;
+package com.hig.web.response;
 
 import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 /**
- * 일반적인 Data를 담은 Rest View
+ * Page 스타일의 Data View
  */
 @ToString(callSuper = true)
 @SuperBuilder
-public class DataView<T> extends AbstractView {
+public class PageView<E> extends AbstractView {
 
 	@Getter
-	private final T data;
+	private final ListData<E> data;
 }
