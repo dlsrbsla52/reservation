@@ -1,6 +1,6 @@
 package com.hig.mvc.response;
 
-import com.hig.types.Result;
+import com.hig.result.Result;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;

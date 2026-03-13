@@ -1,7 +1,7 @@
 package com.hig.exceptions;
 
-import com.hig.types.CommonResult;
-import com.hig.types.Result;
+import com.hig.result.type.CommonResult;
+import com.hig.result.Result;
 import com.hig.utils.MessageUtil;
 import lombok.Getter;
 

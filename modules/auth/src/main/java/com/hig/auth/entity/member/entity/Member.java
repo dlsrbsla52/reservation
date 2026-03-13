@@ -1,8 +1,8 @@
-package com.hig.auth.domain.member.entity;
+package com.hig.auth.entity.member.entity;
 
-import com.hig.domain.common.DateBaseEntity;
-import com.hig.domain.member.MemberStatus;
-import com.hig.domain.member.MemberType;
+import com.hig.entity.common.DateBaseEntity;
+import com.hig.entity.member.MemberStatus;
+import com.hig.entity.member.MemberType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

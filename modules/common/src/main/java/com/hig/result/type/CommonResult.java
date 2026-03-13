@@ -1,5 +1,6 @@
-package com.hig.types;
+package com.hig.result.type;
 
+import com.hig.result.Result;
 import lombok.Getter;
 import lombok.ToString;
 

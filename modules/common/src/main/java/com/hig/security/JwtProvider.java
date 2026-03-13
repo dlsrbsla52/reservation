@@ -1,6 +1,6 @@
 package com.hig.security;
 
-import com.hig.domain.member.MemberType;
+import com.hig.entity.member.MemberType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;

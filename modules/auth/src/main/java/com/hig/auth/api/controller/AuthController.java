@@ -8,7 +8,7 @@ import com.hig.auth.api.dto.TokenResponse;
 import com.hig.auth.service.AuthService;
 import com.hig.mvc.response.DataView;
 import com.hig.mvc.response.NoDataView;
-import com.hig.types.CommonResult;
+import com.hig.result.type.CommonResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

@@ -1,8 +1,9 @@
 package com.hig.auth.domain.member.repository;
 
-import com.hig.auth.domain.member.entity.Member;
-import com.hig.domain.member.MemberStatus;
-import com.hig.domain.member.MemberType;
+import com.hig.auth.entity.member.entity.Member;
+import com.hig.auth.entity.member.repository.MemberRepository;
+import com.hig.entity.member.MemberStatus;
+import com.hig.entity.member.MemberType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,6 @@
-package com.hig.domain.member;
+package com.hig.entity.member;
 
-import com.hig.domain.common.BaseEnum;
+import com.hig.entity.common.BaseEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
