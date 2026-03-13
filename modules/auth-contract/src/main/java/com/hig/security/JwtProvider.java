@@ -24,7 +24,7 @@ import java.util.Date;
  * - S2S Token : 시스템 간 내부 통신 전용 토큰. 특수 클레임으로 구분.
  */
 @Component
-public class JwtProvider {
+public class JwtProvider implements TokenProvider {
 
     private static final long ACCESS_TOKEN_EXPIRE_MS = 1000L * 60 * 60; // 60분
     private static final long REFRESH_TOKEN_EXPIRE_MS = 1000L * 60 * 60 * 24 * 7; // 7일
@@ -91,6 +91,7 @@ public class JwtProvider {
      * 'system:true' 클레임으로 일반 유저 토큰과 구분하며, 하위 서비스는
      * 이 클레임을 확인하여 S2S 요청에 대한 별도 처리를 적용할 수 있습니다.
      */
+    @Override
     public String generateS2SToken() {
         long now = System.currentTimeMillis();
         return Jwts.builder()

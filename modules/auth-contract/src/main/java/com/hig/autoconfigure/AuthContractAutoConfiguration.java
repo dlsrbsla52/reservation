@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 @AutoConfiguration
-public class CommonSecurityAutoConfiguration {
+public class AuthContractAutoConfiguration {
 
     @Bean
     public JwtProvider jwtProvider(@Value("${jwt.secret}") String secret, StringRedisTemplate redisTemplate) {

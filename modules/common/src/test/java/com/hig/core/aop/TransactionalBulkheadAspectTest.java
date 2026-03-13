@@ -1,6 +1,6 @@
 package com.hig.core.aop;
 
-import com.hig.security.JwtProvider;
+import com.hig.security.TokenProvider;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
@@ -45,11 +45,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 })
 public class TransactionalBulkheadAspectTest {
 
-    // JwtProvider는 StringRedisTemplate과 jwt.secret에 의존합니다.
+    // TokenProvider(JwtProvider)는 StringRedisTemplate과 jwt.secret에 의존합니다.
     // @MockitoBean으로 등록하여 Redis/JWT 인프라 없이 ApplicationContext가 올라오도록 합니다.
     // (StringRedisTemplate을 직접 Mock하면 Java 25에서 Byte Buddy 한계로 실패함)
     @MockitoBean
-    private JwtProvider jwtProvider;
+    private TokenProvider tokenProvider;
 
     @Autowired
     private TestService testService;
