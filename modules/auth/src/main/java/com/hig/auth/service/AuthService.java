@@ -6,6 +6,8 @@ import com.hig.auth.api.dto.TokenResponse;
 import com.hig.auth.entity.member.entity.Member;
 import com.hig.auth.entity.member.repository.MemberRepository;
 import com.hig.entity.member.MemberType;
+import com.hig.exceptions.NoAuthenticationException;
+import com.hig.result.type.CommonResult;
 import com.hig.security.JwtProvider;
 import com.hig.security.MemberPrincipal;
 import io.jsonwebtoken.Claims;
@@ -21,7 +23,6 @@ import java.util.UUID;
 
 /**
  * 회원 인증/인가 비즈니스 로직 서비스.
- *
  * 핵심 비즈니스 규칙:
  * 1. 비즈니스 회원(BUSINESS) 가입 시 businessNumber 필수.
  * 2. 이메일 인증 전 로그인은 허용하나, emailVerified = false 상태의 토큰을 발급하여
@@ -55,19 +56,19 @@ public class AuthService {
         // 아이디 중복 검사
         log.debug("회원가입 요청 ID : {}", request.loginId());
         if (memberRepository.existsByLoginId(request.loginId())) {
-            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+            throw new NoAuthenticationException(CommonResult.DUPLICATE_USERNAME_FAIL);
         }
 
         // 이메일 중복 검사
         log.debug("회원가입 요청 email : {}", request.email());
         if (memberRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new NoAuthenticationException(CommonResult.DUPLICATE_EMAIL_FAIL);
         }
 
         // 비즈니스 회원 전용 유효성 검사
         if (MemberType.BUSINESS.equals(request.memberType())
                 && (request.businessNumber() == null || request.businessNumber().isBlank())) {
-            throw new IllegalArgumentException("비즈니스 회원 가입 시 사업자 번호는 필수입니다.");
+            throw new NoAuthenticationException(CommonResult.BUSINESS_NUMBER_REQUIRED_FAIL);
         }
 
         Member member = Member.builder()
@@ -102,7 +103,6 @@ public class AuthService {
      * 1. 자격증명(아이디/비밀번호) 검증
      * 2. 계정 상태(ACTIVE) 검증
      * 3. Access Token + Refresh Token 발급
-     *
      * emailVerified = false 상태에서도 로그인은 허용합니다.
      * 이메일 미인증 사실은 JWT 클레임에 포함되어, 이를 활용한 기능 접근 제한은
      * Gateway 또는 개별 서비스 레이어에 위임합니다.
@@ -110,16 +110,16 @@ public class AuthService {
     @Transactional(readOnly = true)
     public TokenResponse login(LoginRequest request) {
         Member member = memberRepository.findByLoginId(request.loginId())
-                .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다."));
+                .orElseThrow(() -> new NoAuthenticationException(CommonResult.BAD_CREDENTIAL_FAIL));
 
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
-            throw new IllegalArgumentException("아이디 또는 비밀번호가 올바르지 않습니다.");
+            throw new NoAuthenticationException(CommonResult.BAD_CREDENTIAL_FAIL);
         }
 
         // 이용 정지 / 탈퇴 계정 로그인 차단
         switch (member.getStatus()) {
-            case SUSPENDED -> throw new IllegalStateException("이용이 정지된 계정입니다. 고객센터에 문의해주세요.");
-            case WITHDRAWN -> throw new IllegalStateException("탈퇴된 계정입니다.");
+            case SUSPENDED -> throw new NoAuthenticationException(CommonResult.ACCOUNT_SUSPENDED_FAIL);
+            case WITHDRAWN -> throw new NoAuthenticationException(CommonResult.ACCOUNT_WITHDRAWN_FAIL);
             default -> {
                 /* ACTIVE: 정상 처리 */ }
         }
@@ -147,11 +147,11 @@ public class AuthService {
     public void verifyEmail(String token) {
         String memberId = redisTemplate.opsForValue().get(EMAIL_VERIFY_KEY_PREFIX + token);
         if (memberId == null) {
-            throw new IllegalArgumentException("유효하지 않거나 만료된 이메일 인증 토큰입니다.");
+            throw new NoAuthenticationException(CommonResult.EMAIL_TOKEN_INVALID_FAIL);
         }
 
         Member member = memberRepository.findById(UUID.fromString(memberId))
-                .orElseThrow(() -> new IllegalStateException("회원 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL));
 
         member.verifyEmail();
         // 인증 완료 후 Redis 토큰 즉시 삭제 (1회성 토큰)
@@ -168,18 +168,18 @@ public class AuthService {
     public TokenResponse refreshAccessToken(String refreshToken) {
         // 서명/만료 검증
         if (jwtProvider.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+            throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL);
         }
         Claims claims = jwtProvider.parseClaimsFromToken(refreshToken);
         String userId = claims.getSubject();
 
         // Redis에 저장된 토큰과 비교 (Refresh Token Rotation 지원)
         if (!jwtProvider.validateRefreshToken(userId, refreshToken)) {
-            throw new IllegalArgumentException("Refresh Token이 일치하지 않습니다. 재로그인이 필요합니다.");
+            throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_VERIFICATION_FAIL);
         }
 
         Member member = memberRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new IllegalStateException("회원 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL));
 
         MemberPrincipal principal = MemberPrincipal.builder()
                 .id(member.getId().toString())

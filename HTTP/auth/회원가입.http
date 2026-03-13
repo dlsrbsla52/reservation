@@ -9,3 +9,21 @@ Content-Type: {{json}}
     "phoneNumber" : "01049045402",
     "memberType" : "MEMBER"
 }
+
+### 로그인
+POST {{domain-gateway}}/api/v1/auth/login
+Content-Type: {{json}}
+
+{
+    "loginId" : "vhkdrb52",
+    "password" : "ghkddlsrb1!"
+}
+
+
+### 토큰 재발급
+POST {{domain-gateway}}/api/v1/auth/token/refresh
+Content-Type: {{json}}
+
+{
+    "refreshToken" : "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc3MzQxMDEwMSwiZXhwIjoxNzc0MDE0OTAxfQ.OKd6BE6SXnafJbsX-mpsgtKg3l3FKugclhxaYdfRqrG9x8ZMwq2D9gn0iPuIl8bxUpi8QdJ4AGub287UbvkCUg"
+}
