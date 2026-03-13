@@ -12,6 +12,7 @@ import java.util.Map;
 /**
  * 즐겨찾는 유틸 클래스
  */
+@SuppressWarnings("unused")
 public class FavoriteUtil {
 
     private FavoriteUtil() {
@@ -21,12 +22,10 @@ public class FavoriteUtil {
     /**
      * source가 null이거나 공백이면 replace를 리턴하고 아니면 source를 리턴함
      *
-     * @param source
-     * @param replace
-     * @return source or replace
+     *  @return source or replace
      */
     public static String ifEmpty(String source, String replace) {
-        if(source == null || "".equals(source)) {
+        if(source == null || source.isEmpty()) {
             return replace == null ? "" : replace;
         }
         return source;
@@ -35,7 +34,6 @@ public class FavoriteUtil {
     /**
      * source가 숫자 형식이 아닐 경우 0을 리턴함
      *
-     * @param source
      * @return source or 0
      */
     public static int ifNotNumericToZero(String source) {
@@ -45,7 +43,6 @@ public class FavoriteUtil {
     /**
      * source가 숫자 형식이 아닐 경우 replace를 리턴함
      *
-     * @param source
      * @return source or replace
      */
     public static int ifNotNumericToInt(String source, int replace) {
@@ -59,11 +56,10 @@ public class FavoriteUtil {
     /**
      * 숫자형식 여부를 리턴함
      *
-     * @param str
      * @return true or false
      */
     public static boolean isNumeric(String str){
-        if(str == null || "".equals(str)) {
+        if(str == null || str.isEmpty()) {
             return false;
         }
         String regEx = "^[+-]?[0-9]+$";
@@ -74,8 +70,6 @@ public class FavoriteUtil {
     /**
      * target 문장에서 prefix가 존재할 경우 prefix를 제거하고 존재하지 않을 경우 전체 문장을 리턴함
      *
-     * @param target
-     * @param prefix
      * @return prefix가 제거된 문장 또는 전체 문장
      */
     public static String removeStartWith(String target, String prefix) {
@@ -88,9 +82,6 @@ public class FavoriteUtil {
     /**
      * 파라미터로 넘어온 JSON 스타일의 메시지를 요청받은 타입의 객체로 변환하여 리턴함
      *
-     * @param <T>
-     * @param message
-     * @param clazz
      * @return T타입의 객체
      */
     public static <T> T convertTo(String message, Class<T> clazz) {
@@ -104,8 +95,6 @@ public class FavoriteUtil {
     /**
      * 파라미터로 받은 객체를 Map으로 변환하여 리턴함
      *
-     * @param <T>
-     * @param source
      * @return Map 객체
      */
     public static <T> Map<String, Object> convertToMap(T source) {
@@ -116,17 +105,17 @@ public class FavoriteUtil {
                 field.setAccessible(true);
                 String key = field.getName();
                 if (int.class == field.getType() || Integer.class == field.getType()) {
-                    returnMap.put(key, (Integer) field.get(source));
+                    returnMap.put(key, field.get(source));
                 } else if (long.class == field.getType() || Long.class == field.getType()) {
-                    returnMap.put(key, (Long) field.get(source));
+                    returnMap.put(key, field.get(source));
                 } else if (double.class == field.getType() || Double.class == field.getType()) {
-                    returnMap.put(key, (Double) field.get(source));
+                    returnMap.put(key, field.get(source));
                 } else if (boolean.class == field.getType() || Boolean.class == field.getType()) {
-                    returnMap.put(key, (Boolean) field.get(source));
+                    returnMap.put(key, field.get(source));
                 } else if (String.class == field.getType()) {
-                    returnMap.put(key, (String) field.get(source));
+                    returnMap.put(key, field.get(source));
                 } else {
-                    returnMap.put(key, (Object) field.get(source));
+                    returnMap.put(key, field.get(source));
                 }
             }
         } catch (IllegalArgumentException | IllegalAccessException e) {
@@ -138,8 +127,6 @@ public class FavoriteUtil {
     /**
      * 구분 문자 이후의 문자열을 반환한다. 전체 문자열 또는 구분 문자열이 null일 경우 공백을 리턴함
      *
-     * @param fullName
-     * @param delimiter
      * @return 마지막 문자열
      */
     public static String getExtractLastString(String fullString, String delimiter) {
