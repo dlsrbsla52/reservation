@@ -34,7 +34,8 @@ COPY modules modules
 # 캐시 이슈 방지를 위해 clean 태스크를 추가하였습니다.
 RUN chmod +x ./gradlew
 ARG MODULE_NAME
-RUN ./gradlew clean :modules:${MODULE_NAME}:bootJar # -x test
+RUN ./gradlew clean :modules:${MODULE_NAME}:bootJar
+# -x test
 
 # === Runtime Stage ===
 FROM ubuntu:24.04

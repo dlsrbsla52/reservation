@@ -1,13 +1,13 @@
 package com.hig.autoconfigure;
 
-import com.hig.mvc.advisor.ExceptionAdvisor;
-import com.hig.mvc.advisor.ResponseAdvisor;
-import com.hig.mvc.properties.RestConfigProperties;
-import com.hig.mvc.wrapper.DefaultObjectBodyWrapper;
-import com.hig.mvc.wrapper.NullBodyWrapper;
-import com.hig.mvc.wrapper.PageResultBodyWrapper;
-import com.hig.mvc.wrapper.PassthroughBodyWrapper;
-import com.hig.mvc.wrapper.ResponseBodyWrapper;
+import com.hig.configuration.RestConfigProperties;
+import com.hig.web.advisor.ExceptionAdvisor;
+import com.hig.web.advisor.ResponseAdvisor;
+import com.hig.web.wrapper.DefaultObjectBodyWrapper;
+import com.hig.web.wrapper.NullBodyWrapper;
+import com.hig.web.wrapper.PageResultBodyWrapper;
+import com.hig.web.wrapper.PassthroughBodyWrapper;
+import com.hig.web.wrapper.ResponseBodyWrapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

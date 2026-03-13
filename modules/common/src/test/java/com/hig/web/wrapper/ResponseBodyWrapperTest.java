@@ -1,11 +1,10 @@
-package com.hig.mvc.wrapper;
+package com.hig.web.wrapper;
 
-import com.hig.mvc.response.DataView;
-import com.hig.mvc.response.ErrorView;
-import com.hig.mvc.response.NoDataView;
-import com.hig.mvc.response.PageView;
-import com.hig.mvc.wrappers.PageResult;
 import com.hig.result.type.CommonResult;
+import com.hig.web.response.DataView;
+import com.hig.web.response.ErrorView;
+import com.hig.web.response.NoDataView;
+import com.hig.web.response.PageView;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

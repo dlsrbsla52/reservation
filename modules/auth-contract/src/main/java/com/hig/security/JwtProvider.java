@@ -35,8 +35,10 @@ public class JwtProvider implements TokenProvider {
     private final SecretKey secretKey;
     private final StringRedisTemplate redisTemplate;
 
-    public JwtProvider(@Value("${jwt.secret}") String secret,
-            StringRedisTemplate redisTemplate) {
+    public JwtProvider(
+        @Value("${jwt.secret}") String secret,
+        StringRedisTemplate redisTemplate
+    ) {
         // JWT secret은 반드시 256bit(32byte) 이상이어야 합니다.
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.redisTemplate = redisTemplate;
@@ -123,9 +125,9 @@ public class JwtProvider implements TokenProvider {
     public boolean validateToken(String token) {
         try {
             parseClaimsFromToken(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
             return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            return true;
         }
     }
 
