@@ -1,43 +1,35 @@
-
 package com.hig.mvc.wrappers;
 
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.Singular;
+import lombok.ToString;
 
-import java.util.ArrayList;
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.List;
 
 /**
- * Paging Result 객체
- * @author realninano
- * @since 2019.07.22.
+ * Paging Result 객체.
+ * ArrayList 상속 대신 컴포지션으로 items 리스트를 보유한다.
+ * 빌드 후 items는 불변(unmodifiable)이며, 페이징 메타(totalCnt, pageRows, pageNum)도 변경 불가하다.
  */
-@Setter
 @Getter
-@EqualsAndHashCode(callSuper=false)
-public class PageResult<E> extends ArrayList<E> {
+@ToString
+@EqualsAndHashCode
+@Builder
+public class PageResult<E> implements Serializable {
 
-	private static final long serialVersionUID = -4202447654651104371L;
+	@Serial
+    private static final long serialVersionUID = -4202447654651104371L;
 
-	private long totalCnt;
-	
-	private int pageRows;
-	
-	private int pageNum;
-	
-	@Override
-	public String toString() {
-		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append("PageResult [totalCnt=")
-					.append(totalCnt)
-					.append(", pageRows=")
-					.append(pageRows)
-					.append(", pageNum=")
-					.append(pageNum)
-					.append(", list=")
-					.append(super.toString())
-					.append("]");
-		
-		return stringBuilder.toString();
-	}
+	@Singular
+	private final List<E> items;
+
+	private final long totalCnt;
+
+	private final int pageRows;
+
+	private final int pageNum;
 }

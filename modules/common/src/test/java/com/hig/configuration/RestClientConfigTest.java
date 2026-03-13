@@ -7,7 +7,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -24,9 +25,26 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+/**
+ * RestClientTest는 비서블릿(non-servlet) 슬라이스 컨텍스트를 생성한다.
+ * RestClientConfig에 @ConditionalOnWebApplication(type = SERVLET)이 적용되어 있으므로
+ * Import(RestClientConfig.class)로는 조건이 false가 되어 빈이 등록되지 않는다.
+ * 해결책: @TestConfiguration으로 RestClientConfig를 직접 인스턴스화하여 빈을 수동 등록한다.
+ * 이렇게 하면 조건 평가를 우회하면서도 실제 RestClientConfig 로직을 그대로 사용할 수 있다.
+ */
 @RestClientTest
-@Import(RestClientConfig.class)
 class RestClientConfigTest {
+
+    @TestConfiguration
+    static class TestRestClientConfig {
+
+        @Bean
+        @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") // 이상없지만 IDE 정적 분석으로 추적이 안되어 예외 처리
+        public RestClient internalRestClient(RestClient.Builder builder, TokenProvider tokenProvider) {
+            // RestClientConfig를 직접 인스턴스화하여 실제 interceptor 로직 사용
+            return new RestClientConfig(tokenProvider).internalRestClient(builder);
+        }
+    }
 
     // @RestClientTest는 슬라이스 테스트이므로 Redis, JPA 등의 인프라 Bean을 로드하지 않는다.
     // TokenProvider(JwtProvider)는 StringRedisTemplate과 ${jwt.secret}에 의존하므로

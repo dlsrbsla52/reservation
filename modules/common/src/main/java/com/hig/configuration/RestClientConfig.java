@@ -2,7 +2,7 @@ package com.hig.configuration;
 
 import com.hig.security.TokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -13,7 +13,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
-@ConditionalOnClass(RestClient.class)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class RestClientConfig {
 
     private final TokenProvider tokenProvider;
@@ -28,7 +28,6 @@ public class RestClientConfig {
      * 호출 시 현재 스레드의 Security Context (Authorization Token)를 자동으로 전파합니다.
      */
     @Bean
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     public RestClient internalRestClient(RestClient.Builder builder) {
         return builder
                 // Security Context 전파 헤더 주입 Interceptor 등록

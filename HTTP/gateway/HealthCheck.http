@@ -1,0 +1,3 @@
+### 헬스체크
+GET {{domain-gateway}}/health-check
+Content-Type: {{json}}
