@@ -53,13 +53,17 @@ public class AuthService {
     @Transactional
     public String register(RegisterRequest request) {
         // 아이디 중복 검사
+        log.debug("회원가입 요청 ID : {}", request.loginId());
         if (memberRepository.existsByLoginId(request.loginId())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
+
         // 이메일 중복 검사
+        log.debug("회원가입 요청 email : {}", request.email());
         if (memberRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
+
         // 비즈니스 회원 전용 유효성 검사
         if (MemberType.BUSINESS.equals(request.memberType())
                 && (request.businessNumber() == null || request.businessNumber().isBlank())) {
