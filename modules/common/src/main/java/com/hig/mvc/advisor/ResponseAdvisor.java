@@ -1,14 +1,7 @@
 package com.hig.mvc.advisor;
 
 import com.hig.mvc.properties.RestConfigProperties;
-import com.hig.mvc.response.DataView;
-import com.hig.mvc.response.ErrorView;
-import com.hig.mvc.response.ListData;
-import com.hig.mvc.response.NoDataView;
-import com.hig.mvc.response.PageData;
-import com.hig.mvc.response.PageView;
-import com.hig.mvc.wrappers.PageResult;
-import com.hig.result.type.CommonResult;
+import com.hig.mvc.wrapper.ResponseBodyWrapper;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.MethodParameter;
@@ -23,89 +16,54 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import java.util.List;
 
 /**
- * ResponseBody(Json) 타입의 응답이 있기 전 실행 클래스
+ * ResponseBody(Json) 타입의 응답이 있기 전 실행 클래스.
+ * 실제 래핑 로직은 {@link ResponseBodyWrapper} 구현체에 위임한다.
  */
 @ControllerAdvice
 @RequiredArgsConstructor
 public class ResponseAdvisor implements ResponseBodyAdvice<Object> {
 
 	private final RestConfigProperties restConfigProperties;
+	private final List<ResponseBodyWrapper> bodyWrappers;
+
+	private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
 	@Override
 	public boolean supports(@NonNull MethodParameter returnType, @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object beforeBodyWrite(
-        Object body,
-        @NonNull MethodParameter returnType,
-        @NonNull MediaType selectedContentType,
-        @NonNull Class<? extends HttpMessageConverter<?>> selectedConverterType,
-        @NonNull ServerHttpRequest request,
-        @NonNull ServerHttpResponse response
-    ) {
-		
-		if (isApplyRestServiceContentType(selectedContentType) && isApplyRestServicePattern(request.getURI().getPath())) {
-			if (body == null) {
-				return DataView.builder()
-						.result(CommonResult.REQUEST_SUCCESS)
-						.data(body).build();
-				
-			} else if (body.getClass() == PageView.class || body.getClass() == DataView.class
-						|| body.getClass() == ErrorView.class || body.getClass() == NoDataView.class) {
-				return body;
-				
-			} else if (body.getClass() == PageResult.class) {
-				PageResult<?> result = (PageResult<?>) body;
-				return PageView.builder()
-							.result(CommonResult.REQUEST_SUCCESS)
-							.data(ListData.builder()
-										.pageData(PageData.builder()
-														.pageNum(result.getPageNum())
-														.pageRows(result.getPageRows())
-														.totalCnt(result.getTotalCnt())
-														.build())
-										.list((List<Object>) result)
-										.build()).build();
-				
-			} else {
-				if(!(body instanceof String)) {
-					return DataView.builder()
-							.result(CommonResult.REQUEST_SUCCESS)
-							.data(body).build();
-				}
-			}
+			Object body,
+			@NonNull MethodParameter returnType,
+			@NonNull MediaType selectedContentType,
+			@NonNull Class<? extends HttpMessageConverter<?>> selectedConverterType,
+			@NonNull ServerHttpRequest request,
+			@NonNull ServerHttpResponse response
+	) {
+		if (!isApplicableContentType(selectedContentType) || !isApplicablePath(request.getURI().getPath())) {
+			return body;
 		}
-		return body;
+
+		return bodyWrappers.stream()
+				.filter(wrapper -> wrapper.supports(body))
+				.findFirst()
+				.map(wrapper -> wrapper.wrap(body))
+				.orElse(body);
 	}
 
-	/*
-	 * Request URI가 Rest API의 패턴과 일치하는지 여부를 리턴
-	 */
-	private boolean isApplyRestServicePattern(String path) {
-		AntPathMatcher antPathMatcher = new AntPathMatcher();
+	private boolean isApplicablePath(String path) {
 		String[] patterns = restConfigProperties.getApplyPatterns();
-		boolean result = false;
-		if (patterns != null) {
-			for(String pattern : patterns) {
-				result = antPathMatcher.match(pattern, path);
-				if (result) {
-					break;
-				}
-			}
+		if (patterns == null) return false;
+		for (String pattern : patterns) {
+			if (pathMatcher.match(pattern, path)) return true;
 		}
-		return result;
+		return false;
 	}
-	
-	private boolean isApplyRestServiceContentType(MediaType selectedContentType) {
-		if (selectedContentType == null) {
-			return false;
-		}
-		
-		return selectedContentType.includes(MediaType.APPLICATION_JSON) || 
-				selectedContentType.includes(MediaType.TEXT_PLAIN);
+
+	private boolean isApplicableContentType(MediaType contentType) {
+		return contentType != null
+				&& (contentType.includes(MediaType.APPLICATION_JSON) || contentType.includes(MediaType.TEXT_PLAIN));
 	}
-	
 }

@@ -20,8 +20,14 @@
 > ```
 > 특정 서비스만 재빌드시 사용
 > ```bash
+> docker-compose up -d --build --no-deps {{service-name}}
 > docker-compose up -d --build --no-deps gateway-service
 > ```
+> 로컬 빌드 실행
+> ```bash
+> docker-compose -f docker-compose-local.yml up -d --build --no-deps {{service-name}}
+> docker-compose -f docker-compose-local.yml up -d --build --no-deps gateway-service
+>```
 > 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 各 모듈의 `.jar`가 패키징됩니다. 
 > API Gateway(`8080`)를 단일 진입점으로 하여 뒤단의 개별 서비스(`8181`, `8182`, `8183`) 포트가 묶여 백그라운드에서 구동됩니다. DB는 `15433` 포트로 바인딩됩니다.
 >

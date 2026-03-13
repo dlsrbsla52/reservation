@@ -1,7 +1,8 @@
 package com.hig.gateway.healthcheck;
 
+import com.hig.mvc.response.NoDataView;
+import com.hig.result.type.CommonResult;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,8 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthCheck {
 
     @GetMapping("/health-check")
-    public ResponseEntity<Void> healthCheck() {
-        return ResponseEntity.ok().build();
+    public NoDataView healthCheck() {
+        return NoDataView.builder()
+                .result(CommonResult.REQUEST_SUCCESS)
+                .build();
     }
-
 }
