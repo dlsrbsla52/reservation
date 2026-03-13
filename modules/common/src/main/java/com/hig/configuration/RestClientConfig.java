@@ -1,9 +1,8 @@
 package com.hig.configuration;
 
-import com.hig.security.JwtProvider;
+import com.hig.security.TokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -14,14 +13,13 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
-@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(RestClient.class)
 public class RestClientConfig {
 
-    private final JwtProvider jwtProvider;
+    private final TokenProvider tokenProvider;
 
-    public RestClientConfig(JwtProvider jwtProvider) {
-        this.jwtProvider = jwtProvider;
+    public RestClientConfig(TokenProvider tokenProvider) {
+        this.tokenProvider = tokenProvider;
     }
 
     /**
@@ -54,7 +52,7 @@ public class RestClientConfig {
                 } else {
                     // 2. 비동기/스케줄러 등 컨텍스트가 없는 환경: S2S(System-to-System) 토큰 주입
                     // JwtProvider를 통해 실제 서명된 JWT 발급 (하드코딩된 문자열 제거)
-                    String systemToken = jwtProvider.generateS2SToken();
+                    String systemToken = tokenProvider.generateS2SToken();
                     request.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + systemToken);
                 }
             }

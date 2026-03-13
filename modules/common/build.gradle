@@ -36,11 +36,6 @@ dependencies {
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 
-    // JWT (JSON Web Token)
-    api 'io.jsonwebtoken:jjwt-api:0.13.0'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
-
     api platform('software.amazon.awssdk:bom:2.39.2') // AWS BOM 관리
     api 'software.amazon.awssdk:s3'
     api 'software.amazon.awssdk:lambda'
@@ -50,9 +45,6 @@ dependencies {
 
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'
-
-    // Redis - Refresh Token 및 이메일 인증 토큰 저장
-    api 'org.springframework.boot:spring-boot-starter-data-redis'
 
     // Liquibase - 각 모듈 DB 마이그레이션
     api 'org.liquibase:liquibase-core'

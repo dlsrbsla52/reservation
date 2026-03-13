@@ -4,6 +4,7 @@ bootJar {
 
 dependencies {
     implementation project(':modules:common')
+    implementation project(':modules:auth-contract')
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
     // Spring Cloud Commons 2024.0.0가 WebMVC 클래스를 강제로 찾는 버그(LifecycleMvcEndpointAutoConfiguration) 우회용
     implementation 'org.springframework.boot:spring-boot-starter-web'

@@ -4,4 +4,5 @@ bootJar {
 
 dependencies {
     implementation project(':modules:common')
+    implementation project(':modules:auth-contract')
 }

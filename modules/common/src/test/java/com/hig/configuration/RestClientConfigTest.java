@@ -1,6 +1,6 @@
 package com.hig.configuration;
 
-import com.hig.security.JwtProvider;
+import com.hig.security.TokenProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,10 +29,10 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class RestClientConfigTest {
 
     // @RestClientTest는 슬라이스 테스트이므로 Redis, JPA 등의 인프라 Bean을 로드하지 않는다.
-    // JwtProvider는 StringRedisTemplate과 ${jwt.secret}에 의존하므로
+    // TokenProvider(JwtProvider)는 StringRedisTemplate과 ${jwt.secret}에 의존하므로
     // 슬라이스 컨텍스트에서 직접 생성이 불가하여 @MockitoBean으로 대체한다.
     @MockitoBean
-    private JwtProvider jwtProvider;
+    private TokenProvider tokenProvider;
 
     @Autowired
     private RestClient internalRestClient;
@@ -86,7 +86,7 @@ class RestClientConfigTest {
         // RequestContextHolder 는 setUp() 에 의해 비어(Empty) 있습니다.
         String expectedS2SToken = "S2S_INTERNAL_TRUSTED_TOKEN";
         // Mock: JwtProvider가 generateS2SToken() 호출 시 고정된 토큰을 반환하도록 설정
-        when(jwtProvider.generateS2SToken()).thenReturn(expectedS2SToken);
+        when(tokenProvider.generateS2SToken()).thenReturn(expectedS2SToken);
         String targetUri = "http://internal-service/api/v1/system-sync";
 
         // Mock Server: 해당 타겟 URL로 S2S(System) Token(Bearer) 헤더가 포함된 GET 요청이 올 것을 기대함
