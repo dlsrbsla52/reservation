@@ -1,16 +1,19 @@
 package com.hig.autoconfigure;
 
+import com.hig.configuration.BulkheadProperties;
 import com.hig.core.aop.BoundedConcurrencyAspect;
 import com.hig.core.aop.TransactionalBulkheadAspect;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration
 @ConditionalOnClass(Aspect.class)
+@EnableConfigurationProperties(BulkheadProperties.class)
 public class CommonCoreAutoConfiguration {
 
     @Bean
@@ -19,7 +22,7 @@ public class CommonCoreAutoConfiguration {
     }
 
     @Bean
-    public TransactionalBulkheadAspect transactionalBulkheadAspect(BulkheadRegistry bulkheadRegistry) {
-        return new TransactionalBulkheadAspect(bulkheadRegistry);
+    public TransactionalBulkheadAspect transactionalBulkheadAspect(BulkheadRegistry bulkheadRegistry, BulkheadProperties bulkheadProperties) {
+        return new TransactionalBulkheadAspect(bulkheadRegistry, bulkheadProperties);
     }
 }
