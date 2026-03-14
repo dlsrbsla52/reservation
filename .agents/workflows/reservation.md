@@ -14,8 +14,7 @@ OS: Mac, 개발 도구: IntelliJ / Gradle
 [목표 멀티 모듈 아키텍처 구조]
 
 common: 공통 도메인 및 DTO, Global Exception 처리, AWS SDK, Security 필터 추상화, JPA/QueryDSL 의존성 등 전체 모듈이 상속받아야 할 핵심 공통 코드를 격리.
-auth: JWT Token 발급, 검증, 인증/인가 로직 전담 (Port: 8181)
-member: 회원 데이터 C/R/U/D 및 라이프사이클 관리 (Port: 8182)
+auth: JWT Token 발급, 검증, 인증/인가 로직 전담 및 회원 데이터 C/R/U/D 및 라이프사이클 관리 (Port: 8181)
 reservation: 시스템의 Core 비즈니스 로직인 예약 처리 (Port: 8183)
 [수행해야 할 구체적 Action Item]
 
@@ -28,7 +27,7 @@ Root
 build.gradle
 에서 subprojects 블록을 활용하여 모든 모듈에 공통 적용될 패키지와, 모듈별 전용 패키지를 완벽히 분리해. QueryDSL 설정이 모든 JPA 사용 모듈에서 문제없이 동작하도록 Gradle Task를 구성해야 해.
 모듈 디렉토리 및 Application 구조 세팅
-auth, member, reservation, common 패키지를 스캐폴딩하고, common을 제외한 애플리케이션 모듈 3개에 각각 진입점(@SpringBootApplication) 클래스와 독립적인 application.yml 포트 바인딩 설정을 생성해.
+auth, reservation, common 패키지를 스캐폴딩하고, common을 제외한 애플리케이션 모듈 3개에 각각 진입점(@SpringBootApplication) 클래스와 독립적인 application.yml 포트 바인딩 설정을 생성해.
 설명 및 커뮤니케이션 제약 사항 (Strict)
 설명 시 이모티콘은 일절 배제하고 공적이며 전문적인 어조(한국어)를 유지해.
 Clean Architecture 관점에서의 모듈 분리 이유와 의존성 응집도 원칙 등을 덧붙여 코멘트해.

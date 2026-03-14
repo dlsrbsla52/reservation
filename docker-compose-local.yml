@@ -56,27 +56,6 @@ services:
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181
       - LOGGING_LEVEL_COM_HIG_AUTH=DEBUG
 
-  member-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: member
-    container_name: msa-member
-    ports:
-      - "8182:8182"
-      - "18182:18182" # member 디버그 포트
-    depends_on:
-      database:
-        condition: service_healthy
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/default
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182
-      - LOGGING_LEVEL_COM_HIG_MEMBER=DEBUG
-
   reservation-service:
     build:
       context: .
@@ -110,7 +89,6 @@ services:
       - "18080:18080" # gateway 디버그 포트
     depends_on:
       - auth-service
-      - member-service
       - reservation-service
     environment:
       - REDIS_HOST=valkey
