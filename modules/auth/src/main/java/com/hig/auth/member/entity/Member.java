@@ -1,4 +1,4 @@
-package com.hig.auth.entity.member.entity;
+package com.hig.auth.member.entity;
 
 import com.hig.entity.common.DateBaseEntity;
 import com.hig.entity.member.MemberStatus;
