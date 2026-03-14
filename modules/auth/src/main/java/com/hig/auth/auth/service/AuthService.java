@@ -167,7 +167,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public TokenResponse refreshAccessToken(String refreshToken) {
         // 서명/만료 검증
-        if (jwtProvider.validateToken(refreshToken)) {
+        if (jwtProvider.isInvalidToken(refreshToken)) {
             throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL);
         }
         Claims claims = jwtProvider.parseClaimsFromToken(refreshToken);
