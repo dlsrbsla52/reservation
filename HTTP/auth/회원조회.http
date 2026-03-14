@@ -1,0 +1,44 @@
+### 로그인
+POST {{domain-gateway}}/api/v1/auth/login
+Content-Type: {{json}}
+
+{
+    "loginId" : "vhkdrb52",
+    "password" : "ghkddlsrb1!"
+}
+
+### JWT로 회원 조회
+POST {{domain-gateway}}/api/v1/member/jwt
+Content-Type: {{json}}
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIiLCJlbWFpbCI6InZoa2RyYjUyQGdtYWlsLmNvbSIsIm1lbWJlclR5cGUiOiJNRU1CRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM1MDU1NDEsImV4cCI6MTc3MzUwOTE0MX0.JA-sI71Nr58pUsUfzEo4bDhBPpUinrNjd0HuGvY4IpSfoH0Dp6p1i5TX3itg1fRaAZIBbMQcCLWwPePvP1tvvQ
+
+{
+    "jwt": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIiLCJlbWFpbCI6InZoa2RyYjUyQGdtYWlsLmNvbSIsIm1lbWJlclR5cGUiOiJNRU1CRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM1MDU1NDEsImV4cCI6MTc3MzUwOTE0MX0.JA-sI71Nr58pUsUfzEo4bDhBPpUinrNjd0HuGvY4IpSfoH0Dp6p1i5TX3itg1fRaAZIBbMQcCLWwPePvP1tvvQ"
+}
+
+### memberId로 회원 조회
+POST {{domain-gateway}}/api/v1/member/id
+Content-Type: {{json}}
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIiLCJlbWFpbCI6InZoa2RyYjUyQGdtYWlsLmNvbSIsIm1lbWJlclR5cGUiOiJNRU1CRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM1MDY4NjksImV4cCI6MTc3MzUxMDQ2OX0.BYQACGFnFOj9wAM_SMJj6TP-8eZmyNKi8kbwgyvnmg-K25KLpB5BgxdqXliig_iWmIufNdFNy1913tRTbZicVw
+
+{
+    "memberId": "ac150006-9ce7-193d-819c-e759d6340000"
+}
+
+### loginId 로 회원 조회
+POST {{domain-gateway}}/api/v1/member/login-id
+Content-Type: {{json}}
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIiLCJlbWFpbCI6InZoa2RyYjUyQGdtYWlsLmNvbSIsIm1lbWJlclR5cGUiOiJNRU1CRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM1MDY4NjksImV4cCI6MTc3MzUxMDQ2OX0.BYQACGFnFOj9wAM_SMJj6TP-8eZmyNKi8kbwgyvnmg-K25KLpB5BgxdqXliig_iWmIufNdFNy1913tRTbZicVw
+
+{
+    "loginId": "vhkdrb52"
+}
+
+### email 로 회원 조회
+POST {{domain-gateway}}/api/v1/member/email
+Content-Type: {{json}}
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIiLCJlbWFpbCI6InZoa2RyYjUyQGdtYWlsLmNvbSIsIm1lbWJlclR5cGUiOiJNRU1CRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM1MDY4NjksImV4cCI6MTc3MzUxMDQ2OX0.BYQACGFnFOj9wAM_SMJj6TP-8eZmyNKi8kbwgyvnmg-K25KLpB5BgxdqXliig_iWmIufNdFNy1913tRTbZicVw
+
+{
+    "email": "vhkdrb52@gmail.com"
+}
