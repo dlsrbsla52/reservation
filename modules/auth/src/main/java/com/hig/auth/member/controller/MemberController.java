@@ -1,6 +1,9 @@
 package com.hig.auth.member.controller;
 
+import com.hig.auth.member.dto.FindMemberByEmailRequest;
 import com.hig.auth.member.dto.FindMemberByJwtRequest;
+import com.hig.auth.member.dto.FindMemberByLoginIdRequest;
+import com.hig.auth.member.dto.FindMemberByMemberIdRequest;
 import com.hig.auth.member.dto.MemberResponse;
 import com.hig.auth.member.service.MemberService;
 import com.hig.result.type.CommonResult;
@@ -31,6 +34,42 @@ public class MemberController {
         return DataView.<MemberResponse>builder()
             .result(CommonResult.SUCCESS)
             .data(memberService.findByJwtMember(request.jwt()))
+            .build();
+    }
+
+    /**
+     * 유저 아이디를 통한 회원 조회.
+     */
+    @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
+    @PostMapping("/id")
+    public DataView<MemberResponse> findByMemberId(@RequestBody @Valid FindMemberByMemberIdRequest request) {
+        return DataView.<MemberResponse>builder()
+            .result(CommonResult.SUCCESS)
+            .data(memberService.findByMemberId(request.memberId()))
+            .build();
+    }
+
+    /**
+     * 유저 아이디를 통한 회원 조회.
+     */
+    @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
+    @PostMapping("/login-id")
+    public DataView<MemberResponse> findByLoginId(@RequestBody @Valid FindMemberByLoginIdRequest request) {
+        return DataView.<MemberResponse>builder()
+            .result(CommonResult.SUCCESS)
+            .data(memberService.findByLoginId(request.loginId()))
+            .build();
+    }
+
+    /**
+     * 유저 이메일을 통한 회원 조회.
+     */
+    @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
+    @PostMapping("/email")
+    public DataView<MemberResponse> findByEmail(@RequestBody @Valid FindMemberByEmailRequest request) {
+        return DataView.<MemberResponse>builder()
+            .result(CommonResult.SUCCESS)
+            .data(memberService.findByEmail(request.email()))
             .build();
     }
 

@@ -7,7 +7,8 @@ import com.hig.exceptions.ServiceException;
 import com.hig.result.type.CommonResult;
 import com.hig.security.JwtProvider;
 import com.hig.security.MemberPrincipal;
-import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,12 +31,87 @@ public class MemberService {
      * @return MemberResponse
      */
     @Transactional(readOnly = true)
-    public MemberResponse findByJwtMember(@Valid String jwt) {
+    public MemberResponse findByJwtMember(@NotBlank @NotEmpty String jwt) {
         MemberPrincipal principal = jwtProvider.getPrincipalFromClaims(
             jwtProvider.parseClaimsFromToken(jwt)
         );
 
         Member member = memberRepository.findById(UUID.fromString(principal.id()))
+            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+
+        return new MemberResponse(
+            member.getId(),
+            member.getLoginId(),
+            member.getEmail(),
+            member.getPhoneNumber(),
+            member.getMemberType(),
+            member.getStatus(),
+            member.getBusinessNumber(),
+            member.getCreatedAt(),
+            member.getUpdatedAt()
+        );
+    }
+
+    /**
+     * memberId를 통한 회원 조회.
+     *
+     * @param memberId memberId(pk)
+     * @return MemberResponse
+     */
+    @Transactional(readOnly = true)
+    public MemberResponse findByMemberId(@NotBlank @NotEmpty String memberId) {
+
+        Member member = memberRepository.findById(UUID.fromString(memberId))
+            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+
+        return new MemberResponse(
+            member.getId(),
+            member.getLoginId(),
+            member.getEmail(),
+            member.getPhoneNumber(),
+            member.getMemberType(),
+            member.getStatus(),
+            member.getBusinessNumber(),
+            member.getCreatedAt(),
+            member.getUpdatedAt()
+        );
+    }
+
+    /**
+     * 로그인 아이디를 통한 회원 조회
+     *
+     * @param loginId 로그인시 사용되는 아이디
+     * @return MemberResponse
+     */
+    public MemberResponse findByLoginId(@NotBlank @NotEmpty String loginId) {
+
+        Member member = memberRepository.findByLoginId(loginId)
+            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+
+        return new MemberResponse(
+            member.getId(),
+            member.getLoginId(),
+            member.getEmail(),
+            member.getPhoneNumber(),
+            member.getMemberType(),
+            member.getStatus(),
+            member.getBusinessNumber(),
+            member.getCreatedAt(),
+            member.getUpdatedAt()
+        );
+    }
+
+
+
+    /**
+     * 로그인 아이디를 통한 회원 조회
+     *
+     * @param email 로그인시 사용되는 아이디
+     * @return MemberResponse
+     */
+    public MemberResponse findByEmail(@NotBlank @NotEmpty String email) {
+
+        Member member = memberRepository.findByEmail(email)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
         return new MemberResponse(

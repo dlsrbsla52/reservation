@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 
+@Schema(description = "jwt를 통한 회원 조회 요청 객체")
 public record FindMemberByJwtRequest(
 
     @NotBlank
