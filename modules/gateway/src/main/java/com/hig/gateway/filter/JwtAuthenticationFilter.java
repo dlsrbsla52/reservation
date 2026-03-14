@@ -18,14 +18,12 @@ import java.util.List;
 /**
  * Gateway Edge Authentication Filter.
  * 모든 인입 요청에 대해 JWT Bearer 토큰 검증을 수행하는 Global Filter입니다.
- *
  * 처리 흐름:
  * 1. 요청 경로가 Public Whitelist에 포함된 경우: 토큰 검증 없이 통과.
  * 2. Authorization 헤더에서 Bearer 토큰을 추출.
  * 3. JwtProvider로 서명 및 만료 검증.
  * 4. 검증 성공 시: 클레임 추출 → X-User-* 헤더 주입 → 하위 서비스로 라우팅.
  * 5. 검증 실패 시: 401 Unauthorized 즉시 응답 (하위 서비스에 요청 도달 차단).
- *
  * Gateway는 Reactive(WebFlux) 기반이므로 GlobalFilter를 Reactor 방식으로 구현합니다.
  */
 @Slf4j
@@ -77,7 +75,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
 
         // JWT 토큰 검증 (서명 + 만료)
-        if (jwtProvider.validateToken(token)) {
+        if (jwtProvider.isInvalidToken(token)) {
             log.warn("[JwtAuthenticationFilter] 유효하지 않은 토큰. path={}", path);
             return unauthorized(exchange);
         }
