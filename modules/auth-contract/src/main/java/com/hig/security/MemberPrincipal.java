@@ -9,11 +9,12 @@ import lombok.Builder;
  */
 @Builder
 public record MemberPrincipal(
-        String id, // UUID (PK)
-        String loginId,
-        String email,
-        MemberType memberType,
-        boolean emailVerified) {
+    String id, // UUID (PK)
+    String loginId,
+    String email,
+    MemberType memberType,
+    boolean emailVerified
+) {
     /**
      * JWT 클레임에서 사용할 키 상수 정의.
      * 클레임 이름을 중앙 관리하여 Gateway Filter / JwtProvider 간 불일치를 방지합니다.

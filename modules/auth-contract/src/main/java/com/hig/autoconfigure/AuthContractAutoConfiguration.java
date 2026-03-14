@@ -10,7 +10,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class AuthContractAutoConfiguration {
 
     @Bean
-    public JwtProvider jwtProvider(@Value("${jwt.secret}") String secret, StringRedisTemplate redisTemplate) {
+    public JwtProvider jwtProvider(
+        @Value("${jwt.secret}") String secret,
+        StringRedisTemplate redisTemplate
+    ) {
         return new JwtProvider(secret, redisTemplate);
     }
 }

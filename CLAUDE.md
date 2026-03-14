@@ -45,7 +45,6 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 |--------|------|-----------|---------|
 | `gateway` | 8080 | 18080 | Spring Cloud Gateway — JWT validation, routing |
 | `auth` | 8181 | 18181 | JWT issuance, refresh, S2S tokens |
-| `member` | 8182 | 18182 | User registration and profile |
 | `reservation` | 8183 | 18183 | Core booking business logic |
 | `common` | — | — | Shared library (no executable) |
 
