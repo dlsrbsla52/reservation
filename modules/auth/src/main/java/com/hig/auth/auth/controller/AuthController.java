@@ -1,11 +1,11 @@
-package com.hig.auth.api.controller.auth;
+package com.hig.auth.auth.controller;
 
-import com.hig.auth.api.dto.LoginRequest;
-import com.hig.auth.api.dto.RegisterRequest;
-import com.hig.auth.api.dto.RegisterResponse;
-import com.hig.auth.api.dto.TokenRefreshRequest;
-import com.hig.auth.api.dto.TokenResponse;
-import com.hig.auth.service.AuthService;
+import com.hig.auth.auth.dto.LoginRequest;
+import com.hig.auth.auth.dto.RegisterRequest;
+import com.hig.auth.auth.dto.RegisterResponse;
+import com.hig.auth.auth.dto.TokenRefreshRequest;
+import com.hig.auth.auth.dto.TokenResponse;
+import com.hig.auth.auth.service.AuthService;
 import com.hig.result.type.CommonResult;
 import com.hig.web.response.DataView;
 import com.hig.web.response.NoDataView;

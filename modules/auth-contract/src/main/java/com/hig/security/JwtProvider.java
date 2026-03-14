@@ -17,7 +17,6 @@ import java.util.Date;
 
 /**
  * JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트.
- *
  * 토큰 전략:
  * - Access Token : 단기(60분), 무상태(Stateless). JWT 서명으로만 검증.
  * - Refresh Token : 장기(7일), Redis에 저장하여 서버 측 무효화(Revoke) 지원.
@@ -122,7 +121,7 @@ public class JwtProvider implements TokenProvider {
      * 토큰 유효성 검사 (서명 + 만료 시간).
      * Gateway Filter에서 빠른 검증을 위해 boolean 반환으로 제공합니다.
      */
-    public boolean validateToken(String token) {
+    public boolean isInvalidToken(String token) {
         try {
             parseClaimsFromToken(token);
             return false;

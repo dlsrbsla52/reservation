@@ -1,7 +1,7 @@
 package com.hig.auth.domain.member.repository;
 
-import com.hig.auth.entity.member.entity.Member;
-import com.hig.auth.entity.member.repository.MemberRepository;
+import com.hig.auth.member.entity.Member;
+import com.hig.auth.member.repository.MemberRepository;
 import com.hig.entity.member.MemberStatus;
 import com.hig.entity.member.MemberType;
 import org.junit.jupiter.api.DisplayName;

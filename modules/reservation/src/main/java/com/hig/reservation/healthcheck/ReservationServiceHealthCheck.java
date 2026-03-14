@@ -1,4 +1,4 @@
-package com.hig.reservation.healthCheck;
+package com.hig.reservation.healthcheck;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
