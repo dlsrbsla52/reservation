@@ -1,10 +1,10 @@
-package com.hig.auth.service;
+package com.hig.auth.auth.service;
 
-import com.hig.auth.api.dto.LoginRequest;
-import com.hig.auth.api.dto.RegisterRequest;
-import com.hig.auth.api.dto.TokenResponse;
-import com.hig.auth.entity.member.entity.Member;
-import com.hig.auth.entity.member.repository.MemberRepository;
+import com.hig.auth.auth.dto.LoginRequest;
+import com.hig.auth.auth.dto.RegisterRequest;
+import com.hig.auth.auth.dto.TokenResponse;
+import com.hig.auth.member.entity.Member;
+import com.hig.auth.member.repository.MemberRepository;
 import com.hig.entity.member.MemberType;
 import com.hig.exceptions.NoAuthenticationException;
 import com.hig.result.type.CommonResult;
