@@ -1,4 +1,4 @@
-package com.hig.auth.api.controller;
+package com.hig.auth.api.controller.auth;
 
 import com.hig.auth.api.dto.LoginRequest;
 import com.hig.auth.api.dto.RegisterRequest;
@@ -72,8 +72,6 @@ public class AuthController {
     @GetMapping("/verify-email")
     public NoDataView verifyEmail(@RequestParam String token) {
         authService.verifyEmail(token);
-        // 데이터가 없는 경우는 ResponseAdvisor가 null을 DataView로 변환하므로
-        // 명시적으로 NoDataView를 반환합니다.
         return NoDataView.builder()
                 .result(CommonResult.SUCCESS)
                 .message("이메일 인증이 완료되었습니다.")
@@ -102,7 +100,6 @@ public class AuthController {
     @PostMapping("/logout")
     public NoDataView logout(@RequestHeader("X-User-Id") String userId) {
         authService.logout(userId);
-        // 데이터가 없는 경우는 명시적으로 NoDataView를 반환합니다.
         return NoDataView.builder()
                 .result(CommonResult.SUCCESS)
                 .build();
