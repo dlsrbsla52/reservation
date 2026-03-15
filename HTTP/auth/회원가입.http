@@ -3,9 +3,9 @@ POST {{domain-gateway}}/api/v1/auth/register
 Content-Type: {{json}}
 
 {
-    "loginId" : "vhkdrb52",
+    "loginId" : "vhkdrb521",
     "password" : "ghkddlsrb1!",
-    "email" : "vhkdrb52@gmail.com",
+    "email" : "vhkdrb521@gmail.com",
     "phoneNumber" : "01049045402",
     "memberType" : "MEMBER"
 }
