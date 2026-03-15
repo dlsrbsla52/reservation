@@ -69,7 +69,7 @@
 > }
 > ```
 >
-> 자세한 구현 내용은 `com.hig.configuration.RestClientConfig`를 참조하시기 바랍니다.
+> 자세한 구현 내용은 `com.common.configuration.RestClientConfig`를 참조하시기 바랍니다.
 
 ## 디버깅 (Remote JVM Debug)
 > 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
@@ -110,4 +110,4 @@
 > 이는 **`Transactional`** 사용하며 트랜잭션을 얻는 그 순간부터 Server에 존재하는 \
 > `DB Connection Pool`을 사용하기 때문입니다. \
 > \
-> 자세한 내용은 `com.hig.boilerplate.core.aop.TransactionalBulkheadAspect` 참조 바랍니다.
+> 자세한 내용은 `com.common.boilerplate.core.aop.TransactionalBulkheadAspect` 참조 바랍니다.
