@@ -15,7 +15,7 @@ Multi-module Spring Boot 3.4.x MSA project (root project name: `hig`) using Java
 ./gradlew :modules:<module>:bootRun               # Run a module locally
 ./gradlew test                                     # All tests
 ./gradlew :modules:<module>:test                  # Single module tests
-./gradlew :modules:<module>:test --tests "com.hig.ClassName.methodName"  # Single test
+./gradlew :modules:<module>:test --tests "com.common.ClassName.methodName"  # Single test
 ```
 
 Java 25 requires Byte Buddy workaround for tests:
