@@ -1,4 +1,4 @@
-rootProject.name = 'hig'
+rootProject.name = 'bus'
 
 include 'modules:common'
 include 'modules:auth-contract'
