@@ -17,6 +17,10 @@ spring:
           uri: http://auth-service:8181
           predicates:
             - Path=/api/v1/auth/**, /api/v1/member/**
+        - id: stop-service
+          uri: http://stop-service:8181
+          predicates:
+            - Path=/api/v1/stop/**
         - id: reservation-service
           uri: http://reservation-service:8183
           predicates:

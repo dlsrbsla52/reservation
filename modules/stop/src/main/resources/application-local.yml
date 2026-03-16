@@ -1,0 +1,44 @@
+server:
+  port: 8182
+  
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=reservation"
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driverClassName: "org.postgresql.Driver"
+  liquibase:
+    enabled: true
+    changeLog: /db/changelog/db.changelog-master.xml
+    parameters:
+      log-level: FINE
+  docker:
+    compose:
+      # noinspection SpringBootApplicationYaml
+      file: ./compose.yaml
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        show_sql: false
+  jackson:
+    default-property-inclusion: NON_NULL
+  security:
+    user:
+      name: user
+      password: boilerUser123!
+
+hig:
+  bulkhead:
+    database-name: orderDatabase # resilience4j.bulkhead.instances 이름과 반드시 일치해야 함
+
+resilience4j:
+  bulkhead:
+    instances:
+      orderDatabase: # 벌크헤드 이름
+        maxConcurrentCalls: 10 # 동시에 허용할 최대 호출 수 (세마포어 개수)
+        maxWaitDuration: 300ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)

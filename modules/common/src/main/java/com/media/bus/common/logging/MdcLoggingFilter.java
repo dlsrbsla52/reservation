@@ -1,0 +1,70 @@
+package com.media.bus.common.logging;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.UUID;
+
+/**
+ * HTTP 요청 단위로 MDC(Mapped Diagnostic Context) 필드를 주입하는 필터.
+ *
+ * <p>주입 필드:
+ * <ul>
+ *   <li>{@code requestId} — X-Request-ID 요청 헤더 값, 없으면 UUID v4 생성</li>
+ *   <li>{@code userId} — 인증된 사용자의 Principal name (비인증 요청은 생략)</li>
+ * </ul>
+ *
+ * <p>traceId / spanId 는 Micrometer Tracing(OTel 브릿지)이 자동으로 주입한다.
+ *
+ * <p>필터 순서(order=0): Spring Security(-100) 이후 실행되므로
+ * SecurityContextHolder에서 인증 정보를 읽을 수 있다.
+ *
+ * <p><b>Virtual Thread 주의:</b> MDC는 ThreadLocal 기반이다.
+ * {@code @Async} 등으로 새 스레드를 생성할 경우 {@code MDC.getCopyOfContextMap()}으로
+ * 컨텍스트를 직접 복사해야 한다.
+ */
+public class MdcLoggingFilter extends OncePerRequestFilter {
+
+    private static final String REQUEST_ID_HEADER = "X-Request-ID";
+    private static final String MDC_REQUEST_ID = "requestId";
+    private static final String MDC_USER_ID = "userId";
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        try {
+            String requestId = resolveRequestId(request);
+            MDC.put(MDC_REQUEST_ID, requestId);
+            response.setHeader(REQUEST_ID_HEADER, requestId);
+
+            resolveUserId().ifPresent(uid -> MDC.put(MDC_USER_ID, uid));
+
+            filterChain.doFilter(request, response);
+        } finally {
+            // traceId/spanId는 Micrometer Tracing이 관리하므로 제거하지 않는다
+            MDC.remove(MDC_REQUEST_ID);
+            MDC.remove(MDC_USER_ID);
+        }
+    }
+
+    private String resolveRequestId(HttpServletRequest request) {
+        String requestId = request.getHeader(REQUEST_ID_HEADER);
+        return (requestId != null && !requestId.isBlank()) ? requestId : UUID.randomUUID().toString();
+    }
+
+    private java.util.Optional<String> resolveUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            return java.util.Optional.ofNullable(auth.getName());
+        }
+        return java.util.Optional.empty();
+    }
+}

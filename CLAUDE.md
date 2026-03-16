@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Multi-module Spring Boot 3.4.x MSA project (root project name: `hig`) using Java 25. Five modules share a single Gradle root with common infrastructure in `modules/common`.
+Multi-module Spring Boot 3.4.x MSA project (root project name: `bus`) using Java 25. Five modules share a single Gradle root with common infrastructure in `modules/common`.
 
 ## Build & Run Commands
 
@@ -41,12 +41,13 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 
 ## Module Map
 
-| Module | Port | Debug Port | Purpose |
-|--------|------|-----------|---------|
-| `gateway` | 8080 | 18080 | Spring Cloud Gateway — JWT validation, routing |
-| `auth` | 8181 | 18181 | JWT issuance, refresh, S2S tokens |
-| `reservation` | 8183 | 18183 | Core booking business logic |
-| `common` | — | — | Shared library (no executable) |
+| Module        | Port | Debug Port | Purpose                                        |
+|---------------|------|------------|------------------------------------------------|
+| `gateway`     | 8080 | 18080      | Spring Cloud Gateway — JWT validation, routing |
+| `auth`        | 8181 | 18181      | JWT issuance, refresh, S2S tokens              |
+| `stop`        | 8182 | 18182      | Bus stop manager business logic                |
+| `reservation` | 8183 | 18183      | Core booking business logic                    |
+| `common`      | —    | —          | Shared library (no executable)                 |
 
 Infrastructure: PostgreSQL 18.3 on port **15433**, Valkey (Redis fork) on port **6379**.
 
@@ -67,7 +68,7 @@ Three token types managed in `common/security/JwtProvider.java`:
 Virtual Threads are enabled (`spring.threads.virtual.enabled=true`). To prevent HikariCP connection pool exhaustion (pool size: 20), `TransactionalBulkheadAspect.java` wraps all `@Transactional` and `@Repository` methods with a Resilience4j semaphore bulkhead (maxConcurrentCalls: 19, maxWait: 200ms). Uses `ScopedValue<Boolean>` (Java 25) for re-entrance detection — do NOT use `ThreadLocal` in this project.
 
 ### Data Layer
-- PostgreSQL with **schema-per-module** isolation (`?schema=auth`, `?schema=member`, `?schema=reservation`)
+- PostgreSQL with **schema-per-module** isolation (`?schema=auth`, `?schema=stop`, `?schema=member`, `?schema=reservation`)
 - **Liquibase** for migrations (changelogs in `src/main/resources/db/changelog/`)
 - **QueryDSL 5.1.0** for type-safe queries; `JPAQueryFactory` bean in `QueryDslConfig.java`
 - HikariCP pool size: 20 per module
