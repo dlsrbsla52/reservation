@@ -21,7 +21,7 @@ plugins {
 }
 
 allprojects {
-    group = 'com.hig.boilerplate'
+    group = 'com.media.bus'
     version = '0.0.1-SNAPSHOT'
 
     repositories {
