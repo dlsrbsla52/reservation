@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+>
+
+  <!-- ========================
+       V001. 정류장 테이블 생성
+       ======================== -->
+  <changeSet id="V001-1" author="hig">
+
+    <!-- stop 스키마가 없을 경우 생성 -->
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists schemaName="stop" tableName="stop"/>
+      </not>
+    </preConditions>
+
+    <sql>CREATE SCHEMA IF NOT EXISTS stop</sql>
+
+    <createTable tableName="stop" schemaName="stop"
+                 remarks="정류장 관리의 메인 테이블 입니다.">
+
+      <column name="id" type="UUID" remarks="정류장 PK(대리키) (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="stop_id" type="VARCHAR(50)" remarks="정류장 ID (공공 API 제공)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uk_stop_stop_id"/>
+      </column>
+
+      <column name="tm_x" type="VARCHAR(50)" remarks="정류장 x 좌표 (공공 API 제공)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="tm_y" type="VARCHAR(50)" remarks="정류장 y 좌표 (공공 API 제공)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="ars_id" type="VARCHAR(50)" remarks="정류소 고유번호 (공공 API 제공)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="pos_x" type="VARCHAR(50)" remarks="정류장 x 좌표 (GRS80) 공공 API 제공)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="pos_y" type="VARCHAR(50)" remarks="정류장 y 좌표 (GRS80) 공공 API 제공)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="stop_name" type="VARCHAR(50)" remarks="정류장 이름">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="생성일시">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="수정일시">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+    <createIndex indexName="idx_stop_name" tableName="stop" schemaName="stop">
+      <column name="stop_name"/>
+    </createIndex>
+
+  </changeSet>
+
+</databaseChangeLog>
