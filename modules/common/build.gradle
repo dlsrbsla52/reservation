@@ -14,6 +14,17 @@ test {
     jvmArgs '-Dnet.bytebuddy.experimental=true'
 }
 
+// MdcLoggingFilter 동작 시각화 데모
+// 실행: ./gradlew :modules:common:demoLogging
+tasks.register('demoLogging', JavaExec) {
+    group = 'demo'
+    description = 'MDC 로깅 필터 동작을 콘솔에 시각화합니다'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.media.bus.common.logging.MdcLoggingFilterDemo'
+    jvmArgs '-Dnet.bytebuddy.experimental=true'
+}
+
 dependencies {
     api 'org.springframework.boot:spring-boot-starter-web'
     api 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -48,4 +59,15 @@ dependencies {
 
     // Liquibase - 각 모듈 DB 마이그레이션
     api 'org.liquibase:liquibase-core'
+
+    // Logging: Log4j2 비동기 로거 (Logback 대체)
+    // LMAX Disruptor를 이용한 락프리(lock-free) 비동기 로깅으로 Virtual Thread 핀닝(pinning) 방지
+    api 'org.springframework.boot:spring-boot-starter-log4j2'
+    api 'com.lmax:disruptor:4.0.0'
+    api 'org.apache.logging.log4j:log4j-layout-template-json'
+
+    // Micrometer Tracing + OpenTelemetry 브릿지
+    // Spring Boot 트레이싱 자동 구성 (TraceId/SpanId → MDC 자동 주입)
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+    api 'io.micrometer:micrometer-tracing-bridge-otel'
 }

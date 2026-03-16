@@ -63,6 +63,13 @@ subprojects {
         compileOnly {
             extendsFrom annotationProcessor
         }
+        // Log4j2 전환: Logback 전이 의존성 전체 제거
+        // spring-boot-starter-log4j2가 slf4j 구현체를 대체한다
+        configureEach {
+            exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+            exclude group: 'ch.qos.logback', module: 'logback-classic'
+            exclude group: 'ch.qos.logback', module: 'logback-core'
+        }
     }
 
     dependencies {

@@ -54,6 +54,24 @@ services:
       - REDIS_HOST=valkey
       - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
 
+  stop-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: stop
+    container_name: msa-stop
+    ports:
+      - "8182:8182"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/default
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+
   reservation-service:
     build:
       context: .
