@@ -41,7 +41,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         "GET:/api/v1/auth/verify-email",
         "GET:/api/v1/auth/health-check",
         "GET:/api/v1/member/health-check",
-        "GET:/api/v1/reservation/health-check"
+        "GET:/api/v1/reservation/health-check",
+        "GET:/api/v1/stop/health-check"
     );
 
     // 하위 서비스로 전달할 사용자 컨텍스트 헤더 이름 상수

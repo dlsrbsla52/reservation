@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  테스트 전용 Log4j2 설정 (log4j2-test.xml은 log4j2-spring.xml보다 먼저 로드된다)
+  비동기 없이 동기 Root를 사용해 MDC 값이 즉시 반영되는 것을 확인한다.
+-->
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout>
+                <!--
+                  %X{key}         : ThreadContext(MDC) 값 출력
+                  %-36X{key}      : 최소 36자 왼쪽 정렬
+                  %c{1}           : 클래스명(패키지 제외)
+                -->
+                <Pattern>%d{HH:mm:ss.SSS} %highlight{%-5level}{FATAL=red blink, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green} | req=%-38X{requestId} | user=%-14X{userId} | trace=%-16X{traceId} | %-22c{1} %msg%n%throwable</Pattern>
+            </PatternLayout>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root level="DEBUG">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

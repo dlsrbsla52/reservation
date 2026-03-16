@@ -7,6 +7,7 @@
 - **common**: 전체 프로젝트에서 공유하는 공통 도메인/DTO, 유틸리티, 글로벌 예외 처리, JPA 엔티티, QueryDSL Q-Class 빈, AWS SDK, DB 설정 및 Security 기본 설정이 응집된 핵심 라이브러리 모듈입니다.
 - **gateway**: 클라이언트의 모든 요청을 단일 진입점으로 받아 각 마이크로서비스로 라우팅하는 Spring Cloud Gateway 모듈입니다. (Expected Port: 8080)
 - **auth**: JWT 토큰 발급 프로세스와 사용자의 인증(Authentication)/인가(Authorization) 및 회원의 라이프사이클(가입, 조회, 수정, 제재, 탈퇴 등) 및 회원 관련 비즈니스 도메인을 관리하는 모듈 전담하여 처리하는 인증 인가 모듈입니다. (Expected Port: 8181)
+- **stop**: 정류소의 관리 매니저를 담당하는 서비스 모듈입니다. 각 정류소의 매칭 상태와 가격(유동인구, 판매가격, 결제 시기, 재계약 시기) 등 비즈니스 도메인을 책임지는 메인 워커 모듈입니다. (Expected Port: 8182)
 - **reservation**: 시스템의 Core 비즈니스인 실제 예약 생성, 변경, 취소 등의 트랜잭션 로직을 책임지는 메인 워커 모듈입니다. (Expected Port: 8183)
 
 ## DB 및 통합 테스트(MSA) 구동 환경
@@ -83,6 +84,7 @@
    - **Host**: `localhost` / **Port**: 해당 서비스의 디버그 포트 입력
      - `gateway`: `18080`
      - `auth`: `18181`
+     - `stop`: `18182`
      - `reservation`: `18183`
    - **Use module classpath**: 디버깅 타겟 모듈 지정 (예: `reservation.modules.auth.main`)
 2. **실행 및 Attach**
