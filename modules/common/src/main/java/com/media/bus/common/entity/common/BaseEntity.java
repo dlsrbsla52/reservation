@@ -3,7 +3,10 @@ package com.media.bus.common.entity.common;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.util.Objects;
@@ -14,6 +17,9 @@ import java.util.UUID;
  * 하이버네이트 프록시를 안전하게 처리하도록 지원합니다.
  */
 @Getter
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 @MappedSuperclass
 public abstract class BaseEntity {
 
