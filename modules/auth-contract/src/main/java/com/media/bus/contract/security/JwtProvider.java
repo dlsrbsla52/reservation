@@ -132,6 +132,32 @@ public class JwtProvider implements TokenProvider {
     }
 
     /**
+     * jwt 토큰을 기반으로 Claims 반환
+     *
+     * @param jwtToken JWT 토큰
+     * @return Claims
+     */
+    public Claims getClaimsFromRefreshToken(String jwtToken) {
+
+        return parseClaimsFromToken(jwtToken);
+    }
+
+    /**
+     * jwt 토큰을 기반으로 Claims 반환
+     *
+     * @param jwtToken JWT 토큰
+     * @return Claims
+     */
+    public MemberPrincipal getMemberPrincipalFromRefreshToken(String jwtToken) {
+        String token = jwtToken.startsWith("Bearer ") ? jwtToken.substring(7) : jwtToken;
+        Claims claimsFromRefreshToken = getClaimsFromRefreshToken(token);
+
+        return getPrincipalFromClaims(claimsFromRefreshToken);
+    }
+
+    
+
+    /**
      * Claims에서 MemberPrincipal 객체를 복원합니다.
      */
     public MemberPrincipal getPrincipalFromClaims(Claims claims) {
