@@ -101,7 +101,6 @@ services:
       - "8080:8080"
     depends_on:
       - auth-service
-      - member-service
       - reservation-service
     environment:
       - REDIS_HOST=valkey
