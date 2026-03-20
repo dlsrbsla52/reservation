@@ -59,7 +59,8 @@ public enum CommonResult implements Result {
     ACCOUNT_SUSPENDED_FAIL("00253", "account.suspended.fail.msg", "이용이 정지된 계정입니다. 고객센터에 문의해주세요."), // 계정 비활성화 상태
     ACCOUNT_WITHDRAWN_FAIL("00254", "account.withdrawn.fail.msg", "탈퇴된 계정입니다."), // 탈퇴 계정 접근
     EMAIL_TOKEN_INVALID_FAIL("00255", "authentication.email-token.invalid.fail.msg", "유효하지 않거나 만료된 이메일 인증 토큰입니다."), // 이메일 인증 실패
-    USER_NOT_FOUND_FAIL("00256", "user.not-found.fail.msg", "회원 정보를 찾을 수 없습니다.") // 조회 결과 부재
+    USER_NOT_FOUND_FAIL("00256", "user.not-found.fail.msg", "회원 정보를 찾을 수 없습니다."), // 조회 결과 부재
+    VALIDATION_FAIL("00260", "validation.fail.msg", "입력 값 검증에 실패하였습니다.") // @Valid 검증 실패
     ;
 
 	
