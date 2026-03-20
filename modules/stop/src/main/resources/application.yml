@@ -51,6 +51,11 @@ rest:
 
 jwt:
   secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
+
+seoul:
+  api:
+    key: ${SEOUL_API_KEY:53574a6e5976686b39314c67634559}
+    base-url: http://openapi.seoul.go.kr:8088
 springdoc:
   api-docs:
     path: /api-docs # OpenAPI JSON 문서 경로
