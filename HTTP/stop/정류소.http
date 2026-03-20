@@ -1,4 +1,23 @@
-### ㅔㅔ
+### 로그인
+POST {{domain-gateway}}/api/v1/auth/login
+Content-Type: {{json}}
+
+{
+    "loginId" : "vhkdrb521",
+    "password" : "ghkddlsrb1!"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 단건 일반 등록
 POST {{domain-gateway}}/api/v1/stop/{test}
 Content-Type: {{json}}
-Authorization: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzEzMDAwNS05Y2YwLTE0YWUtODE5Yy1mMDg1ODYxNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIxIiwiZW1haWwiOiJ2aGtkcmI1MjFAZ21haWwuY29tIiwibWVtYmVyVHlwZSI6IkFETUlOX1VTRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM5MzIzNTgsImV4cCI6MTc3MzkzNTk1OH0.HoQttJwLz3Mzd4bh4XbDpryev2m1wp9i6Qs2JhM0GLRRXTKaKMpL5-tD8A2JNleEeityfi0MZM3JassuKpGNIg
+Authorization: Bearer {{accessToken}}
+
+
+### 초기 bulk 등록
+POST {{domain-gateway}}/api/v1/stop/register/bulk
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}

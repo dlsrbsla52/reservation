@@ -2,6 +2,12 @@ bootJar {
     enabled = true
 }
 
+// Gateway는 WebFlux(Netty) 기반이어야 하므로, common/auth-contract에서 전이되는
+// Tomcat을 모든 configuration에서 전역 제거
+configurations.all {
+    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+}
+
 dependencies {
     implementation project(':modules:common')
     implementation project(':modules:auth-contract')

@@ -15,9 +15,11 @@ public class SecurityConfig {
         http
             // MSA 게이트웨이 특성상 외부 클라이언트에서 직접 호출되므로 CSRF 비활성화 처리
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            // 인증/인가 판단은 JwtAuthenticationFilter(GlobalFilter)에 완전 위임
+            // Spring Security 기본 인증 메커니즘(httpBasic, formLogin)은 모두 비활성화
+            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+            .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-                // 인증/인가 판단은 JwtAuthenticationFilter(GlobalFilter)에 완전 위임
-                // Spring Security는 CSRF 비활성화 외 별도 접근 제어를 수행하지 않음
                 .anyExchange().permitAll()
             );
 
