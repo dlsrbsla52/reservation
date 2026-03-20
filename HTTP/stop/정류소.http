@@ -1,0 +1,4 @@
+### ㅔㅔ
+POST {{domain-gateway}}/api/v1/stop/{test}
+Content-Type: {{json}}
+Authorization: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzEzMDAwNS05Y2YwLTE0YWUtODE5Yy1mMDg1ODYxNDAwMDAiLCJsb2dpbklkIjoidmhrZHJiNTIxIiwiZW1haWwiOiJ2aGtkcmI1MjFAZ21haWwuY29tIiwibWVtYmVyVHlwZSI6IkFETUlOX1VTRVIiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpYXQiOjE3NzM5MzIzNTgsImV4cCI6MTc3MzkzNTk1OH0.HoQttJwLz3Mzd4bh4XbDpryev2m1wp9i6Qs2JhM0GLRRXTKaKMpL5-tD8A2JNleEeityfi0MZM3JassuKpGNIg
