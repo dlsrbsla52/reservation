@@ -13,10 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * 중앙 집중 예외 처리기.
@@ -25,6 +27,14 @@ import java.time.Instant;
 @Slf4j
 @ControllerAdvice
 public class ExceptionAdvisor {
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<ErrorView> validationHandler(HttpServletRequest request, MethodArgumentNotValidException error) {
+		List<ErrorView.FieldErrorDetail> fieldErrors = error.getBindingResult().getFieldErrors().stream()
+				.map(fe -> new ErrorView.FieldErrorDetail(fe.getField(), fe.getDefaultMessage()))
+				.toList();
+		return buildErrorResponse(HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, null, request, fieldErrors);
+	}
 
 	@ExceptionHandler(StorageException.class)
 	public ResponseEntity<ErrorView> storageExceptionHandler(HttpServletRequest request, StorageException error) {
@@ -63,7 +73,20 @@ public class ExceptionAdvisor {
 	}
 
 	private ResponseEntity<ErrorView> buildErrorResponse(
-			HttpStatus status, Result result, String message, HttpServletRequest request
+		HttpStatus status,
+		Result result,
+		String message,
+		HttpServletRequest request
+	) {
+		return buildErrorResponse(status, result, message, request, null);
+	}
+
+	private ResponseEntity<ErrorView> buildErrorResponse(
+		HttpStatus status,
+		Result result,
+		String message,
+		HttpServletRequest request,
+		List<ErrorView.FieldErrorDetail> errors
 	) {
 		return ResponseEntity.status(status)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -74,6 +97,7 @@ public class ExceptionAdvisor {
 						.error(status.getReasonPhrase())
 						.timestamp(Instant.now())
 						.path(request.getServletPath())
+						.errors(errors)
 						.build());
 	}
 }
