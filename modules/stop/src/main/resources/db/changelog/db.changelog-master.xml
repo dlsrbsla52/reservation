@@ -9,4 +9,5 @@
   <!-- V001: 회원(Member) 테이블 생성 -->
   <include file="/db/changelog/V001_stop_table.xml"/>
 
+
 </databaseChangeLog>

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 /**
  * 생성 및 수정 시간에 대한 공통 속성을 제공하는 엔티티입니다.
@@ -22,6 +23,8 @@ import java.time.OffsetDateTime;
 @MappedSuperclass
 public abstract class DateBaseEntity extends BaseEntity {
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -31,7 +34,7 @@ public abstract class DateBaseEntity extends BaseEntity {
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
-            OffsetDateTime now = OffsetDateTime.now();
+            OffsetDateTime now = OffsetDateTime.now(KST);
             this.createdAt = now;
             this.updatedAt = now;
         }
@@ -39,6 +42,6 @@ public abstract class DateBaseEntity extends BaseEntity {
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = OffsetDateTime.now();
+        this.updatedAt = OffsetDateTime.now(KST);
     }
 }

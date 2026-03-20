@@ -3,8 +3,11 @@ package com.media.bus.stop.entity;
 import com.media.bus.common.entity.common.DateBaseEntity;
 import com.media.bus.stop.dto.external.SeoulBusStopRow;
 import com.media.bus.stop.dto.request.SimpleStopCreateRequest;
+import com.media.bus.stop.entity.enums.StopType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -48,10 +51,10 @@ public class Stop extends DateBaseEntity {
     @Column(name = "node_id", nullable = false, length = 50)
     private String nodeId;
 
-    @Size(max = 50)
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "stops_type", nullable = false, length = 50)
-    private String stopsType;
+    private StopType stopsType;
 
 
     public static Stop requestOf(SimpleStopCreateRequest request) {
@@ -61,7 +64,7 @@ public class Stop extends DateBaseEntity {
                 .xCrd(request.xCrd())
                 .yCrd(request.yCrd())
                 .nodeId(request.nodeId())
-                .stopsType(request.stopsType())
+                .stopsType(StopType.fromDisplayName(request.stopsType().getName()))
                 .build();
     }
 
@@ -72,7 +75,7 @@ public class Stop extends DateBaseEntity {
                 .xCrd(row.xCrd())
                 .yCrd(row.yCrd())
                 .nodeId(row.nodeId())
-                .stopsType(row.stopsType())
+                .stopsType(StopType.fromDisplayName(row.stopsType()))
                 .build();
     }
 
