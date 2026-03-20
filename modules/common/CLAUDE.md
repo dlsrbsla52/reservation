@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-`modules/common` is a **shared library** (no `bootJar`, plain `jar`) consumed by all other modules in the `reservation` MSA project. It provides auto-configured infrastructure: response wrapping, exception handling, bulkhead concurrency guards, inter-service HTTP client, JWT token abstraction, JPA base entities, and QueryDSL setup.
+`modules/common` is a **shared library** (no `bootJar`, plain `jar`) consumed by all other modules in the `reservation` MSA project. It provides auto-configured infrastructure: response wrapping, exception handling, bulkhead concurrency guards, inter-service HTTP client, security filter chain, JPA base entities, and QueryDSL setup.
 
 Base package: `com.media.bus.common`
 
@@ -28,11 +28,14 @@ Beans are registered via `META-INF/spring/org.springframework.boot.autoconfigure
 |---|---|---|
 | `CommonCoreAutoConfiguration` | `@ConditionalOnClass(Aspect.class)` | `TransactionalBulkheadAspect`, `BoundedConcurrencyAspect` |
 | `CommonWebMvcAutoConfiguration` | Servlet env only | All `ResponseBodyWrapper` beans, `ResponseAdvisor`, `ExceptionAdvisor` |
+| `CommonSecurityAutoConfiguration` | Servlet env only | Default Spring Security filter chain (JWT-delegation friendly) |
 | `CommonLoggingAutoConfiguration` | Servlet env only | `MdcLoggingFilter` (requestId + userId → MDC) |
 | `RestClientConfig` | Servlet env only | `internalRestClient` bean |
 | `QueryDslConfig` | Always | `JPAQueryFactory` bean |
 | `ThreadPoolConfig` | Always | Shared executor config |
 | `SwaggerConfig` | Always | SpringDoc OpenAPI |
+
+**Note:** `auth-contract` 모듈의 `AuthContractAutoConfiguration`이 `JwtProvider` 빈을 제공한다 (common의 `TokenProvider` 인터페이스 구현체).
 
 ## Required Configuration (consuming modules)
 
@@ -72,6 +75,25 @@ Extend `BaseException(Result result, ...)`. The `Result` interface is implemente
 | `BaseException` | 500 |
 | `Exception` (catch-all) | 500 |
 
+### Adding a new Enum
+모든 코드성 Enum은 `BaseEnum` 인터페이스를 구현한다. 필드: `name` (고유 코드), `displayName` (한글 전시명). `BaseEnum.fromName()` 공통 조회 메서드 제공.
+
+```java
+@Getter
+@AllArgsConstructor
+@SuppressWarnings("unused")
+public enum MyType implements BaseEnum {
+    FOO("FOO", "전시명"),
+    ;
+    private final String name;
+    private final String displayName;
+
+    public static Optional<MyType> fromName(String name) {
+        return BaseEnum.fromName(MyType.class, name);
+    }
+}
+```
+
 ## Logging
 
 ### 로깅 스택
@@ -94,6 +116,7 @@ Extend `BaseException(Result result, ...)`. The `Result` interface is implemente
   ```json
   {"@timestamp":"...","level":"INFO","traceId":"...","spanId":"...","requestId":"...","userId":"...","service":"stop","message":"..."}
   ```
+- JSON 템플릿: `src/main/resources/logging/bus-log-template.json`
 
 ### Virtual Thread + MDC 주의사항
 MDC는 ThreadLocal 기반이므로 새 스레드 생성 시 자동 전파되지 않는다.
@@ -126,7 +149,7 @@ Self-invocation (`this.method()`) bypasses AOP — move async methods to a separ
 
 `internalRestClient` (bean name) auto-propagates `Authorization` headers **only** to trusted internal hosts: `*.local`, `*.internal`, `*service*`, `localhost`, `10.*`. For async/scheduler calls without a request context, it falls back to `TokenProvider.generateS2SToken()`.
 
-`TokenProvider` is an interface (`com.media.bus.common.security.TokenProvider`). The implementing bean must be provided by the consuming module (e.g., `auth` module's `JwtProvider`).
+`TokenProvider` is an interface (`com.media.bus.common.security.TokenProvider`). The implementing bean is provided by `auth-contract` module's `AuthContractAutoConfiguration` (`JwtProvider`).
 
 ## JPA Base Entities
 

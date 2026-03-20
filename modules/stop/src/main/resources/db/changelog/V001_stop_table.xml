@@ -67,4 +67,14 @@
 
   </changeSet>
 
+  <!-- ================================================
+       V001-2. stops_type 컬럼 주석에 StopType enum 값 추가
+       ================================================ -->
+  <changeSet id="V001-2" author="hig">
+    <sql>
+      COMMENT ON COLUMN stop.stop.stops_type IS
+        '정류소 유형 (STOPS_TYPE, 공공 API 제공) [VILLAGE_BUS(마을버스), ROADSIDE_ALL_DAY(가로변전일), ROADSIDE_TIMED(가로변시간), CENTER_LANE(중앙차로), GENERAL_LANE(일반차로), HANGANG_DOCK(한강선착장)]'
+    </sql>
+  </changeSet>
+
 </databaseChangeLog>

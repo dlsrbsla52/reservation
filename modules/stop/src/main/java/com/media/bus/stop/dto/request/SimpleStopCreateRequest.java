@@ -1,5 +1,6 @@
 package com.media.bus.stop.dto.request;
 
+import com.media.bus.stop.entity.enums.StopType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -29,7 +30,6 @@ public record SimpleStopCreateRequest(
     String nodeId,
 
     @NotNull
-    @Size(max = 50)
-    String stopsType
+    StopType stopsType
 
 ) {}

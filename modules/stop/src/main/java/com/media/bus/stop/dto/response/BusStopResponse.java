@@ -45,7 +45,7 @@ public record BusStopResponse(
             stop.getXCrd(),
             stop.getYCrd(),
             stop.getNodeId(),
-            stop.getStopsType(),
+            stop.getStopsType().getName(),
             stop.getCreatedAt(),
             stop.getUpdatedAt()
         );
