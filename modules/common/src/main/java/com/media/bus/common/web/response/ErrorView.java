@@ -1,11 +1,13 @@
 package com.media.bus.common.web.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Error View
@@ -26,4 +28,10 @@ public class ErrorView extends AbstractView {
 
 	@Getter
 	private final String path;
+
+	@Getter
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private final List<FieldErrorDetail> errors;
+
+	public record FieldErrorDetail(String field, String message) {}
 }
