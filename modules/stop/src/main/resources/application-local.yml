@@ -32,6 +32,10 @@ spring:
       name: user
       password: boilerUser123!
 
+seoul:
+  api:
+    key: ${SEOUL_API_KEY:53574a6e5976686b39314c67634559}
+
 hig:
   bulkhead:
     database-name: orderDatabase # resilience4j.bulkhead.instances 이름과 반드시 일치해야 함

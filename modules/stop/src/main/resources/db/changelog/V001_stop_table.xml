@@ -27,31 +27,27 @@
         <constraints primaryKey="true" nullable="false"/>
       </column>
 
-      <column name="stop_id" type="VARCHAR(50)" remarks="정류장 ID (공공 API 제공)">
+      <column name="stop_id" type="VARCHAR(50)" remarks="정류소 번호 (STOPS_NO, 공공 API 제공)">
         <constraints nullable="false" unique="true" uniqueConstraintName="uk_stop_stop_id"/>
       </column>
 
-      <column name="tm_x" type="VARCHAR(50)" remarks="정류장 x 좌표 (공공 API 제공)">
+      <column name="stop_name" type="VARCHAR(50)" remarks="정류소 이름 (STOPS_NM, 공공 API 제공)">
         <constraints nullable="false"/>
       </column>
 
-      <column name="tm_y" type="VARCHAR(50)" remarks="정류장 y 좌표 (공공 API 제공)">
+      <column name="x_crd" type="VARCHAR(50)" remarks="경도 WGS84 (XCRD, 공공 API 제공)">
         <constraints nullable="false"/>
       </column>
 
-      <column name="ars_id" type="VARCHAR(50)" remarks="정류소 고유번호 (공공 API 제공)">
+      <column name="y_crd" type="VARCHAR(50)" remarks="위도 WGS84 (YCRD, 공공 API 제공)">
         <constraints nullable="false"/>
       </column>
 
-      <column name="pos_x" type="VARCHAR(50)" remarks="정류장 x 좌표 (GRS80) 공공 API 제공)">
+      <column name="node_id" type="VARCHAR(50)" remarks="노드 ID (NODE_ID, 공공 API 제공)">
         <constraints nullable="false"/>
       </column>
 
-      <column name="pos_y" type="VARCHAR(50)" remarks="정류장 y 좌표 (GRS80) 공공 API 제공)">
-        <constraints nullable="false"/>
-      </column>
-
-      <column name="stop_name" type="VARCHAR(50)" remarks="정류장 이름">
+      <column name="stops_type" type="VARCHAR(50)" remarks="정류소 유형 (STOPS_TYPE, 공공 API 제공)">
         <constraints nullable="false"/>
       </column>
 

@@ -2,9 +2,6 @@ package com.media.bus.stop.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Value;
-
-import java.io.Serializable;
 
 /**
  * DTO for {@link com.media.bus.stop.entity.Stop}
@@ -14,32 +11,25 @@ public record SimpleStopCreateRequest(
     @NotNull
     @Size(max = 50)
     String stopId,
-    
+
     @NotNull
     @Size(max = 50)
-    String tmX,
-    
+    String stopName,
+
     @NotNull
     @Size(max = 50)
-    String tmY,
-    
+    String xCrd,
+
     @NotNull
     @Size(max = 50)
-    String arsId,
-    
+    String yCrd,
+
     @NotNull
     @Size(max = 50)
-    String posX,
-    
+    String nodeId,
+
     @NotNull
     @Size(max = 50)
-    String posY,
-    
-    @NotNull
-    @Size(max = 50)
-    String stopName
-    
-) {
-    
-}
-    
+    String stopsType
+
+) {}
