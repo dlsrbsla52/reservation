@@ -1,8 +1,9 @@
 package com.media.bus.auth.member.repository;
 
+import com.media.bus.auth.modules.member.entity.Member;
+import com.media.bus.auth.modules.member.entity.enumerated.MemberStatus;
+import com.media.bus.auth.modules.member.repository.MemberRepository;
 import com.media.bus.contract.entity.member.MemberType;
-import com.media.bus.auth.member.entity.Member;
-import com.media.bus.auth.member.entity.enumerated.MemberStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
