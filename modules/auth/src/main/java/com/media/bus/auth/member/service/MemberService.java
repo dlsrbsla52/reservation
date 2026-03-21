@@ -1,12 +1,12 @@
 package com.media.bus.auth.member.service;
 
+import com.media.bus.auth.member.dto.MemberResponse;
+import com.media.bus.auth.member.entity.Member;
+import com.media.bus.auth.member.repository.MemberRepository;
 import com.media.bus.common.exceptions.ServiceException;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.security.JwtProvider;
 import com.media.bus.contract.security.MemberPrincipal;
-import com.media.bus.auth.member.dto.MemberResponse;
-import com.media.bus.auth.member.entity.Member;
-import com.media.bus.auth.member.repository.MemberRepository;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +36,7 @@ public class MemberService {
             jwtProvider.parseClaimsFromToken(jwt)
         );
 
-        Member member = memberRepository.findById(UUID.fromString(principal.id()))
+        Member member = memberRepository.findById(principal.id())
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
         return new MemberResponse(

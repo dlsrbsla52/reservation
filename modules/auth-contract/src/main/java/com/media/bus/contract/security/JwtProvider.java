@@ -15,6 +15,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트.
@@ -51,7 +52,7 @@ public class JwtProvider implements TokenProvider {
     public String generateAccessToken(MemberPrincipal principal) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
-                .subject(principal.id())
+                .subject(principal.id().toString())
                 .claim(MemberPrincipal.CLAIM_LOGIN_ID, principal.loginId())
                 .claim(MemberPrincipal.CLAIM_EMAIL, principal.email())
                 .claim(MemberPrincipal.CLAIM_MEMBER_TYPE, principal.memberType().name())
@@ -162,7 +163,7 @@ public class JwtProvider implements TokenProvider {
      */
     public MemberPrincipal getPrincipalFromClaims(Claims claims) {
         return MemberPrincipal.builder()
-                .id(claims.getSubject())
+                .id(UUID.fromString(claims.getSubject()))
                 .loginId(claims.get(MemberPrincipal.CLAIM_LOGIN_ID, String.class))
                 .email(claims.get(MemberPrincipal.CLAIM_EMAIL, String.class))
                 .memberType(MemberType.valueOf(claims.get(MemberPrincipal.CLAIM_MEMBER_TYPE, String.class)))
