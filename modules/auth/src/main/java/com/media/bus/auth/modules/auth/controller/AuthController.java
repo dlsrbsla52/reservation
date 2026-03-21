@@ -2,7 +2,6 @@ package com.media.bus.auth.modules.auth.controller;
 
 import com.media.bus.auth.modules.auth.dto.LoginRequest;
 import com.media.bus.auth.modules.auth.dto.RegisterRequest;
-import com.media.bus.auth.modules.auth.dto.RegisterResponse;
 import com.media.bus.auth.modules.auth.dto.TokenRefreshRequest;
 import com.media.bus.auth.modules.auth.dto.TokenResponse;
 import com.media.bus.auth.modules.auth.service.AuthService;
@@ -36,17 +35,15 @@ public class AuthController {
 
     /**
      * 회원가입.
-     * 성공 시 이메일 인증 토큰 반환 (개발 단계: 실제 서비스에서는 이메일로 발송).
+     * 이메일 인증 토큰은 보안상 응답에 포함하지 않으며 이메일로만 발송됩니다.
      */
-    @Operation(summary = "회원가입", description = "새로운 회원을 가입시킵니다. 성공 시 이메일 인증 토큰을 반환합니다.")
+    @Operation(summary = "회원가입", description = "새로운 회원을 가입시킵니다. 이메일 인증 안내 메일이 발송됩니다.")
     @PostMapping("/register")
-    public DataView<RegisterResponse> register(@RequestBody @Valid RegisterRequest request) {
-        String emailVerifyToken = authService.register(request);
-        return DataView.<RegisterResponse>builder()
+    public NoDataView register(@RequestBody @Valid RegisterRequest request) {
+        authService.register(request);
+        return NoDataView.builder()
                 .result(CommonResult.SUCCESS)
                 .message("회원가입이 완료되었습니다. 이메일 인증을 진행해주세요.")
-                // TODO: 실제 서비스에서는 이 토큰을 응답 바디에서 제거하고 이메일로만 발송
-                .data(new RegisterResponse(emailVerifyToken))
                 .build();
     }
 

@@ -72,6 +72,23 @@
 >
 > 자세한 구현 내용은 `com.common.configuration.RestClientConfig`를 참조하시기 바랍니다.
 
+### 🛡 S2S 통신 인증(S2STokenFilter) vs 사용자 인가(@Authorize) 비교
+본 프로젝트는 단일 서비스가 아닌 분산 환경(MSA)이므로 "누가(혹은 어느 서비스가) 요청했는가"를 식별하기 위해 인증/인가 단계를 명확히 분리하여 운영합니다.
+
+1. **S2STokenFilter (시스템 간 인증)**:
+   - **적용 대상**: 외부 사용자가 아닌 시스템(Gateway, 백그라운드 워커, 스케줄러, 내부 타 모듈 등)
+   - **목적**: 해당 API가 인터넷을 통한 접속이 아니라, **신뢰할 수 있는 내부 망(Service-to-Service)에서 넘어온 호출인지 1차로 확인**하여 외부로부터의 접근을 원천 차단합니다.
+   - **구현**: `X-Service-Token` 헤더를 검증합니다. (예: `auth` 서비스의 `/api/v1/member/**` 등 서비스 간 정보 조회 API에 주로 적용)
+   - **설정**: 각 서비스의 `SecurityConfig`에서 이 필터를 Bean으로 등록할 때 적용할 경로 리스트(`List.of(...)`)를 주입하여 유연하게 적용 범위를 제어합니다.
+
+2. **@Authorize (사용자 인가)**:
+   - **적용 대상**: 모바일/웹 등의 클라이언트를 통해 접근하는 실제 **사용자(Member/User)**
+   - **목적**: 사용자의 자격 증명(MemberType, MemberCategory, EmailVerified 여부, Permission 등)을 확인하여 **비즈니스 로직 연산(API) 수행 권한이 있는지 세밀하게 제어**합니다.
+   - **구현**: 유저 토큰이 Gateway에서 검증 및 해석되어 주입된 `X-User-...` 헤더 기반의 `MemberPrincipal` 객체를 `AuthorizeHandlerInterceptor`가 AOP 동작 이전에 가로채어 검사합니다.
+
+> 💡 **Best Practice Tip**: 타 서비스(예: `reservation`)가 회원 상세 데이터 조회를 위해 `auth` 서비스를 호출할 때 유저 컨텍스트를 억지로 조작하여 `@Authorize`를 뚫으려 하지 마십시오. **S2STokenFilter**를 사용해 시스템 간 인증만 통과시킨 후 데이터를 자유롭게 조회하도록 분리된 엔드포인트를 두는 방식이 도메인 모델의 순수성을 지키는 데 적합합니다.
+
+
 ## 디버깅 (Remote JVM Debug)
 > 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
 > `docker-compose.yml` 리소스에 JDWP(Java Debug Wire Protocol) 설정 및 포워딩이 구성되어 있습니다.

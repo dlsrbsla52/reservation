@@ -101,6 +101,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                             .header(MemberPrincipal.HEADER_USER_ROLE,        "ROLE_" + principal.memberType().name())
                             .header(MemberPrincipal.HEADER_EMAIL_VERIFIED,   String.valueOf(principal.emailVerified()))
                             .header(MemberPrincipal.HEADER_USER_PERMISSIONS, permissionsHeader)
+                            .header("X-Service-Token", jwtProvider.generateS2SToken())
                     // 보안: 하위 서비스에 원본 Authorization 헤더는 유지 (S2S 연계 시 활용)
                     )
                     .build();
