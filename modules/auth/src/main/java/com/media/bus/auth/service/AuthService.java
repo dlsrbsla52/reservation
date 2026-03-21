@@ -5,6 +5,7 @@ import com.media.bus.auth.dto.RegisterRequest;
 import com.media.bus.auth.dto.TokenResponse;
 import com.media.bus.auth.member.entity.Member;
 import com.media.bus.auth.member.repository.MemberRepository;
+import com.media.bus.auth.permission.repository.RolePermissionRepository;
 import com.media.bus.common.exceptions.NoAuthenticationException;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.entity.member.MemberType;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -41,6 +43,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final StringRedisTemplate redisTemplate;
+    private final RolePermissionRepository rolePermissionRepository;
 
     /**
      * 회원가입 처리.
@@ -132,7 +135,11 @@ public class AuthService {
                 .emailVerified(member.isEmailVerified())
                 .build();
 
-        String accessToken = jwtProvider.generateAccessToken(principal);
+        // DB에서 역할에 매핑된 권한 목록을 조회하여 JWT claim에 포함
+        Set<String> permissionNames = rolePermissionRepository
+                .findPermissionNamesByRoleName(member.getMemberType().name());
+
+        String accessToken = jwtProvider.generateAccessToken(principal, permissionNames);
         String refreshToken = jwtProvider.generateRefreshToken(member.getId().toString());
 
         log.info("[AuthService.login] 로그인 성공. memberId={}", member.getId());
@@ -189,7 +196,11 @@ public class AuthService {
                 .emailVerified(member.isEmailVerified())
                 .build();
 
-        String newAccessToken = jwtProvider.generateAccessToken(principal);
+        // 토큰 재발급 시에도 DB에서 최신 권한을 조회하여 갱신된 권한이 즉시 반영되도록 함
+        Set<String> permissionNames = rolePermissionRepository
+                .findPermissionNamesByRoleName(member.getMemberType().name());
+
+        String newAccessToken = jwtProvider.generateAccessToken(principal, permissionNames);
         String newRefreshToken = jwtProvider.generateRefreshToken(userId); // Token Rotation
 
         return TokenResponse.of(newAccessToken, newRefreshToken);

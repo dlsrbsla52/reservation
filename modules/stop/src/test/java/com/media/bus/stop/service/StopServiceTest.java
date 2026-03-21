@@ -19,8 +19,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
+/**
+ * StopService 단위 테스트.
+ * 인가 처리가 인터셉터로 이전되어 MemberPrincipal을 직접 주입합니다.
+ */
 @ExtendWith(MockitoExtension.class)
 class StopServiceTest {
 
@@ -36,19 +39,14 @@ class StopServiceTest {
     @Test
     void createOneStop_등록자_UUID와_USER_소스가_저장된다() {
         UUID memberId = UUID.randomUUID();
-        MemberPrincipal principal = MemberPrincipal.builder()
-                .id(memberId)
-                .loginId("admin")
-                .email("admin@test.com")
-                .memberType(MemberType.ADMIN_USER)
-                .emailVerified(true)
-                .build();
+        MemberPrincipal principal = new MemberPrincipal(
+                memberId, "admin", "admin@test.com", MemberType.ADMIN_USER, true, null
+        );
         SimpleStopCreateRequest request = new SimpleStopCreateRequest(
                 "123", "테스트정류소", "127.0", "37.0", "NODE001", StopType.CENTER_LANE
         );
-        when(stopCommandGuard.isMemberAuthenticationAdmin("token")).thenReturn(principal);
 
-        stopService.createOneStop("token", request);
+        stopService.createOneStop(principal, request);
 
         ArgumentCaptor<Stop> captor = ArgumentCaptor.forClass(Stop.class);
         verify(stopRepository).save(captor.capture());
@@ -60,23 +58,17 @@ class StopServiceTest {
     }
 
     @Test
-    void createOneStop_권한_검증_후_정류소_등록_확인() {
+    void createOneStop_Guard와_Repository_호출_순서_확인() {
         UUID memberId = UUID.randomUUID();
-        MemberPrincipal principal = MemberPrincipal.builder()
-                .id(memberId)
-                .loginId("admin")
-                .email("admin@test.com")
-                .memberType(MemberType.ADMIN_MASTER)
-                .emailVerified(true)
-                .build();
+        MemberPrincipal principal = new MemberPrincipal(
+                memberId, "admin", "admin@test.com", MemberType.ADMIN_MASTER, true, null
+        );
         SimpleStopCreateRequest request = new SimpleStopCreateRequest(
                 "999", "마스터정류소", "128.0", "36.0", "NODE999", StopType.VILLAGE_BUS
         );
-        when(stopCommandGuard.isMemberAuthenticationAdmin("token")).thenReturn(principal);
 
-        stopService.createOneStop("token", request);
+        stopService.createOneStop(principal, request);
 
-        verify(stopCommandGuard).isMemberAuthenticationAdmin("token");
         verify(stopCommandGuard).isStopRegistered("999");
         verify(stopRepository).save(org.mockito.ArgumentMatchers.any(Stop.class));
     }

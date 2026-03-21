@@ -1,9 +1,6 @@
 package com.media.bus.stop.guard.impl;
 
 import com.media.bus.common.exceptions.ServiceException;
-import com.media.bus.contract.entity.member.MemberType;
-import com.media.bus.contract.security.JwtProvider;
-import com.media.bus.contract.security.MemberPrincipal;
 import com.media.bus.stop.repository.StopRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,17 +8,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.UUID;
+import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+/**
+ * StopCommandGuardImpl 단위 테스트.
+ * JwtProvider 의존성은 인가 인터셉터로 이전되어 제거되었습니다.
+ * Repository 기반 비즈니스 규칙 검증만 테스트합니다.
+ */
 @ExtendWith(MockitoExtension.class)
 class StopCommandGuardImplTest {
-
-    @Mock
-    JwtProvider jwtProvider;
 
     @Mock
     StopRepository stopRepository;
@@ -30,50 +29,16 @@ class StopCommandGuardImplTest {
     StopCommandGuardImpl stopCommandGuard;
 
     @Test
-    void isMemberAuthenticationAdmin_ADMIN_USER_principal_반환() {
-        MemberPrincipal principal = principal(MemberType.ADMIN_USER);
-        when(jwtProvider.getMemberPrincipalFromRefreshToken("token")).thenReturn(principal);
-
-        MemberPrincipal result = stopCommandGuard.isMemberAuthenticationAdmin("token");
-
-        assertThat(result).isEqualTo(principal);
+    void isStopRegistered_등록된_정류소_예외없음() {
+        when(stopRepository.findByStopId("123")).thenReturn(Optional.of(new com.media.bus.stop.entity.Stop()));
+        assertThatCode(() -> stopCommandGuard.isStopRegistered("123")).doesNotThrowAnyException();
     }
 
     @Test
-    void isMemberAuthenticationAdmin_ADMIN_MASTER_principal_반환() {
-        MemberPrincipal principal = principal(MemberType.ADMIN_MASTER);
-        when(jwtProvider.getMemberPrincipalFromRefreshToken("token")).thenReturn(principal);
-
-        MemberPrincipal result = stopCommandGuard.isMemberAuthenticationAdmin("token");
-
-        assertThat(result).isEqualTo(principal);
-    }
-
-    @Test
-    void isMemberAuthenticationAdmin_MEMBER_예외_발생() {
-        when(jwtProvider.getMemberPrincipalFromRefreshToken("token"))
-                .thenReturn(principal(MemberType.MEMBER));
-
-        assertThatThrownBy(() -> stopCommandGuard.isMemberAuthenticationAdmin("token"))
-                .isInstanceOf(ServiceException.class);
-    }
-
-    @Test
-    void isMemberAuthenticationAdmin_BUSINESS_예외_발생() {
-        when(jwtProvider.getMemberPrincipalFromRefreshToken("token"))
-                .thenReturn(principal(MemberType.BUSINESS));
-
-        assertThatThrownBy(() -> stopCommandGuard.isMemberAuthenticationAdmin("token"))
-                .isInstanceOf(ServiceException.class);
-    }
-
-    private MemberPrincipal principal(MemberType type) {
-        return MemberPrincipal.builder()
-                .id(UUID.randomUUID())
-                .loginId("user")
-                .email("user@test.com")
-                .memberType(type)
-                .emailVerified(true)
-                .build();
+    void isStopRegistered_미등록_정류소_ServiceException_발생() {
+        when(stopRepository.findByStopId("999")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> stopCommandGuard.isStopRegistered("999"))
+                .isInstanceOf(ServiceException.class)
+                .hasMessageContaining("등록된 정류장을 찾을 수 없습니다.");
     }
 }
