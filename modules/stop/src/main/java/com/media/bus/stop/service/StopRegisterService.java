@@ -6,7 +6,6 @@ import com.media.bus.stop.dto.response.StopBulkRegisterResult;
 import com.media.bus.stop.entity.Stop;
 import com.media.bus.stop.entity.StopUpdateHistory;
 import com.media.bus.stop.entity.enums.ChangeSource;
-import com.media.bus.stop.guard.StopCommandGuard;
 import com.media.bus.stop.repository.StopRepository;
 import com.media.bus.stop.repository.StopUpdateHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ public class StopRegisterService {
     private final SeoulBusApiClient seoulBusApiClient;
     private final StopRepository stopRepository;
     private final StopUpdateHistoryRepository stopUpdateHistoryRepository;
-    private final StopCommandGuard stopCommandGuard;
 
     /**
      * 서울 열린데이터광장 공공 API에서 전체 버스 정류소를 가져와 DB에 저장한다.
@@ -35,12 +33,10 @@ public class StopRegisterService {
      * - 기존 stopId + 필드 변경 → Stop 업데이트 + StopUpdateHistory 기록
      * - 기존 stopId + 변경 없음 → 건너뜀
      *
-     * @param token 어드민 Bearer 토큰 (Authorization 헤더 원문)
+     * 인가 처리는 @Authorize + AuthorizeHandlerInterceptor가 Controller 진입 전에 완료합니다.
      */
     @Transactional
-    public StopBulkRegisterResult registerAllFromPublicApi(String token) {
-
-        stopCommandGuard.isMemberAuthenticationAdmin(token);
+    public StopBulkRegisterResult registerAllFromPublicApi() {
 
         int totalCount = seoulBusApiClient.fetchTotalCount();
         int pageSize = seoulBusApiClient.getPageSize();

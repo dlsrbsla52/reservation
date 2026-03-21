@@ -1,7 +1,6 @@
 package com.media.bus.contract.security;
 
 import com.media.bus.common.security.TokenProvider;
-import com.media.bus.contract.entity.member.MemberType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -15,7 +14,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
-import java.util.UUID;
+import java.util.Set;
 
 /**
  * JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트.
@@ -46,10 +45,13 @@ public class JwtProvider implements TokenProvider {
     }
 
     /**
-     * 인증된 회원 정보를 기반으로 Access Token을 생성합니다.
-     * 클레임에 최소한의 정보만 담아 토큰 크기를 제한합니다.
+     * 인증된 회원 정보와 DB에서 조회한 권한 목록으로 Access Token을 생성합니다.
+     * permissions claim에 쉼표 구분 문자열로 포함합니다 (예: "READ,WRITE").
+     *
+     * @param principal       인증된 회원 정보
+     * @param permissionNames DB에서 조회한 권한 이름 집합
      */
-    public String generateAccessToken(MemberPrincipal principal) {
+    public String generateAccessToken(MemberPrincipal principal, Set<String> permissionNames) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
                 .subject(principal.id().toString())
@@ -57,6 +59,7 @@ public class JwtProvider implements TokenProvider {
                 .claim(MemberPrincipal.CLAIM_EMAIL, principal.email())
                 .claim(MemberPrincipal.CLAIM_MEMBER_TYPE, principal.memberType().name())
                 .claim(MemberPrincipal.CLAIM_EMAIL_VERIFIED, principal.emailVerified())
+                .claim(MemberPrincipal.CLAIM_PERMISSIONS, String.join(",", permissionNames))
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + ACCESS_TOKEN_EXPIRE_MS))
                 .signWith(secretKey)
@@ -160,15 +163,10 @@ public class JwtProvider implements TokenProvider {
 
     /**
      * Claims에서 MemberPrincipal 객체를 복원합니다.
+     * MemberPrincipal.fromClaims()에 위임합니다.
      */
     public MemberPrincipal getPrincipalFromClaims(Claims claims) {
-        return MemberPrincipal.builder()
-                .id(UUID.fromString(claims.getSubject()))
-                .loginId(claims.get(MemberPrincipal.CLAIM_LOGIN_ID, String.class))
-                .email(claims.get(MemberPrincipal.CLAIM_EMAIL, String.class))
-                .memberType(MemberType.valueOf(claims.get(MemberPrincipal.CLAIM_MEMBER_TYPE, String.class)))
-                .emailVerified(Boolean.TRUE.equals(claims.get(MemberPrincipal.CLAIM_EMAIL_VERIFIED, Boolean.class)))
-                .build();
+        return MemberPrincipal.fromClaims(claims);
     }
 
     /**

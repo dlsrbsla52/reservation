@@ -8,5 +8,7 @@
 >
   <!-- V001: 회원(Member) 테이블 생성 -->
   <include file="/db/changelog/V001__create_member_table.xml"/>
+  <!-- V002: 권한(permission) 및 역할-권한 매핑(role_permission) 테이블 생성 -->
+  <include file="/db/changelog/V002__create_permission_tables.xml"/>
 
 </databaseChangeLog>
