@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+>
+
+  <!-- V002-1: 권한 마스터 테이블 생성 -->
+  <changeSet id="V002-1" author="system">
+    <createTable tableName="permission" schemaName="auth">
+      <column name="name" type="VARCHAR(20)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="display_name" type="VARCHAR(100)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- V002-2: 역할-권한 매핑 테이블 생성 -->
+  <changeSet id="V002-2" author="system">
+    <createTable tableName="role_permission" schemaName="auth">
+      <column name="role_name" type="VARCHAR(30)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="permission_name" type="VARCHAR(20)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <addPrimaryKey
+      tableName="role_permission"
+      schemaName="auth"
+      columnNames="role_name, permission_name"
+      constraintName="pk_role_permission"
+    />
+
+    <addForeignKeyConstraint
+      baseTableSchemaName="auth"
+      baseTableName="role_permission"
+      baseColumnNames="permission_name"
+      referencedTableSchemaName="auth"
+      referencedTableName="permission"
+      referencedColumnNames="name"
+      constraintName="fk_role_permission_permission"
+    />
+  </changeSet>
+
+  <!-- V002-3: 권한 초기 데이터 -->
+  <changeSet id="V002-3" author="system">
+    <insert tableName="permission" schemaName="auth">
+      <column name="name" value="READ"/>
+      <column name="display_name" value="조회"/>
+    </insert>
+    <insert tableName="permission" schemaName="auth">
+      <column name="name" value="WRITE"/>
+      <column name="display_name" value="등록/수정"/>
+    </insert>
+    <insert tableName="permission" schemaName="auth">
+      <column name="name" value="DELETE"/>
+      <column name="display_name" value="삭제"/>
+    </insert>
+    <insert tableName="permission" schemaName="auth">
+      <column name="name" value="MANAGE"/>
+      <column name="display_name" value="관리"/>
+    </insert>
+  </changeSet>
+
+  <!-- V002-4: 역할-권한 초기 매핑 데이터 (기존 MemberType.defaultPermissions 기준) -->
+  <changeSet id="V002-4" author="system">
+    <!-- MEMBER: READ -->
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="MEMBER"/>
+      <column name="permission_name" value="READ"/>
+    </insert>
+
+    <!-- BUSINESS: READ, WRITE -->
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="BUSINESS"/>
+      <column name="permission_name" value="READ"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="BUSINESS"/>
+      <column name="permission_name" value="WRITE"/>
+    </insert>
+
+    <!-- ADMIN_USER: READ, WRITE -->
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_USER"/>
+      <column name="permission_name" value="READ"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_USER"/>
+      <column name="permission_name" value="WRITE"/>
+    </insert>
+
+    <!-- ADMIN_MASTER: READ, WRITE, DELETE, MANAGE -->
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_MASTER"/>
+      <column name="permission_name" value="READ"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_MASTER"/>
+      <column name="permission_name" value="WRITE"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_MASTER"/>
+      <column name="permission_name" value="DELETE"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_MASTER"/>
+      <column name="permission_name" value="MANAGE"/>
+    </insert>
+
+    <!-- ADMIN_DEVELOPER: READ, WRITE, DELETE, MANAGE -->
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_DEVELOPER"/>
+      <column name="permission_name" value="READ"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_DEVELOPER"/>
+      <column name="permission_name" value="WRITE"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_DEVELOPER"/>
+      <column name="permission_name" value="DELETE"/>
+    </insert>
+    <insert tableName="role_permission" schemaName="auth">
+      <column name="role_name" value="ADMIN_DEVELOPER"/>
+      <column name="permission_name" value="MANAGE"/>
+    </insert>
+  </changeSet>
+
+</databaseChangeLog>

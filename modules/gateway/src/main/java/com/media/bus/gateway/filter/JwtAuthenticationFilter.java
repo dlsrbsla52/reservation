@@ -1,5 +1,6 @@
 package com.media.bus.gateway.filter;
 
+import com.media.bus.contract.entity.member.Permission;
 import com.media.bus.contract.security.JwtProvider;
 import com.media.bus.contract.security.MemberPrincipal;
 import io.jsonwebtoken.Claims;
@@ -14,6 +15,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Gateway Edge Authentication Filter.
@@ -45,10 +47,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         "GET:/api/v1/stop/health-check"
     );
 
-    // 하위 서비스로 전달할 사용자 컨텍스트 헤더 이름 상수
-    public static final String HEADER_USER_ID = "X-User-Id";
-    public static final String HEADER_USER_ROLE = "X-User-Role";
-    public static final String HEADER_EMAIL_VERIFIED = "X-Email-Verified";
+    // 하위 서비스로 전달할 사용자 컨텍스트 헤더 이름 상수 (MemberPrincipal 중앙 관리 상수 참조)
 
     private final JwtProvider jwtProvider;
 
@@ -87,11 +86,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             MemberPrincipal principal = jwtProvider.getPrincipalFromClaims(claims);
 
             // 하위 서비스는 이 헤더를 신뢰하여 별도 JWT 파싱 없이 사용자 정보를 활용합니다.
+            // 하위 서비스는 이 헤더를 신뢰하여 별도 JWT 파싱 없이 사용자 정보를 활용합니다.
+            // loginId, email 헤더를 추가하여 MemberPrincipal.fromHeaders() 복원에 필요한 모든 정보를 전달합니다.
+            // JWT claim에서 파싱된 permissions를 쉼표 구분 문자열로 변환하여 헤더에 주입
+            String permissionsHeader = principal.permissions().stream()
+                    .map(Permission::name)
+                    .collect(Collectors.joining(","));
+
             ServerWebExchange mutatedExchange = exchange.mutate()
                     .request(r -> r
-                            .header(HEADER_USER_ID, principal.id().toString())
-                            .header(HEADER_USER_ROLE, "ROLE_" + principal.memberType().name())
-                            .header(HEADER_EMAIL_VERIFIED, String.valueOf(principal.emailVerified()))
+                            .header(MemberPrincipal.HEADER_USER_ID,          principal.id().toString())
+                            .header(MemberPrincipal.HEADER_USER_LOGIN_ID,    principal.loginId())
+                            .header(MemberPrincipal.HEADER_USER_EMAIL,       principal.email())
+                            .header(MemberPrincipal.HEADER_USER_ROLE,        "ROLE_" + principal.memberType().name())
+                            .header(MemberPrincipal.HEADER_EMAIL_VERIFIED,   String.valueOf(principal.emailVerified()))
+                            .header(MemberPrincipal.HEADER_USER_PERMISSIONS, permissionsHeader)
                     // 보안: 하위 서비스에 원본 Authorization 헤더는 유지 (S2S 연계 시 활용)
                     )
                     .build();

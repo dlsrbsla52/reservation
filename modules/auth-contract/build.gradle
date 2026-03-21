@@ -7,6 +7,10 @@ jar {
     enabled = true
 }
 
+test {
+    jvmArgs '-Dnet.bytebuddy.experimental=true'
+}
+
 dependencies {
     api project(':modules:common')
 

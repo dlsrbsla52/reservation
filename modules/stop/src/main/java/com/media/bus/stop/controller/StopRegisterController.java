@@ -2,13 +2,15 @@ package com.media.bus.stop.controller;
 
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.DataView;
+import com.media.bus.contract.entity.member.MemberCategory;
+import com.media.bus.contract.entity.member.Permission;
+import com.media.bus.contract.security.annotation.Authorize;
 import com.media.bus.stop.dto.response.StopBulkRegisterResult;
 import com.media.bus.stop.service.StopRegisterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,16 +23,15 @@ public class StopRegisterController {
     private final StopRegisterService stopRegisterService;
 
     @Operation(
-        summary = "공공 API 전체 정류소 일괄 등록",
-        description = "서울 열린데이터광장 getBusStopInfo API에서 전체 버스 정류소를 가져와 DB에 저장합니다. 어드민 권한 필요."
+        summary = "공공 API 전체 정류소 업데이트 및 일괄 등록",
+        description = "서울 열린데이터광장 getBusStopInfo API에서 전체 버스 정류소를 가져와 DB에 저장합니다. ADMIN 권한 필요."
     )
+    @Authorize(categories = {MemberCategory.ADMIN}, permissions = {Permission.MANAGE})
     @PostMapping("/bulk")
-    public DataView<StopBulkRegisterResult> registerAllFromPublicApi(
-            @RequestHeader("Authorization") String token
-    ) {
+    public DataView<StopBulkRegisterResult> registerAllFromPublicApi() {
         return DataView.<StopBulkRegisterResult>builder()
                 .result(CommonResult.SUCCESS)
-                .data(stopRegisterService.registerAllFromPublicApi(token))
+                .data(stopRegisterService.registerAllFromPublicApi())
                 .build();
     }
 }
