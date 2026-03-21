@@ -6,18 +6,20 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
  * 역할-권한 매핑 JPA Entity.
  * auth.role_permission 테이블과 매핑됩니다.
- *
+ *<p>
  * 역할(MemberType.name())과 권한(Permission.name())의 M:N 관계를 저장합니다.
  * DB가 권한의 단일 source of truth — 코드 재배포 없이 운영 중 권한 변경이 가능합니다.
- *
+ *</p>
  * UUID PK는 BaseEntity에서 상속. (role_name, permission_name) 조합은 UNIQUE 제약으로 보장.
  * 생성은 정적 팩토리 메서드 of()를 통해서만 허용합니다.
  */
+@Getter
 @Entity
 @Table(
     name = "role_permission",
@@ -49,11 +51,4 @@ public class RolePermission extends DateBaseEntity {
         return rp;
     }
 
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public String getPermissionName() {
-        return permissionName;
-    }
 }
