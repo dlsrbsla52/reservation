@@ -2,9 +2,11 @@ package com.media.bus.auth.modules.auth.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * 회원가입 응답 DTO.
+ * 보안상 이메일 인증 토큰은 응답에 포함하지 않습니다.
+ * 성공 여부는 HTTP 200 + ApiResponse로 표현합니다.
+ */
 @Schema(description = "회원가입 응답 DTO")
-public record RegisterResponse(
-    @Schema(description = "이메일 인증용 토큰", example = "123e4567-e89b-12d3-a456-426614174000")
-    String emailVerifyToken
-) {
+public record RegisterResponse() {
 }

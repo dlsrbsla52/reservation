@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <!--
+    V005: auth 스키마 전체 테이블·컬럼 COMMENT 추가 (PostgreSQL 전용)
+    목적: 테이블/컬럼의 역할과 설계 의도를 DB 수준에서 명시합니다.
+    XSD 3.1이 setTableRemarks/setColumnRemarks를 미지원하므로 COMMENT ON 구문을 직접 사용합니다.
+  -->
+
+  <!-- ======================== member ======================== -->
+  <changeSet id="V005-1" author="hig" dbms="postgresql">
+    <sql>
+      COMMENT ON TABLE auth.member IS
+        '회원 인증 정보 테이블. 로그인 자격증명·계정 상태를 관리하며 인증/인가에 필요한 최소 정보만 보유합니다. 비즈니스 프로필 등 부가 정보는 member 스키마에서 별도 관리합니다.';
+
+      COMMENT ON COLUMN auth.member.id IS
+        '회원 PK (UUID v7). 전체 서비스에서 회원을 식별하는 고유 키입니다.';
+      COMMENT ON COLUMN auth.member.login_id IS
+        '로그인 시 사용하는 아이디. 중복 불가 (uq_member_login_id).';
+      COMMENT ON COLUMN auth.member.password IS
+        'BCrypt로 해시된 비밀번호. 평문 저장 절대 금지.';
+      COMMENT ON COLUMN auth.member.email IS
+        '이메일 주소. 중복 불가 (uq_member_email). 이메일 인증 링크 발송 및 계정 식별에 사용됩니다.';
+      COMMENT ON COLUMN auth.member.phone_number IS
+        '핸드폰 번호.';
+      COMMENT ON COLUMN auth.member.email_verified IS
+        '이메일 인증 완료 여부. false 상태에서는 예약 등 주요 기능 이용이 Gateway/서비스 레이어에서 차단됩니다.';
+      COMMENT ON COLUMN auth.member.status IS
+        '계정 상태. ACTIVE(정상) / SUSPENDED(이용정지) / WITHDRAWN(탈퇴). SUSPENDED·WITHDRAWN 상태에서는 로그인이 차단됩니다.';
+      COMMENT ON COLUMN auth.member.business_number IS
+        '사업자 등록 번호. BUSINESS 역할 회원만 사용하며 일반 회원은 NULL입니다.';
+      COMMENT ON COLUMN auth.member.created_at IS
+        '회원 가입일시.';
+      COMMENT ON COLUMN auth.member.updated_at IS
+        '회원 정보 최종 수정일시.';
+    </sql>
+  </changeSet>
+
+  <!-- ======================== permission ======================== -->
+  <changeSet id="V005-2" author="hig" dbms="postgresql">
+    <sql>
+      COMMENT ON TABLE auth.permission IS
+        '권한 마스터 테이블. 시스템에서 부여 가능한 권한 목록을 관리합니다. name이 VARCHAR PK이며 role_permission 테이블이 FK로 참조합니다. 신규 권한 추가 시 이 테이블에 먼저 삽입해야 합니다.';
+
+      COMMENT ON COLUMN auth.permission.name IS
+        '권한 식별자 (PK, VARCHAR). 예: READ(조회), WRITE(등록·수정), DELETE(삭제), MANAGE(관리). JWT claims의 permissions 배열에 포함되어 각 서비스의 인가 처리에 사용됩니다.';
+      COMMENT ON COLUMN auth.permission.display_name IS
+        '권한 표시명. 관리 UI 및 운영 도구에서 사람이 읽기 쉬운 이름으로 표시합니다.';
+    </sql>
+  </changeSet>
+
+  <!-- ======================== role ======================== -->
+  <changeSet id="V005-3" author="hig" dbms="postgresql">
+    <sql>
+      COMMENT ON TABLE auth.role IS
+        '역할 마스터 테이블. MemberType enum의 name() 값을 DB 레코드로 관리합니다. member_role과 role_permission 두 테이블이 이 테이블의 id를 UUID FK로 참조합니다. 역할 추가 시 MemberType enum과 이 테이블을 함께 수정해야 합니다.';
+
+      COMMENT ON COLUMN auth.role.id IS
+        '역할 PK (UUID). 시드 데이터로 고정 UUID를 사용합니다 (V004-2 참조). member_role.role_id, role_permission.role_id가 이 값을 FK로 참조합니다.';
+      COMMENT ON COLUMN auth.role.name IS
+        '역할 식별자. MemberType.name() 값과 1:1 대응합니다. 예: MEMBER(일반), BUSINESS(비즈니스), ADMIN_USER(관리자), ADMIN_MASTER(마스터), ADMIN_DEVELOPER(개발자). UNIQUE 제약 (uq_role_name).';
+      COMMENT ON COLUMN auth.role.display_name IS
+        '역할 표시명. 관리 UI 및 운영 도구에서 사람이 읽기 쉬운 이름으로 표시합니다.';
+      COMMENT ON COLUMN auth.role.created_at IS
+        '역할 생성일시.';
+      COMMENT ON COLUMN auth.role.updated_at IS
+        '역할 정보 최종 수정일시.';
+    </sql>
+  </changeSet>
+
+  <!-- ======================== member_role ======================== -->
+  <changeSet id="V005-4" author="hig" dbms="postgresql">
+    <sql>
+      COMMENT ON TABLE auth.member_role IS
+        '회원-역할 매핑 테이블. 회원(member)에게 부여된 역할(role)을 관리합니다. member.member_type 컬럼을 대체하며 한 회원이 복수의 역할을 가질 수 있는 구조를 지원합니다. (member_id, role_id) UNIQUE 제약으로 동일 역할 중복 부여를 방지합니다.';
+
+      COMMENT ON COLUMN auth.member_role.id IS
+        '매핑 레코드 PK (UUID v7). JPA @UuidV7로 생성됩니다.';
+      COMMENT ON COLUMN auth.member_role.member_id IS
+        '역할을 보유한 회원의 FK. member.id 참조. 회원 삭제 시 CASCADE 삭제됩니다.';
+      COMMENT ON COLUMN auth.member_role.role_id IS
+        '부여된 역할의 FK. role.id 참조. 회원가입 시 MemberType에 해당하는 role 레코드를 조회하여 저장합니다.';
+      COMMENT ON COLUMN auth.member_role.created_at IS
+        '역할 부여일시.';
+      COMMENT ON COLUMN auth.member_role.updated_at IS
+        '역할 정보 최종 수정일시.';
+    </sql>
+  </changeSet>
+
+  <!-- ======================== role_permission ======================== -->
+  <changeSet id="V005-5" author="hig" dbms="postgresql">
+    <sql>
+      COMMENT ON TABLE auth.role_permission IS
+        '역할-권한 매핑 테이블. 역할(role)과 권한(permission)의 M:N 관계를 저장합니다. DB가 권한의 단일 source of truth로 동작하여 코드 재배포 없이 운영 중 권한 변경이 가능합니다. 단, 기존 발급된 Access Token TTL 내에서는 변경 전 권한이 유지됩니다. (role_id, permission_name) UNIQUE 제약으로 동일 권한 중복 매핑을 방지합니다.';
+
+      COMMENT ON COLUMN auth.role_permission.id IS
+        '매핑 레코드 PK (UUID v7). JPA @UuidV7로 생성됩니다.';
+      COMMENT ON COLUMN auth.role_permission.role_id IS
+        '권한을 부여받은 역할의 FK. role.id 참조.';
+      COMMENT ON COLUMN auth.role_permission.permission_name IS
+        '부여된 권한의 FK. permission.name(VARCHAR PK) 참조. 로그인·토큰 갱신 시 이 값들이 JWT claims의 permissions 배열에 포함됩니다.';
+      COMMENT ON COLUMN auth.role_permission.created_at IS
+        '권한 매핑 생성일시.';
+      COMMENT ON COLUMN auth.role_permission.updated_at IS
+        '권한 매핑 최종 수정일시.';
+    </sql>
+  </changeSet>
+
+</databaseChangeLog>

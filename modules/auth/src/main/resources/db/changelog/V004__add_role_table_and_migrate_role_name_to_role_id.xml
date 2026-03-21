@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <!--
+    V004: role 테이블 추가 및 role_name 문자열 조인 → role_id UUID FK로 전환
+    배경: member_role.role_name 과 role_permission.role_name 이 DB FK/JPA 연관관계 없이
+          문자열 값만으로 논리적으로 연결되어 있었음. role 테이블을 신설하고
+          두 테이블 모두 role.id 를 FK로 참조하도록 변경합니다.
+  -->
+
+  <!-- V004-1: role 마스터 테이블 생성 -->
+  <changeSet id="V004-1" author="hig">
+    <createTable tableName="role" schemaName="auth">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR(30)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_role_name"/>
+      </column>
+      <column name="display_name" type="VARCHAR(100)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- V004-2: role 초기 데이터 (MemberType enum 기준, 고정 UUID 사용) -->
+  <changeSet id="V004-2" author="hig">
+    <insert tableName="role" schemaName="auth">
+      <column name="id"           value="a0000000-0000-0000-0000-000000000001"/>
+      <column name="name"         value="MEMBER"/>
+      <column name="display_name" value="일반 회원"/>
+    </insert>
+    <insert tableName="role" schemaName="auth">
+      <column name="id"           value="a0000000-0000-0000-0000-000000000002"/>
+      <column name="name"         value="BUSINESS"/>
+      <column name="display_name" value="비즈니스 회원"/>
+    </insert>
+    <insert tableName="role" schemaName="auth">
+      <column name="id"           value="a0000000-0000-0000-0000-000000000003"/>
+      <column name="name"         value="ADMIN_USER"/>
+      <column name="display_name" value="관리자"/>
+    </insert>
+    <insert tableName="role" schemaName="auth">
+      <column name="id"           value="a0000000-0000-0000-0000-000000000004"/>
+      <column name="name"         value="ADMIN_MASTER"/>
+      <column name="display_name" value="마스터 관리자"/>
+    </insert>
+    <insert tableName="role" schemaName="auth">
+      <column name="id"           value="a0000000-0000-0000-0000-000000000005"/>
+      <column name="name"         value="ADMIN_DEVELOPER"/>
+      <column name="display_name" value="개발자 관리자"/>
+    </insert>
+  </changeSet>
+
+  <!-- ============================================================
+       member_role: role_name(VARCHAR) → role_id(UUID FK)
+       ============================================================ -->
+
+  <!-- V004-3: member_role 에 role_id 컬럼 추가 (데이터 이관 전이므로 nullable) -->
+  <changeSet id="V004-3" author="hig">
+    <addColumn tableName="member_role" schemaName="auth">
+      <column name="role_id" type="UUID"/>
+    </addColumn>
+  </changeSet>
+
+  <!-- V004-4: member_role.role_name → role_id 데이터 이관 (PostgreSQL 전용) -->
+  <changeSet id="V004-4" author="hig" dbms="postgresql">
+    <sql>
+      UPDATE auth.member_role mr
+      SET role_id = r.id
+      FROM auth.role r
+      WHERE r.name = mr.role_name;
+    </sql>
+  </changeSet>
+
+  <!-- V004-5: member_role.role_id NOT NULL 제약 추가 (이관 완료 후) -->
+  <changeSet id="V004-5" author="hig">
+    <addNotNullConstraint
+        tableName="member_role"
+        schemaName="auth"
+        columnName="role_id"
+        columnDataType="UUID"/>
+  </changeSet>
+
+  <!-- V004-6: 기존 (member_id, role_name) UNIQUE 제약 삭제 -->
+  <changeSet id="V004-6" author="hig">
+    <dropUniqueConstraint
+        tableName="member_role"
+        schemaName="auth"
+        constraintName="uq_member_role"/>
+  </changeSet>
+
+  <!-- V004-7: (member_id, role_id) UNIQUE 제약 추가 -->
+  <changeSet id="V004-7" author="hig">
+    <addUniqueConstraint
+        tableName="member_role"
+        schemaName="auth"
+        columnNames="member_id, role_id"
+        constraintName="uq_member_role"/>
+  </changeSet>
+
+  <!-- V004-8: member_role.role_id → role.id FK 추가 -->
+  <changeSet id="V004-8" author="hig">
+    <addForeignKeyConstraint
+        baseTableSchemaName="auth"
+        baseTableName="member_role"
+        baseColumnNames="role_id"
+        referencedTableSchemaName="auth"
+        referencedTableName="role"
+        referencedColumnNames="id"
+        constraintName="fk_member_role_role"/>
+  </changeSet>
+
+  <!-- V004-9: member_role.role_name 컬럼 제거 -->
+  <changeSet id="V004-9" author="hig">
+    <dropColumn tableName="member_role" columnName="role_name" schemaName="auth"/>
+  </changeSet>
+
+  <!-- ============================================================
+       role_permission: role_name(VARCHAR) → role_id(UUID FK)
+       ============================================================ -->
+
+  <!-- V004-10: role_permission 에 role_id 컬럼 추가 (nullable) -->
+  <changeSet id="V004-10" author="hig">
+    <addColumn tableName="role_permission" schemaName="auth">
+      <column name="role_id" type="UUID"/>
+    </addColumn>
+  </changeSet>
+
+  <!-- V004-11: role_permission.role_name → role_id 데이터 이관 (PostgreSQL 전용) -->
+  <changeSet id="V004-11" author="hig" dbms="postgresql">
+    <sql>
+      UPDATE auth.role_permission rp
+      SET role_id = r.id
+      FROM auth.role r
+      WHERE r.name = rp.role_name;
+    </sql>
+  </changeSet>
+
+  <!-- V004-12: role_permission.role_id NOT NULL 제약 추가 -->
+  <changeSet id="V004-12" author="hig">
+    <addNotNullConstraint
+        tableName="role_permission"
+        schemaName="auth"
+        columnName="role_id"
+        columnDataType="UUID"/>
+  </changeSet>
+
+  <!-- V004-13: 기존 (role_name, permission_name) UNIQUE 제약 삭제 -->
+  <changeSet id="V004-13" author="hig">
+    <dropUniqueConstraint
+        tableName="role_permission"
+        schemaName="auth"
+        constraintName="uq_role_permission"/>
+  </changeSet>
+
+  <!-- V004-14: (role_id, permission_name) UNIQUE 제약 추가 -->
+  <changeSet id="V004-14" author="hig">
+    <addUniqueConstraint
+        tableName="role_permission"
+        schemaName="auth"
+        columnNames="role_id, permission_name"
+        constraintName="uq_role_permission"/>
+  </changeSet>
+
+  <!-- V004-15: role_permission.role_id → role.id FK 추가 -->
+  <changeSet id="V004-15" author="hig">
+    <addForeignKeyConstraint
+        baseTableSchemaName="auth"
+        baseTableName="role_permission"
+        baseColumnNames="role_id"
+        referencedTableSchemaName="auth"
+        referencedTableName="role"
+        referencedColumnNames="id"
+        constraintName="fk_role_permission_role"/>
+  </changeSet>
+
+  <!-- V004-16: role_permission.role_name 컬럼 제거 -->
+  <changeSet id="V004-16" author="hig">
+    <dropColumn tableName="role_permission" columnName="role_name" schemaName="auth"/>
+  </changeSet>
+
+</databaseChangeLog>
