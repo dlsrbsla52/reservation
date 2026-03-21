@@ -1,7 +1,7 @@
-package com.media.bus.auth.permission.repository;
+package com.media.bus.auth.modules.auth.repository;
 
-import com.media.bus.auth.permission.entity.RolePermission;
-import com.media.bus.auth.permission.entity.RolePermissionId;
+import com.media.bus.auth.modules.auth.entity.RolePermission;
+import com.media.bus.auth.modules.auth.entity.RolePermissionId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,4 +1,4 @@
-package com.media.bus.auth.permission.entity;
+package com.media.bus.auth.modules.auth.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

@@ -1,4 +1,4 @@
-package com.media.bus.auth.permission.entity;
+package com.media.bus.auth.modules.auth.entity;
 
 import java.io.Serializable;
 
