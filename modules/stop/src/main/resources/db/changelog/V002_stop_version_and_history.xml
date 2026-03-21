@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+>
+
+  <!-- ============================================================
+       V002-1. stop 테이블에 JPA @Version 낙관적 잠금 컬럼 추가
+       ============================================================ -->
+  <changeSet id="V002-1" author="hig">
+    <addColumn tableName="stop" schemaName="stop">
+      <column name="version" type="BIGINT" defaultValueNumeric="0" remarks="JPA @Version 낙관적 잠금 버전">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <!-- ============================================================
+       V002-2. 정류소 변경 이력 테이블 생성
+       ============================================================ -->
+  <changeSet id="V002-2" author="hig">
+
+    <createTable tableName="stop_update_history" schemaName="stop"
+                 remarks="공공 API 동기화 시 변경된 정류소 필드를 기록하는 이력 테이블">
+
+      <column name="id" type="UUID" remarks="이력 PK (UUID v7)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="stop_id" type="VARCHAR(50)" remarks="변경된 정류소 번호 (STOPS_NO)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="old_stop_name" type="VARCHAR(50)" remarks="변경 전 정류소명"/>
+      <column name="new_stop_name" type="VARCHAR(50)" remarks="변경 후 정류소명"/>
+
+      <column name="old_x_crd" type="VARCHAR(50)" remarks="변경 전 경도 (WGS84)"/>
+      <column name="new_x_crd" type="VARCHAR(50)" remarks="변경 후 경도 (WGS84)"/>
+
+      <column name="old_y_crd" type="VARCHAR(50)" remarks="변경 전 위도 (WGS84)"/>
+      <column name="new_y_crd" type="VARCHAR(50)" remarks="변경 후 위도 (WGS84)"/>
+
+      <column name="old_node_id" type="VARCHAR(50)" remarks="변경 전 노드 ID"/>
+      <column name="new_node_id" type="VARCHAR(50)" remarks="변경 후 노드 ID"/>
+
+      <column name="old_stops_type" type="VARCHAR(50)" remarks="변경 전 정류소 유형 (StopType enum)"/>
+      <column name="new_stops_type" type="VARCHAR(50)" remarks="변경 후 정류소 유형 (StopType enum)"/>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
+              defaultValueComputed="CURRENT_TIMESTAMP" remarks="이력 기록 일시">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"
+              defaultValueComputed="CURRENT_TIMESTAMP" remarks="수정일시 (DateBaseEntity 상속)">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+    <createIndex indexName="idx_stop_update_history_stop_id"
+                 tableName="stop_update_history" schemaName="stop">
+      <column name="stop_id"/>
+    </createIndex>
+
+  </changeSet>
+
+  <!-- ============================================================
+     V002-2. 정류소 변경 이력 테이블 컬럼 추가
+     ============================================================ -->
+  <changeSet id="V002-3" author="hig">
+
+    <addColumn tableName="stop_update_history" schemaName="stop">
+      <column name="change_source" type="VARCHAR(50)" remarks="변경 주체 [USER(사용자), SYSTEM(시스템)]">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+
+  </changeSet>
+
+
+  <!-- ============================================================
+       V002-4. stop 테이블에 등록자 정보 컬럼 추가
+       ============================================================ -->
+  <changeSet id="V002-4" author="hig">
+    <addColumn tableName="stop" schemaName="stop">
+      <column name="registered_by_id" type="UUID"
+              remarks="등록자 Member ID (USER 등록 시 설정, SYSTEM 등록 시 NULL)"/>
+      <column name="registered_by_source" type="VARCHAR(50)" defaultValue="SYSTEM"
+              remarks="등록 주체 [USER(사용자), SYSTEM(시스템)]">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+</databaseChangeLog>
