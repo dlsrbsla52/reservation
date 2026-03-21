@@ -3,7 +3,6 @@ package com.media.bus.auth.member.repository;
 import com.media.bus.auth.modules.member.entity.Member;
 import com.media.bus.auth.modules.member.entity.enumerated.MemberStatus;
 import com.media.bus.auth.modules.member.repository.MemberRepository;
-import com.media.bus.contract.entity.member.MemberType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,8 +35,8 @@ class MemberRepositoryTest {
         // given
         UUID manualId = UUID.randomUUID();
         String sql = """
-                        INSERT INTO auth.member (id, login_id, password, email, phone_number, email_verified, member_type, status, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        INSERT INTO auth.member (id, login_id, password, email, phone_number, email_verified, status, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
                      """;
 
         // when
@@ -50,7 +49,6 @@ class MemberRepositoryTest {
                 "manual@example.com",
                 "010-1234-5678",
                 false,
-                MemberType.MEMBER.name(),
                 MemberStatus.ACTIVE.name(),
                 OffsetDateTime.now(),
                 OffsetDateTime.now());
@@ -60,7 +58,6 @@ class MemberRepositoryTest {
         Member foundMember = memberRepository.findById(manualId).orElseThrow();
         assertThat(foundMember.getId()).isEqualTo(manualId);
         assertThat(foundMember.getLoginId()).isEqualTo("manual_user");
-        assertThat(foundMember.getMemberType()).isEqualTo(MemberType.MEMBER);
     }
 
     @Test
@@ -72,7 +69,6 @@ class MemberRepositoryTest {
                 .password("password123!")
                 .email("auto@example.com")
                 .phoneNumber("010-8765-4321")
-                .memberType(MemberType.MEMBER)
                 .status(MemberStatus.ACTIVE)
                 .build();
 
