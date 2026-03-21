@@ -1,13 +1,13 @@
-package com.media.bus.auth.member.controller;
+package com.media.bus.auth.modules.member.controller;
 
+import com.media.bus.auth.modules.member.dto.FindMemberByEmailRequest;
+import com.media.bus.auth.modules.member.dto.FindMemberByJwtRequest;
+import com.media.bus.auth.modules.member.dto.FindMemberByLoginIdRequest;
+import com.media.bus.auth.modules.member.dto.FindMemberByMemberIdRequest;
+import com.media.bus.auth.modules.member.dto.MemberResponse;
+import com.media.bus.auth.modules.member.service.MemberService;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.DataView;
-import com.media.bus.auth.member.dto.FindMemberByEmailRequest;
-import com.media.bus.auth.member.dto.FindMemberByJwtRequest;
-import com.media.bus.auth.member.dto.FindMemberByLoginIdRequest;
-import com.media.bus.auth.member.dto.FindMemberByMemberIdRequest;
-import com.media.bus.auth.member.dto.MemberResponse;
-import com.media.bus.auth.member.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

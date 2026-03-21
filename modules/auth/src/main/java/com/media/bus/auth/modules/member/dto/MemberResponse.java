@@ -1,7 +1,7 @@
-package com.media.bus.auth.member.dto;
+package com.media.bus.auth.modules.member.dto;
 
+import com.media.bus.auth.modules.member.entity.enumerated.MemberStatus;
 import com.media.bus.contract.entity.member.MemberType;
-import com.media.bus.auth.member.entity.enumerated.MemberStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;

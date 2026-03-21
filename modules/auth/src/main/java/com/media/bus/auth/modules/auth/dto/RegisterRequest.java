@@ -1,4 +1,4 @@
-package com.media.bus.auth.dto;
+package com.media.bus.auth.modules.auth.dto;
 
 import com.media.bus.contract.entity.member.MemberType;
 import io.swagger.v3.oas.annotations.media.Schema;

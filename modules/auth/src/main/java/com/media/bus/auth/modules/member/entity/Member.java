@@ -1,8 +1,8 @@
-package com.media.bus.auth.member.entity;
+package com.media.bus.auth.modules.member.entity;
 
+import com.media.bus.auth.modules.member.entity.enumerated.MemberStatus;
 import com.media.bus.common.entity.common.DateBaseEntity;
 import com.media.bus.contract.entity.member.MemberType;
-import com.media.bus.auth.member.entity.enumerated.MemberStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

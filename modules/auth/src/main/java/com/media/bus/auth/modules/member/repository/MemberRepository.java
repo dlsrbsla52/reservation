@@ -1,6 +1,6 @@
-package com.media.bus.auth.member.repository;
+package com.media.bus.auth.modules.member.repository;
 
-import com.media.bus.auth.member.entity.Member;
+import com.media.bus.auth.modules.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

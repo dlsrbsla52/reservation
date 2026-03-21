@@ -1,8 +1,8 @@
-package com.media.bus.auth.member.service;
+package com.media.bus.auth.modules.member.service;
 
-import com.media.bus.auth.member.dto.MemberResponse;
-import com.media.bus.auth.member.entity.Member;
-import com.media.bus.auth.member.repository.MemberRepository;
+import com.media.bus.auth.modules.member.dto.MemberResponse;
+import com.media.bus.auth.modules.member.entity.Member;
+import com.media.bus.auth.modules.member.repository.MemberRepository;
 import com.media.bus.common.exceptions.ServiceException;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.security.JwtProvider;

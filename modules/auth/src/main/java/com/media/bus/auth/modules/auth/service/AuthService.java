@@ -1,10 +1,10 @@
-package com.media.bus.auth.service;
+package com.media.bus.auth.modules.auth.service;
 
-import com.media.bus.auth.dto.LoginRequest;
-import com.media.bus.auth.dto.RegisterRequest;
-import com.media.bus.auth.dto.TokenResponse;
-import com.media.bus.auth.member.entity.Member;
-import com.media.bus.auth.member.repository.MemberRepository;
+import com.media.bus.auth.modules.auth.dto.LoginRequest;
+import com.media.bus.auth.modules.auth.dto.RegisterRequest;
+import com.media.bus.auth.modules.auth.dto.TokenResponse;
+import com.media.bus.auth.modules.member.entity.Member;
+import com.media.bus.auth.modules.member.repository.MemberRepository;
 import com.media.bus.auth.permission.repository.RolePermissionRepository;
 import com.media.bus.common.exceptions.NoAuthenticationException;
 import com.media.bus.common.result.type.CommonResult;

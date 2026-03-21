@@ -1,4 +1,4 @@
-package com.media.bus.auth.member.dto;
+package com.media.bus.auth.modules.member.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
