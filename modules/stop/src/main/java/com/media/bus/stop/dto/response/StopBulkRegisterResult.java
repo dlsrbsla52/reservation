@@ -8,7 +8,10 @@ public record StopBulkRegisterResult(
     @Schema(description = "신규 저장된 정류소 수")
     int savedCount,
 
-    @Schema(description = "이미 등록되어 건너뜀 정류소 수")
+    @Schema(description = "변경 감지로 업데이트된 정류소 수")
+    int updatedCount,
+
+    @Schema(description = "변경 없이 건너뜀 정류소 수")
     int skippedCount,
 
     @Schema(description = "공공 API 전체 정류소 수")

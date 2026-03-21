@@ -3,13 +3,15 @@ package com.media.bus.contract.security;
 import com.media.bus.contract.entity.member.MemberType;
 import lombok.Builder;
 
+import java.util.UUID;
+
 /**
  * JWT 클레임에 담기는 인증된 회원 정보 객체.
  * Gateway에서 토큰을 검증한 후 이 객체의 필드들을 X-User-* 헤더로 하위 서비스에 전달합니다.
  */
 @Builder
 public record MemberPrincipal(
-    String id, // UUID (PK)
+    UUID id, // UUID (PK)
     String loginId,
     String email,
     MemberType memberType,
