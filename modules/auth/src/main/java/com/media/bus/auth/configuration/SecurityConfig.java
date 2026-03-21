@@ -1,6 +1,6 @@
 package com.media.bus.auth.configuration;
 
-import com.media.bus.auth.configuration.filter.S2STokenFilter;
+import com.media.bus.contract.filter.S2STokenFilter;
 import com.media.bus.contract.security.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import java.util.List;
 
 /**
  * auth 서비스 Spring Security 설정.
@@ -33,7 +35,7 @@ public class SecurityConfig {
 
     @Bean
     public S2STokenFilter s2sTokenFilter() {
-        return new S2STokenFilter(jwtProvider);
+        return new S2STokenFilter(jwtProvider, List.of("/api/v1/member/"));
     }
 
     @Bean
