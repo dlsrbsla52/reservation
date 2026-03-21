@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <!--
+    V006: permission UUID PK 도입 + member_role 단일 역할 제약 추가
+    배경: permission.name(VARCHAR)이 PK로 사용되어 role_permission이 문자열 FK를 가졌음.
+          UUID PK로 전환하여 DB 정합성을 강화하고, member_role에 단일 역할 정책을 DB 제약으로 보장.
+  -->
+
+  <!-- V006-1: permission 테이블에 UUID id 컬럼 추가 및 값 채우기 -->
+  <changeSet id="V006-1" author="hig" dbms="postgresql">
+    <sql>
+      ALTER TABLE auth.permission ADD COLUMN id UUID;
+      UPDATE auth.permission SET id = gen_random_uuid();
+      ALTER TABLE auth.permission ALTER COLUMN id SET NOT NULL;
+    </sql>
+  </changeSet>
+
+  <!-- V006-2: role_permission에 permission_id(UUID) 컬럼 추가 및 데이터 이관 -->
+  <changeSet id="V006-2" author="hig" dbms="postgresql">
+    <sql>
+      ALTER TABLE auth.role_permission ADD COLUMN permission_id UUID;
+      UPDATE auth.role_permission rp
+        SET permission_id = p.id
+        FROM auth.permission p
+        WHERE rp.permission_name = p.name;
+      ALTER TABLE auth.role_permission ALTER COLUMN permission_id SET NOT NULL;
+    </sql>
+  </changeSet>
+
+  <!-- V006-3: role_permission UNIQUE 제약 변경 및 FK 추가, permission_name 컬럼 제거
+       멱등성 보장: 이전 실행에서 부분 적용된 상태를 고려하여 IF EXISTS/IF NOT EXISTS 사용 -->
+  <changeSet id="V006-3" author="hig" dbms="postgresql">
+    <sql splitStatements="false">
+      -- UNIQUE 제약: 이미 존재하면 삭제 후 재생성 (컬럼 구성이 다를 수 있으므로)
+      ALTER TABLE auth.role_permission DROP CONSTRAINT IF EXISTS uq_role_permission;
+      ALTER TABLE auth.role_permission ADD CONSTRAINT uq_role_permission UNIQUE (role_id, permission_id);
+
+      -- FK: 없을 때만 추가 (이전 부분 실행으로 이미 존재할 수 있음)
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_schema = 'auth'
+            AND constraint_name   = 'fk_role_permission_permission'
+            AND table_name        = 'role_permission'
+        ) THEN
+          ALTER TABLE auth.role_permission ADD CONSTRAINT fk_role_permission_permission
+            FOREIGN KEY (permission_id) REFERENCES auth.permission(id);
+        END IF;
+      END $$;
+
+      -- 구 컬럼: 있을 때만 제거
+      ALTER TABLE auth.role_permission DROP COLUMN IF EXISTS permission_name;
+    </sql>
+  </changeSet>
+
+  <!-- V006-4: permission.name을 UNIQUE로, id를 새 PK로 전환 + 타임스탬프 컬럼 추가
+       멱등성 보장: IF EXISTS/IF NOT EXISTS 사용 -->
+  <changeSet id="V006-4" author="hig" dbms="postgresql">
+    <sql splitStatements="false">
+      -- 기존 PK(name) 제거 후 UUID PK로 교체
+      ALTER TABLE auth.permission DROP CONSTRAINT IF EXISTS permission_pkey;
+      ALTER TABLE auth.permission ADD CONSTRAINT permission_pkey PRIMARY KEY (id);
+
+      -- name UNIQUE 제약: 없을 때만 추가
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_schema = 'auth'
+            AND constraint_name   = 'uq_permission_name'
+            AND table_name        = 'permission'
+        ) THEN
+          ALTER TABLE auth.permission ADD CONSTRAINT uq_permission_name UNIQUE (name);
+        END IF;
+      END $$;
+
+      -- 타임스탬프 컬럼: 없을 때만 추가
+      ALTER TABLE auth.permission ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ;
+      ALTER TABLE auth.permission ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
+      UPDATE auth.permission SET created_at = now() WHERE created_at IS NULL;
+      UPDATE auth.permission SET updated_at = now() WHERE updated_at IS NULL;
+      ALTER TABLE auth.permission ALTER COLUMN created_at SET NOT NULL;
+      ALTER TABLE auth.permission ALTER COLUMN updated_at SET NOT NULL;
+    </sql>
+  </changeSet>
+
+  <!-- V006-5: member_role 단일 역할 제약 — (member_id, role_id) → UNIQUE(member_id)
+       멱등성 보장: 기존 제약명이 다를 수 있으므로 둘 다 IF EXISTS로 삭제 -->
+  <changeSet id="V006-5" author="hig" dbms="postgresql">
+    <sql splitStatements="false">
+      ALTER TABLE auth.member_role DROP CONSTRAINT IF EXISTS uq_member_role;
+      ALTER TABLE auth.member_role DROP CONSTRAINT IF EXISTS uq_member_role_single;
+      ALTER TABLE auth.member_role ADD CONSTRAINT uq_member_role_single UNIQUE (member_id);
+    </sql>
+  </changeSet>
+
+</databaseChangeLog>

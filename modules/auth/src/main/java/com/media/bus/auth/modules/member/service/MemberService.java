@@ -1,5 +1,6 @@
 package com.media.bus.auth.modules.member.service;
 
+import com.media.bus.auth.modules.auth.entity.MemberRole;
 import com.media.bus.auth.modules.auth.repository.MemberRoleRepository;
 import com.media.bus.auth.modules.member.dto.MemberResponse;
 import com.media.bus.auth.modules.member.entity.Member;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -43,11 +45,12 @@ public class MemberService {
         Member member = memberRepository.findById(principal.id())
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // member_role 테이블에서 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
-        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
-            .stream().findFirst()
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-        MemberType memberType = MemberType.fromName(roleName)
+        // JOIN FETCH로 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
+        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
+        if (memberRoles.isEmpty()) {
+            throw new BaseException(CommonResult.INTERNAL_ERROR);
+        }
+        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
             .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
 
         return new MemberResponse(
@@ -75,11 +78,12 @@ public class MemberService {
         Member member = memberRepository.findById(UUID.fromString(memberId))
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // member_role 테이블에서 역할 조회
-        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
-            .stream().findFirst()
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-        MemberType memberType = MemberType.fromName(roleName)
+        // JOIN FETCH로 역할 조회
+        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
+        if (memberRoles.isEmpty()) {
+            throw new BaseException(CommonResult.INTERNAL_ERROR);
+        }
+        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
             .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
 
         return new MemberResponse(
@@ -96,7 +100,7 @@ public class MemberService {
     }
 
     /**
-     * 로그인 아이디를 통한 회원 조회
+     * 로그인 아이디를 통한 회원 조회.
      *
      * @param loginId 로그인시 사용되는 아이디
      * @return MemberResponse
@@ -106,11 +110,12 @@ public class MemberService {
         Member member = memberRepository.findByLoginId(loginId)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // member_role 테이블에서 역할 조회
-        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
-            .stream().findFirst()
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-        MemberType memberType = MemberType.fromName(roleName)
+        // JOIN FETCH로 역할 조회
+        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
+        if (memberRoles.isEmpty()) {
+            throw new BaseException(CommonResult.INTERNAL_ERROR);
+        }
+        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
             .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
 
         return new MemberResponse(
@@ -126,12 +131,10 @@ public class MemberService {
         );
     }
 
-
-
     /**
-     * 로그인 아이디를 통한 회원 조회
+     * 이메일을 통한 회원 조회.
      *
-     * @param email 로그인시 사용되는 아이디
+     * @param email 회원 이메일
      * @return MemberResponse
      */
     public MemberResponse findByEmail(@NotBlank @NotEmpty String email) {
@@ -139,11 +142,12 @@ public class MemberService {
         Member member = memberRepository.findByEmail(email)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // member_role 테이블에서 역할 조회
-        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
-            .stream().findFirst()
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-        MemberType memberType = MemberType.fromName(roleName)
+        // JOIN FETCH로 역할 조회
+        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
+        if (memberRoles.isEmpty()) {
+            throw new BaseException(CommonResult.INTERNAL_ERROR);
+        }
+        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
             .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
 
         return new MemberResponse(

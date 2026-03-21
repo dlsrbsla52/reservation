@@ -12,5 +12,11 @@
   <include file="/db/changelog/V002__create_permission_tables.xml"/>
   <!-- V003: member_role 테이블 신설 및 member.member_type 컬럼 제거 -->
   <include file="/db/changelog/V003__create_member_role.xml"/>
+  <!-- V004: role 테이블 추가 및 role_name 문자열 조인 → role_id UUID FK로 전환 -->
+  <include file="/db/changelog/V004__add_role_table_and_migrate_role_name_to_role_id.xml"/>
+  <!-- V005: auth 스키마 전체 테이블·컬럼 COMMENT 추가 -->
+  <include file="/db/changelog/V005__add_table_and_column_comments.xml"/>
+  <!-- V006: permission UUID PK 도입 + member_role 단일 역할 제약 -->
+  <include file="/db/changelog/V006__permission_uuid_pk_and_member_role_unique.xml"/>
 
 </databaseChangeLog>
