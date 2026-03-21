@@ -1,4 +1,4 @@
-package com.media.bus.auth.member.entity.enumerated;
+package com.media.bus.auth.modules.member.entity.enumerated;
 
 import com.media.bus.common.entity.common.BaseEnum;
 import lombok.AllArgsConstructor;

@@ -1,14 +1,14 @@
-package com.media.bus.auth.controller;
+package com.media.bus.auth.modules.auth.controller;
 
+import com.media.bus.auth.modules.auth.dto.LoginRequest;
+import com.media.bus.auth.modules.auth.dto.RegisterRequest;
+import com.media.bus.auth.modules.auth.dto.RegisterResponse;
+import com.media.bus.auth.modules.auth.dto.TokenRefreshRequest;
+import com.media.bus.auth.modules.auth.dto.TokenResponse;
+import com.media.bus.auth.modules.auth.service.AuthService;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.DataView;
 import com.media.bus.common.web.response.NoDataView;
-import com.media.bus.auth.dto.LoginRequest;
-import com.media.bus.auth.dto.RegisterRequest;
-import com.media.bus.auth.dto.RegisterResponse;
-import com.media.bus.auth.dto.TokenRefreshRequest;
-import com.media.bus.auth.dto.TokenResponse;
-import com.media.bus.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
