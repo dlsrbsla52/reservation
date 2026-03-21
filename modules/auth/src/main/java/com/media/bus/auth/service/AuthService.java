@@ -1,15 +1,15 @@
 package com.media.bus.auth.service;
 
-import com.media.bus.common.exceptions.NoAuthenticationException;
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.contract.entity.member.MemberType;
-import com.media.bus.contract.security.JwtProvider;
-import com.media.bus.contract.security.MemberPrincipal;
 import com.media.bus.auth.dto.LoginRequest;
 import com.media.bus.auth.dto.RegisterRequest;
 import com.media.bus.auth.dto.TokenResponse;
 import com.media.bus.auth.member.entity.Member;
 import com.media.bus.auth.member.repository.MemberRepository;
+import com.media.bus.common.exceptions.NoAuthenticationException;
+import com.media.bus.common.result.type.CommonResult;
+import com.media.bus.contract.entity.member.MemberType;
+import com.media.bus.contract.security.JwtProvider;
+import com.media.bus.contract.security.MemberPrincipal;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -125,7 +125,7 @@ public class AuthService {
         }
 
         MemberPrincipal principal = MemberPrincipal.builder()
-                .id(member.getId().toString())
+                .id(member.getId())
                 .loginId(member.getLoginId())
                 .email(member.getEmail())
                 .memberType(member.getMemberType())
@@ -182,7 +182,7 @@ public class AuthService {
                 .orElseThrow(() -> new NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL));
 
         MemberPrincipal principal = MemberPrincipal.builder()
-                .id(member.getId().toString())
+                .id(member.getId())
                 .loginId(member.getLoginId())
                 .email(member.getEmail())
                 .memberType(member.getMemberType())

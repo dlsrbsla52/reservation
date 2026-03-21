@@ -89,7 +89,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             // 하위 서비스는 이 헤더를 신뢰하여 별도 JWT 파싱 없이 사용자 정보를 활용합니다.
             ServerWebExchange mutatedExchange = exchange.mutate()
                     .request(r -> r
-                            .header(HEADER_USER_ID, principal.id())
+                            .header(HEADER_USER_ID, principal.id().toString())
                             .header(HEADER_USER_ROLE, "ROLE_" + principal.memberType().name())
                             .header(HEADER_EMAIL_VERIFIED, String.valueOf(principal.emailVerified()))
                     // 보안: 하위 서비스에 원본 Authorization 헤더는 유지 (S2S 연계 시 활용)
