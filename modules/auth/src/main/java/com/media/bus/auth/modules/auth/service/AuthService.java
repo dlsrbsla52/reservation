@@ -3,9 +3,13 @@ package com.media.bus.auth.modules.auth.service;
 import com.media.bus.auth.modules.auth.dto.LoginRequest;
 import com.media.bus.auth.modules.auth.dto.RegisterRequest;
 import com.media.bus.auth.modules.auth.dto.TokenResponse;
+import com.media.bus.auth.modules.auth.entity.MemberRole;
+import com.media.bus.auth.modules.auth.repository.MemberRoleRepository;
 import com.media.bus.auth.modules.auth.repository.RolePermissionRepository;
+import com.media.bus.auth.modules.auth.result.AuthResult;
 import com.media.bus.auth.modules.member.entity.Member;
 import com.media.bus.auth.modules.member.repository.MemberRepository;
+import com.media.bus.common.exceptions.BaseException;
 import com.media.bus.common.exceptions.NoAuthenticationException;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.entity.member.MemberType;
@@ -44,6 +48,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final StringRedisTemplate redisTemplate;
     private final RolePermissionRepository rolePermissionRepository;
+    private final MemberRoleRepository memberRoleRepository;
 
     /**
      * 회원가입 처리.
@@ -56,6 +61,12 @@ public class AuthService {
      */
     @Transactional
     public String register(RegisterRequest request) {
+
+        // admin 회원은 가입 후 admin 권한 부여 필요
+        if (request.memberType().isAdmin()) {
+            throw new NoAuthenticationException(CommonResult.USER_NOT_DENY_ADMIN);
+        }
+
         // 아이디 중복 검사
         log.debug("회원가입 요청 ID : {}", request.loginId());
         if (memberRepository.existsByLoginId(request.loginId())) {
@@ -79,22 +90,22 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.password()))
                 .email(request.email())
                 .phoneNumber(request.phoneNumber())
-                .memberType(request.memberType())
                 .businessNumber(request.businessNumber())
                 .emailVerified(false)
                 .build();
 
-        memberRepository.save(member);
+        Member savedMember = memberRepository.save(member);
+        memberRoleRepository.save(MemberRole.of(savedMember, request.memberType().name()));
 
         // 이메일 인증 토큰 생성 및 Redis 저장
         String verifyToken = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(
                 EMAIL_VERIFY_KEY_PREFIX + verifyToken,
-                member.getId().toString(),
+                savedMember.getId().toString(),
                 EMAIL_VERIFY_TTL);
 
         log.info("[AuthService.register] 회원가입 완료. memberId={}, email={}, 이메일 인증 토큰 발급",
-                member.getId(), member.getEmail());
+                savedMember.getId(), savedMember.getEmail());
 
         // TODO: AWS SES 또는 SMTP를 통해 인증 링크를 이메일로 발송.
         // 현재는 응답 바디를 통해 토큰을 직접 반환합니다. (개발/테스트 단계)
@@ -123,21 +134,27 @@ public class AuthService {
         switch (member.getStatus()) {
             case SUSPENDED -> throw new NoAuthenticationException(CommonResult.ACCOUNT_SUSPENDED_FAIL);
             case WITHDRAWN -> throw new NoAuthenticationException(CommonResult.ACCOUNT_WITHDRAWN_FAIL);
-            default -> {
-                /* ACTIVE: 정상 처리 */ }
+            default -> { /* ACTIVE: 정상 처리 */ }
         }
+
+        // member_role 테이블에서 역할을 조회하여 MemberType 결정
+        Set<String> roleNames = memberRoleRepository.findRoleNamesByMemberId(member.getId());
+        String primaryRole = roleNames.stream().findFirst()
+                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
+        MemberType memberType = MemberType.fromName(primaryRole)
+                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
 
         MemberPrincipal principal = MemberPrincipal.builder()
                 .id(member.getId())
                 .loginId(member.getLoginId())
                 .email(member.getEmail())
-                .memberType(member.getMemberType())
+                .memberType(memberType)
                 .emailVerified(member.isEmailVerified())
                 .build();
 
         // DB에서 역할에 매핑된 권한 목록을 조회하여 JWT claim에 포함
         Set<String> permissionNames = rolePermissionRepository
-                .findPermissionNamesByRoleName(member.getMemberType().name());
+                .findPermissionNamesByRoleName(memberType.name());
 
         String accessToken = jwtProvider.generateAccessToken(principal, permissionNames);
         String refreshToken = jwtProvider.generateRefreshToken(member.getId().toString());
@@ -188,17 +205,24 @@ public class AuthService {
         Member member = memberRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL));
 
+        // member_role 테이블에서 역할을 조회하여 MemberType 결정 (최신 역할 정보 반영)
+        Set<String> roleNames = memberRoleRepository.findRoleNamesByMemberId(member.getId());
+        String primaryRole = roleNames.stream().findFirst()
+                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
+        MemberType memberType = MemberType.fromName(primaryRole)
+                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
+
         MemberPrincipal principal = MemberPrincipal.builder()
                 .id(member.getId())
                 .loginId(member.getLoginId())
                 .email(member.getEmail())
-                .memberType(member.getMemberType())
+                .memberType(memberType)
                 .emailVerified(member.isEmailVerified())
                 .build();
 
         // 토큰 재발급 시에도 DB에서 최신 권한을 조회하여 갱신된 권한이 즉시 반영되도록 함
         Set<String> permissionNames = rolePermissionRepository
-                .findPermissionNamesByRoleName(member.getMemberType().name());
+                .findPermissionNamesByRoleName(memberType.name());
 
         String newAccessToken = jwtProvider.generateAccessToken(principal, permissionNames);
         String newRefreshToken = jwtProvider.generateRefreshToken(userId); // Token Rotation

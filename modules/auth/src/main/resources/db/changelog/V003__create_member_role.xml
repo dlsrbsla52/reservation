@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <!-- V003-1: member_role 테이블 생성
+         UUID PK + 감사 컬럼(created_at, updated_at) 포함.
+         (member_id, role_name) 조합은 UNIQUE 제약으로 유일성 보장.
+         member.member_type 컬럼을 대체하여 역할 정보를 별도 테이블로 분리합니다.
+    -->
+    <changeSet id="V003-1" author="hig">
+        <createTable tableName="member_role" schemaName="auth">
+            <!-- id는 JPA(@UuidV7)가 생성 -->
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="member_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role_name" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+            tableName="member_role"
+            schemaName="auth"
+            columnNames="member_id, role_name"
+            constraintName="uq_member_role"
+        />
+
+        <addForeignKeyConstraint
+            baseTableSchemaName="auth"
+            baseTableName="member_role"
+            baseColumnNames="member_id"
+            referencedTableSchemaName="auth"
+            referencedTableName="member"
+            referencedColumnNames="id"
+            constraintName="fk_member_role_member"
+            onDelete="CASCADE"
+        />
+    </changeSet>
+
+    <!-- V003-2: 기존 member.member_type → member_role 데이터 이관 (PostgreSQL 전용)
+         기존 운영 데이터가 있을 경우 member_type 값을 member_role 테이블로 이관합니다.
+         H2 등 테스트 환경에서는 실행되지 않습니다.
+    -->
+    <changeSet id="V003-2" author="hig" dbms="postgresql">
+        <sql>
+            INSERT INTO auth.member_role (id, member_id, role_name, created_at, updated_at)
+            SELECT gen_random_uuid(), id, member_type, NOW(), NOW()
+            FROM auth.member
+            WHERE member_type IS NOT NULL;
+        </sql>
+    </changeSet>
+
+    <!-- V003-3: member.member_type 컬럼 및 인덱스 제거
+         V001에서 생성된 idx_member_member_type 인덱스를 먼저 제거한 후 컬럼을 삭제합니다.
+    -->
+    <changeSet id="V003-3" author="hig">
+        <dropIndex indexName="idx_member_member_type" tableName="member" schemaName="auth"/>
+        <dropColumn tableName="member" columnName="member_type" schemaName="auth"/>
+    </changeSet>
+
+</databaseChangeLog>

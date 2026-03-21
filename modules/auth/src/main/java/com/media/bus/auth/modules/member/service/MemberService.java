@@ -1,10 +1,13 @@
 package com.media.bus.auth.modules.member.service;
 
+import com.media.bus.auth.modules.auth.repository.MemberRoleRepository;
 import com.media.bus.auth.modules.member.dto.MemberResponse;
 import com.media.bus.auth.modules.member.entity.Member;
 import com.media.bus.auth.modules.member.repository.MemberRepository;
+import com.media.bus.common.exceptions.BaseException;
 import com.media.bus.common.exceptions.ServiceException;
 import com.media.bus.common.result.type.CommonResult;
+import com.media.bus.contract.entity.member.MemberType;
 import com.media.bus.contract.security.JwtProvider;
 import com.media.bus.contract.security.MemberPrincipal;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +26,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final JwtProvider jwtProvider;
+    private final MemberRoleRepository memberRoleRepository;
 
     /**
      * 로그인시 사용된 jwt 토큰으로 회원 조회.
@@ -39,12 +43,19 @@ public class MemberService {
         Member member = memberRepository.findById(principal.id())
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
+        // member_role 테이블에서 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
+        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
+            .stream().findFirst()
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+        MemberType memberType = MemberType.fromName(roleName)
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+
         return new MemberResponse(
             member.getId(),
             member.getLoginId(),
             member.getEmail(),
             member.getPhoneNumber(),
-            member.getMemberType(),
+            memberType,
             member.getStatus(),
             member.getBusinessNumber(),
             member.getCreatedAt(),
@@ -64,12 +75,19 @@ public class MemberService {
         Member member = memberRepository.findById(UUID.fromString(memberId))
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
+        // member_role 테이블에서 역할 조회
+        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
+            .stream().findFirst()
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+        MemberType memberType = MemberType.fromName(roleName)
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+
         return new MemberResponse(
             member.getId(),
             member.getLoginId(),
             member.getEmail(),
             member.getPhoneNumber(),
-            member.getMemberType(),
+            memberType,
             member.getStatus(),
             member.getBusinessNumber(),
             member.getCreatedAt(),
@@ -88,12 +106,19 @@ public class MemberService {
         Member member = memberRepository.findByLoginId(loginId)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
+        // member_role 테이블에서 역할 조회
+        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
+            .stream().findFirst()
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+        MemberType memberType = MemberType.fromName(roleName)
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+
         return new MemberResponse(
             member.getId(),
             member.getLoginId(),
             member.getEmail(),
             member.getPhoneNumber(),
-            member.getMemberType(),
+            memberType,
             member.getStatus(),
             member.getBusinessNumber(),
             member.getCreatedAt(),
@@ -114,12 +139,19 @@ public class MemberService {
         Member member = memberRepository.findByEmail(email)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
+        // member_role 테이블에서 역할 조회
+        String roleName = memberRoleRepository.findRoleNamesByMemberId(member.getId())
+            .stream().findFirst()
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+        MemberType memberType = MemberType.fromName(roleName)
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+
         return new MemberResponse(
             member.getId(),
             member.getLoginId(),
             member.getEmail(),
             member.getPhoneNumber(),
-            member.getMemberType(),
+            memberType,
             member.getStatus(),
             member.getBusinessNumber(),
             member.getCreatedAt(),

@@ -1,12 +1,15 @@
 package com.media.bus.auth.modules.member.entity;
 
+import com.media.bus.auth.modules.auth.entity.MemberRole;
 import com.media.bus.auth.modules.member.entity.enumerated.MemberStatus;
 import com.media.bus.common.entity.common.DateBaseEntity;
-import com.media.bus.contract.entity.member.MemberType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -14,6 +17,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 회원 인증 정보 JPA Entity.
@@ -48,10 +54,6 @@ public class Member extends DateBaseEntity {
     private boolean emailVerified;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "member_type", nullable = false, length = 20)
-    private MemberType memberType;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
     private MemberStatus status = MemberStatus.ACTIVE;
@@ -61,6 +63,15 @@ public class Member extends DateBaseEntity {
      */
     @Column(name = "business_number", length = 20)
     private String businessNumber;
+
+    /**
+     * 회원에게 부여된 역할 목록.
+     * MemberRole 엔티티의 member 필드와 양방향 매핑됩니다.
+     * 회원 삭제 시 연관된 역할도 함께 삭제(orphanRemoval)됩니다.
+     */
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<MemberRole> roles = new ArrayList<>();
 
     // =========================================================
     // 도메인 행위 메서드 (Business Methods)
