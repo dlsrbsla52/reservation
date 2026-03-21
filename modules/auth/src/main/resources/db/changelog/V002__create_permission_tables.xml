@@ -8,7 +8,7 @@
 >
 
   <!-- V002-1: 권한 마스터 테이블 생성 -->
-  <changeSet id="V002-1" author="system">
+  <changeSet id="V002-1" author="hig">
     <createTable tableName="permission" schemaName="auth">
       <column name="name" type="VARCHAR(20)">
         <constraints primaryKey="true" nullable="false"/>
@@ -20,21 +20,32 @@
   </changeSet>
 
   <!-- V002-2: 역할-권한 매핑 테이블 생성 -->
-  <changeSet id="V002-2" author="system">
+  <!-- UUID PK + 감사 컬럼(created_at, updated_at) 포함. (role_name, permission_name)은 UNIQUE 제약으로 유일성 보장. -->
+  <changeSet id="V002-2" author="hig">
     <createTable tableName="role_permission" schemaName="auth">
+      <!-- id는 JPA(@UuidV7)가 생성. seed 데이터는 V002-4에서 명시적으로 제공. -->
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
       <column name="role_name" type="VARCHAR(30)">
         <constraints nullable="false"/>
       </column>
       <column name="permission_name" type="VARCHAR(20)">
         <constraints nullable="false"/>
       </column>
+      <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+        <constraints nullable="false"/>
+      </column>
     </createTable>
 
-    <addPrimaryKey
+    <addUniqueConstraint
       tableName="role_permission"
       schemaName="auth"
       columnNames="role_name, permission_name"
-      constraintName="pk_role_permission"
+      constraintName="uq_role_permission"
     />
 
     <addForeignKeyConstraint
@@ -49,7 +60,7 @@
   </changeSet>
 
   <!-- V002-3: 권한 초기 데이터 -->
-  <changeSet id="V002-3" author="system">
+  <changeSet id="V002-3" author="hig">
     <insert tableName="permission" schemaName="auth">
       <column name="name" value="READ"/>
       <column name="display_name" value="조회"/>
@@ -69,65 +80,79 @@
   </changeSet>
 
   <!-- V002-4: 역할-권한 초기 매핑 데이터 (기존 MemberType.defaultPermissions 기준) -->
-  <changeSet id="V002-4" author="system">
+  <!-- id는 H2/PostgreSQL 호환을 위해 고정 UUID 사용. created_at/updated_at은 NOW() 기본값. -->
+  <changeSet id="V002-4" author="hig">
     <!-- MEMBER: READ -->
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000001"/>
       <column name="role_name" value="MEMBER"/>
       <column name="permission_name" value="READ"/>
     </insert>
 
     <!-- BUSINESS: READ, WRITE -->
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000002"/>
       <column name="role_name" value="BUSINESS"/>
       <column name="permission_name" value="READ"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000003"/>
       <column name="role_name" value="BUSINESS"/>
       <column name="permission_name" value="WRITE"/>
     </insert>
 
     <!-- ADMIN_USER: READ, WRITE -->
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000004"/>
       <column name="role_name" value="ADMIN_USER"/>
       <column name="permission_name" value="READ"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000005"/>
       <column name="role_name" value="ADMIN_USER"/>
       <column name="permission_name" value="WRITE"/>
     </insert>
 
     <!-- ADMIN_MASTER: READ, WRITE, DELETE, MANAGE -->
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000006"/>
       <column name="role_name" value="ADMIN_MASTER"/>
       <column name="permission_name" value="READ"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000007"/>
       <column name="role_name" value="ADMIN_MASTER"/>
       <column name="permission_name" value="WRITE"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000008"/>
       <column name="role_name" value="ADMIN_MASTER"/>
       <column name="permission_name" value="DELETE"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000009"/>
       <column name="role_name" value="ADMIN_MASTER"/>
       <column name="permission_name" value="MANAGE"/>
     </insert>
 
     <!-- ADMIN_DEVELOPER: READ, WRITE, DELETE, MANAGE -->
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000010"/>
       <column name="role_name" value="ADMIN_DEVELOPER"/>
       <column name="permission_name" value="READ"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000011"/>
       <column name="role_name" value="ADMIN_DEVELOPER"/>
       <column name="permission_name" value="WRITE"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000012"/>
       <column name="role_name" value="ADMIN_DEVELOPER"/>
       <column name="permission_name" value="DELETE"/>
     </insert>
     <insert tableName="role_permission" schemaName="auth">
+      <column name="id" value="00000000-0000-0000-0000-000000000013"/>
       <column name="role_name" value="ADMIN_DEVELOPER"/>
       <column name="permission_name" value="MANAGE"/>
     </insert>
