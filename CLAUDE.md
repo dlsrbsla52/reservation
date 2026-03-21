@@ -92,7 +92,7 @@ Three token types managed in `auth-contract` module's `JwtProvider.java` (implem
 - Virtual Threads 활성화 상태 — `ThreadLocal` 사용 금지, 반드시 `ScopedValue` (Java 25) 사용
 - 모든 코드성 Enum은 `BaseEnum` 인터페이스 구현 (필드: `name`, `displayName`)
 - 새로운 Enum 추가 시 `BaseEnum` 미구현은 빌드 실패 원인이 됨
-- Entity 설계 시 `@Builder` 단독 사용 금지 — 정적 팩토리 메서드 또는 도메인 메서드를 통한 생성 강제
+- Entity 설계 시 `@Builder` 단독 사용 금지, BaseEntity, DateBaseEntity를 적절하게 선택해서 사용해야 한다. — 정적 팩토리 메서드 또는 도메인 메서드를 통한 생성 강제
 - Service 레이어에서 다른 모듈의 Repository 직접 참조 금지 — 반드시 해당 모듈의 Service 또는 API 경유
 - API 응답은 반드시 `common` 모듈의 공통 `ApiResponse<T>` 래퍼 사용
 - 예외는 `common`의 글로벌 핸들러로 위임 — 개별 Controller에서 try-catch 금지
