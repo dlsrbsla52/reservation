@@ -23,6 +23,6 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
      * @param roleName MemberType.name() 값 (예: "ADMIN_USER")
      * @return 권한 이름 집합 (예: ["READ", "WRITE"])
      */
-    @Query("SELECT rp.permissionName FROM RolePermission rp WHERE rp.roleName = :roleName")
+    @Query("SELECT rp.permission.name FROM RolePermission rp WHERE rp.role.name = :roleName")
     Set<String> findPermissionNamesByRoleName(@Param("roleName") String roleName);
 }
