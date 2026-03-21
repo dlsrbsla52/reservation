@@ -10,5 +10,7 @@
   <include file="/db/changelog/V001__create_member_table.xml"/>
   <!-- V002: 권한(permission) 및 역할-권한 매핑(role_permission) 테이블 생성 -->
   <include file="/db/changelog/V002__create_permission_tables.xml"/>
+  <!-- V003: member_role 테이블 신설 및 member.member_type 컬럼 제거 -->
+  <include file="/db/changelog/V003__create_member_role.xml"/>
 
 </databaseChangeLog>
