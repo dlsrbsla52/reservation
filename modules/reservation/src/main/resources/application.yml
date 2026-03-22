@@ -50,7 +50,7 @@ rest:
     apply-patterns: /health-check
 
 jwt:
-  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
+  secret: ${JWT_SECRET}
 springdoc:
   api-docs:
     path: /api-docs # OpenAPI JSON 문서 경로

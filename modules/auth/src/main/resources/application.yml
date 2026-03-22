@@ -67,4 +67,4 @@ springdoc:
 # JWT 설정
 # 운영 환경에서는 반드시 AWS Secrets Manager 또는 환경변수로 주입해야 합니다.
 jwt:
-  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
+  secret: ${JWT_SECRET}
