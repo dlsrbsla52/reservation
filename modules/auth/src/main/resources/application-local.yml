@@ -41,3 +41,6 @@ resilience4j:
       orderDatabase: # 벌크헤드 이름
         maxConcurrentCalls: 10 # 동시에 허용할 최대 호출 수 (세마포어 개수)
         maxWaitDuration: 300ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)
+
+jwt:
+  secret: this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars

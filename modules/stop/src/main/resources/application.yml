@@ -7,7 +7,7 @@ spring:
   datasource:
     hikari:
       maximum-pool-size: 20
-    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=reservation"
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=stop"
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driverClassName: "org.postgresql.Driver"
@@ -50,7 +50,7 @@ rest:
     apply-patterns: /health-check
 
 jwt:
-  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
+  secret: ${JWT_SECRET}
 
 seoul:
   api:
