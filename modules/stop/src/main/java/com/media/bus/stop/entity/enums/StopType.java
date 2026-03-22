@@ -4,7 +4,11 @@ import com.media.bus.common.entity.common.BaseEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Getter
 @AllArgsConstructor
@@ -21,16 +25,17 @@ public enum StopType implements BaseEnum {
     private final String name;
     private final String displayName;
 
+    // displayName → StopType 역방향 조회를 위한 O(1) 캐시 (공공 API 연동 시 빈번히 호출됨)
+    private static final Map<String, StopType> BY_DISPLAY_NAME = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(StopType::getDisplayName, Function.identity()));
+
     public static Optional<StopType> fromName(String name) {
         return BaseEnum.fromName(StopType.class, name);
     }
 
     public static StopType fromDisplayName(String displayName) {
-        for (StopType type : values()) {
-            if (type.displayName.equals(displayName)) {
-                return type;
-            }
-        }
-        throw new IllegalArgumentException("Unknown stop type: " + displayName);
+        StopType type = BY_DISPLAY_NAME.get(displayName);
+        if (type == null) throw new IllegalArgumentException("Unknown stop type: " + displayName);
+        return type;
     }
 }

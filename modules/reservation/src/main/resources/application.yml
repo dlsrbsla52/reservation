@@ -50,7 +50,7 @@ rest:
     apply-patterns: /health-check
 
 jwt:
-  secret: ${JWT_SECRET:local-dev-dummy-jwt-secret-for-tests-only-0000000000}
+  secret: ${JWT_SECRET}
 springdoc:
   api-docs:
     path: /api-docs # OpenAPI JSON 문서 경로

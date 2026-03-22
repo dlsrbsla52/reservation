@@ -1,0 +1,5 @@
+server:
+  port: 8080
+
+jwt:
+  secret: local-dev-dummy-jwt-secret-for-tests-only-0000000000
