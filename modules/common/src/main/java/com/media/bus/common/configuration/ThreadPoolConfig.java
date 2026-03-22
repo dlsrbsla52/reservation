@@ -1,48 +1,57 @@
 package com.media.bus.common.configuration;
 
-import org.slf4j.MDC;
+import com.media.bus.common.logging.MdcContextUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.task.TaskDecorator;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+@Slf4j
 @Configuration
 @EnableAsync
 @Profile({"default", "local", "dev", "prod"})
-public class ThreadPoolConfig {
+public class ThreadPoolConfig implements AsyncConfigurer {
 
     /**
      * @Async 실행기에 MDC 컨텍스트(requestId, traceId, userId 등)를 전파하는 TaskDecorator.
      *
      * <p>태스크 제출 시점에 호출 스레드의 MDC 스냅샷을 캡처하고,
      * 실행 스레드에서 복원한 뒤 작업 완료 후 정리한다.
-     * 이 빈이 등록되어 있으면 {@code getForkJoinPoolExecutor}, {@code IoBoundExecutor} 양쪽 모두
-     * {@code @Async} 메서드에서 {@code log.info()} 만으로 MDC 필드가 자동으로 출력된다.
+     * {@link MdcContextUtil#wrap(Runnable)}에 전파 로직이 위임된다.
      */
     @Bean
     public TaskDecorator mdcTaskDecorator() {
-        return runnable -> {
-            // 태스크 제출 시점(호출 스레드)에서 MDC 스냅샷 캡처
-            Map<String, String> mdc = MDC.getCopyOfContextMap();
-            return () -> {
-                // 실행 스레드에서 복원
-                if (mdc != null) {
-                    MDC.setContextMap(mdc);
-                }
-                try {
-                    runnable.run();
-                } finally {
-                    // 풀 스레드 재사용 시 오염 방지
-                    MDC.clear();
-                }
-            };
-        };
+        return MdcContextUtil::wrap;
+    }
+
+    /**
+     * executor 이름을 명시하지 않은 {@code @Async} 메서드의 기본 실행기.
+     *
+     * <p>{@code IoBoundExecutor}를 기본으로 지정하여 MDC 자동 전파를 보장한다.
+     * executor를 명시하지 않으면 Spring 기본 {@code SimpleAsyncTaskExecutor}가 사용되어
+     * {@code mdcTaskDecorator}가 적용되지 않는 문제를 방지한다.
+     */
+    @Override
+    public Executor getAsyncExecutor() {
+        return getCpuBoundExecutor(mdcTaskDecorator());
+    }
+
+    /**
+     * {@code @Async} 메서드에서 발생한 미처리 예외 핸들러.
+     * {@code void} 반환 메서드는 예외가 호출부로 전파되지 않으므로 여기서 로깅한다.
+     */
+    @Override
+    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        return (ex, method, params) ->
+            log.error("@Async 메서드 [{}#{}] 미처리 예외 발생",
+                method.getDeclaringClass().getSimpleName(), method.getName(), ex);
     }
 
     /**
@@ -58,6 +67,7 @@ public class ThreadPoolConfig {
      *
      * @return CPU-bound 작업에 최적화된 Executor
      */
+    @SuppressWarnings("resource") // ExecutorService(AutoCloseable)의 생명주기는 Spring 컨텍스트가 관리
     @Bean("getForkJoinPoolExecutor")
     public Executor getForkJoinPoolExecutor(TaskDecorator mdcTaskDecorator) {
         Executor forkJoinPool = Executors.newWorkStealingPool();
@@ -65,20 +75,18 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * IO-bound 작업을 위한 전용 스레드 풀 (ThreadPoolTaskExecutor 기반).
+     * IO-bound 작업을 위한 Virtual Thread 기반 실행기.
      *
-     * @return IO-bound 작업에 최적화된 Executor
+     * <p>Virtual Thread는 태스크마다 경량 스레드를 생성하여 블로킹 IO 처리에 최적화되어 있다.
+     * {@code ThreadPoolTaskExecutor}는 {@code TaskDecorator}를 지원하지만 VT를 지원하지 않으므로,
+     * {@code getForkJoinPoolExecutor}와 동일한 수동 wrap 패턴으로 MDC 전파를 보장한다.
+     *
+     * @return Virtual Thread 기반 IO-bound 실행기
      */
+    @SuppressWarnings("resource") // ExecutorService(AutoCloseable)의 생명주기는 Spring 컨텍스트가 관리
     @Bean("IoBoundExecutor")
     public Executor getCpuBoundExecutor(TaskDecorator mdcTaskDecorator) {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        int coreCount = Runtime.getRuntime().availableProcessors() * 2;
-        executor.setCorePoolSize(coreCount);
-        executor.setMaxPoolSize(coreCount);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("IoBound-");
-        executor.setTaskDecorator(mdcTaskDecorator);
-        executor.initialize();
-        return executor;
+        Executor vtExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        return runnable -> vtExecutor.execute(mdcTaskDecorator.decorate(runnable));
     }
 }

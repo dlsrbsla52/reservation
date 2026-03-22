@@ -89,6 +89,90 @@
 > 💡 **Best Practice Tip**: 타 서비스(예: `reservation`)가 회원 상세 데이터 조회를 위해 `auth` 서비스를 호출할 때 유저 컨텍스트를 억지로 조작하여 `@Authorize`를 뚫으려 하지 마십시오. **S2STokenFilter**를 사용해 시스템 간 인증만 통과시킨 후 데이터를 자유롭게 조회하도록 분리된 엔드포인트를 두는 방식이 도메인 모델의 순수성을 지키는 데 적합합니다.
 
 
+## 로깅 (Logging & MDC 전파)
+> 본 프로젝트는 **Log4j2 + LMAX Disruptor** 비동기 로거와 **Micrometer Tracing(OTel 브릿지)**를 통해
+> 모든 로그에 분산 추적 컨텍스트(MDC)를 자동으로 주입합니다.
+
+### MDC 자동 주입 필드
+
+| 필드 | 주입 주체 | 설명 |
+|------|-----------|------|
+| `traceId` | Micrometer Tracing | 분산 트레이스 ID (OpenTelemetry) |
+| `spanId` | Micrometer Tracing | 현재 Span ID |
+| `requestId` | `MdcLoggingFilter` | HTTP 요청 단위 고유 ID (`X-Request-ID` 헤더 또는 UUID 자동 생성) |
+| `userId` | `MdcLoggingFilter` | 인증된 사용자 Principal name |
+| `service` | `log4j2-spring.xml` | `spring.application.name` 값 |
+
+### 실제 사용법
+
+```java
+// 1. 각 클래스에 Logger 선언 (평소와 동일)
+private static final Logger log = LoggerFactory.getLogger(MyService.class);
+// 혹은 @Slf4j 어노테이션 사용
+
+// 2. 로그 호출만 하면 requestId, traceId, userId가 자동으로 붙는다
+log.info("처리 시작 — itemId={}", itemId);
+log.error("처리 실패", exception);
+```
+
+### `@Async` 비동기 MDC 자동 전파
+
+`@Async` 메서드는 별도 스레드에서 실행되어 MDC가 전파되지 않습니다.
+본 프로젝트는 이를 두 레이어에서 자동 처리합니다:
+
+1. **`AsyncMdcAspect`** — `@Async` 메서드 호출 시 호출 스레드 MDC 스냅샷을 캡처·복원
+2. **`ThreadPoolConfig.mdcTaskDecorator`** — Executor 제출 시점 MDC를 실행 스레드에 주입
+3. **`AsyncConfigurer.getAsyncExecutor()`** — executor 미지정 `@Async`도 위 두 레이어가 적용된 `IoBoundExecutor`를 기본으로 사용
+
+```java
+// executor 지정하거나 생략하거나 — 모두 requestId, traceId 등이 자동 전파된다
+@Async("IoBoundExecutor")
+public CompletableFuture<Void> sendNotification(String userId) {
+    log.info("알림 전송 — userId={}", userId);  // requestId, traceId 자동 포함
+    return CompletableFuture.completedFuture(null);
+}
+```
+
+### 수동 비동기 MDC 전파 (`CompletableFuture.runAsync` 등)
+
+Spring `@Async` 외부에서 직접 스레드를 생성하는 경우 `MdcContextUtil.wrap()`을 사용합니다.
+
+```java
+import com.media.bus.common.logging.MdcContextUtil;
+
+// Runnable 래핑
+CompletableFuture.runAsync(MdcContextUtil.wrap(() -> {
+    log.info("비동기 작업 — MDC 자동 전파됨");
+}));
+
+// Callable 래핑
+CompletableFuture.supplyAsync(MdcContextUtil.wrap(() -> {
+    log.info("결과 반환 작업");
+    return result;
+}));
+```
+
+### 환경별 로그 포맷
+
+| 프로파일 | 포맷 | 용도 |
+|----------|------|------|
+| `local` | 컬러 패턴 로그 | 개발 가독성 |
+| 운영/스테이징 | JSON 구조화 로그 | CloudWatch Logs Insights 쿼리 최적화 |
+
+```json
+{"@timestamp":"...","level":"INFO","traceId":"...","spanId":"...","requestId":"...","userId":"...","service":"stop","message":"..."}
+```
+
+### 참조 파일
+
+| 파일 | 역할 |
+|------|------|
+| `common/logging/MdcLoggingFilter.java` | requestId, userId → MDC 주입 필터 |
+| `common/logging/MdcContextUtil.java` | 수동 비동기 MDC 전파 유틸 (`wrap(Runnable)`, `wrap(Callable)`) |
+| `common/core/aop/AsyncMdcAspect.java` | `@Async` 자동 MDC 전파 Aspect |
+| `common/configuration/ThreadPoolConfig.java` | MDC `TaskDecorator` + 기본 Executor (`AsyncConfigurer`) |
+| `common/src/test/.../MdcLoggingFilterDemo.java` | 동작 시각화 데모 (`./gradlew :modules:common:demoLogging`) |
+
 ## 디버깅 (Remote JVM Debug)
 > 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
 > `docker-compose.yml` 리소스에 JDWP(Java Debug Wire Protocol) 설정 및 포워딩이 구성되어 있습니다.

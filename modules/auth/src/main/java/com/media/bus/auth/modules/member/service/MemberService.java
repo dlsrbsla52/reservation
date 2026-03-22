@@ -45,25 +45,7 @@ public class MemberService {
         Member member = memberRepository.findById(principal.id())
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // JOIN FETCH로 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
-        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
-        if (memberRoles.isEmpty()) {
-            throw new BaseException(CommonResult.INTERNAL_ERROR);
-        }
-        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-
-        return new MemberResponse(
-            member.getId(),
-            member.getLoginId(),
-            member.getEmail(),
-            member.getPhoneNumber(),
-            memberType,
-            member.getStatus(),
-            member.getBusinessNumber(),
-            member.getCreatedAt(),
-            member.getUpdatedAt()
-        );
+        return toResponse(member);
     }
 
     /**
@@ -78,25 +60,7 @@ public class MemberService {
         Member member = memberRepository.findById(UUID.fromString(memberId))
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // JOIN FETCH로 역할 조회
-        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
-        if (memberRoles.isEmpty()) {
-            throw new BaseException(CommonResult.INTERNAL_ERROR);
-        }
-        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-
-        return new MemberResponse(
-            member.getId(),
-            member.getLoginId(),
-            member.getEmail(),
-            member.getPhoneNumber(),
-            memberType,
-            member.getStatus(),
-            member.getBusinessNumber(),
-            member.getCreatedAt(),
-            member.getUpdatedAt()
-        );
+        return toResponse(member);
     }
 
     /**
@@ -110,25 +74,7 @@ public class MemberService {
         Member member = memberRepository.findByLoginId(loginId)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // JOIN FETCH로 역할 조회
-        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
-        if (memberRoles.isEmpty()) {
-            throw new BaseException(CommonResult.INTERNAL_ERROR);
-        }
-        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
-
-        return new MemberResponse(
-            member.getId(),
-            member.getLoginId(),
-            member.getEmail(),
-            member.getPhoneNumber(),
-            memberType,
-            member.getStatus(),
-            member.getBusinessNumber(),
-            member.getCreatedAt(),
-            member.getUpdatedAt()
-        );
+        return toResponse(member);
     }
 
     /**
@@ -142,12 +88,23 @@ public class MemberService {
         Member member = memberRepository.findByEmail(email)
             .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
 
-        // JOIN FETCH로 역할 조회
+        return toResponse(member);
+    }
+
+    /**
+     * Member 엔티티를 MemberResponse로 변환한다.
+     * 역할 조회, MemberType 결정, 응답 생성을 통합 처리.
+     *
+     * @param member 변환할 Member 엔티티
+     * @return MemberResponse
+     */
+    private MemberResponse toResponse(Member member) {
+        // JOIN FETCH로 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
         List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
         if (memberRoles.isEmpty()) {
-            throw new BaseException(CommonResult.INTERNAL_ERROR);
+            throw new BaseException(CommonResult.USERNAME_NOT_FOUND_FAIL);
         }
-        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
+        MemberType memberType = MemberType.fromName(memberRoles.getFirst().getRole().getName())
             .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
 
         return new MemberResponse(

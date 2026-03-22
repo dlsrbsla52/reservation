@@ -1,6 +1,7 @@
 package com.media.bus.common.autoconfigure;
 
 import com.media.bus.common.configuration.BulkheadProperties;
+import com.media.bus.common.core.aop.AsyncMdcAspect;
 import com.media.bus.common.core.aop.BoundedConcurrencyAspect;
 import com.media.bus.common.core.aop.TransactionalBulkheadAspect;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
@@ -15,6 +16,11 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnClass(Aspect.class)
 @EnableConfigurationProperties(BulkheadProperties.class)
 public class CommonCoreAutoConfiguration {
+
+    @Bean
+    public AsyncMdcAspect asyncMdcAspect() {
+        return new AsyncMdcAspect();
+    }
 
     @Bean
     public BoundedConcurrencyAspect boundedConcurrencyAspect(ApplicationContext applicationContext) {
