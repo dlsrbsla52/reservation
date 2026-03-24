@@ -34,7 +34,6 @@ public class StopService {
         stopRepository.save(Stop.requestOf(request, principal.id()));
     }
 
-    @Transactional
     public BusStopResponse getBusStop(String stopId) {
         return stopRepository.findByStopId(stopId)
             .map(BusStopResponse::of)
