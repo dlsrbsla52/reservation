@@ -7,8 +7,10 @@ import com.media.bus.common.exceptions.StorageException;
 import com.media.bus.common.result.Result;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.ErrorView;
+import io.github.resilience4j.bulkhead.BulkheadFullException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,30 @@ import java.util.List;
 @Slf4j
 @ControllerAdvice
 public class ExceptionAdvisor {
+
+	/**
+	 * Bulkhead 동시 요청 한도 초과 시 429 Too Many Requests로 응답.
+	 *
+	 * <p>DB 커넥션 풀 고갈 방지를 위한 {@code TransactionalBulkheadAspect}가 퍼밋을 거부할 때 발생한다.
+	 * 클라이언트는 잠시 대기 후 재시도해야 하며, {@code Retry-After: 1} 헤더로 최소 대기 시간을 안내한다.
+	 */
+	@ExceptionHandler(BulkheadFullException.class)
+	public ResponseEntity<ErrorView> bulkheadFullHandler(HttpServletRequest request, BulkheadFullException error) {
+		log.warn("bulkheadFullHandler: Bulkhead 동시 요청 한도 초과. uri={}", request.getRequestURI());
+		HttpHeaders headers = new HttpHeaders();
+		headers.set(HttpHeaders.RETRY_AFTER, "1");
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.headers(headers)
+				.contentType(MediaType.APPLICATION_JSON)
+				.body(ErrorView.builder()
+						.result(CommonResult.BULKHEAD_FULL)
+						.message(CommonResult.BULKHEAD_FULL.getMessage())
+						.status(HttpStatus.TOO_MANY_REQUESTS.value())
+						.error(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase())
+						.timestamp(Instant.now())
+						.path(request.getServletPath())
+						.build());
+	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorView> validationHandler(HttpServletRequest request, MethodArgumentNotValidException error) {
