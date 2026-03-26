@@ -21,3 +21,7 @@ Authorization: Bearer {{accessToken}}
 POST {{domain-gateway}}/api/v1/stop/register/bulk
 Content-Type: {{json}}
 Authorization: Bearer {{accessToken}}
+
+### 정류소 이름 검색 (전방 일치)
+GET {{domain-gateway}}/api/v1/stop/name/중계?page=0&size=20
+Authorization: Bearer {{accessToken}}
