@@ -3,6 +3,7 @@ package com.media.bus.stop.controller;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.DataView;
 import com.media.bus.common.web.response.NoDataView;
+import com.media.bus.common.web.wrapper.PageResult;
 import com.media.bus.contract.entity.member.MemberCategory;
 import com.media.bus.contract.entity.member.Permission;
 import com.media.bus.contract.security.MemberPrincipal;
@@ -15,6 +16,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +41,16 @@ public class StopController {
             .result(CommonResult.SUCCESS)
             .data(stopService.getBusStop(stopId))
             .build();
+    }
+
+    @Operation(summary = "정류소 리스트 조회", description = "정류소 이름 전방 일치 검색 (idx_stop_name 인덱스 활용, 'text%' 패턴만 허용)")
+    @Authorize(categories = {MemberCategory.USER})
+    @GetMapping("/name/{stopName}")
+    public PageResult<BusStopResponse> getBusStopByName(
+        @PathVariable String stopName,
+        @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return stopService.getStopsByName(stopName, pageable);
     }
 
     @Operation(summary = "정류소 단건 등록", description = "버스 정류소의 단건 수기 등록 (ADMIN 권한 필요)")
