@@ -1,181 +1,127 @@
-# CLAUDE.md
+# CLAUDE.md — common
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Overview
-
-`modules/common` is a **shared library** (no `bootJar`, plain `jar`) consumed by all other modules in the `reservation` MSA project. It provides auto-configured infrastructure: response wrapping, exception handling, bulkhead concurrency guards, inter-service HTTP client, security filter chain, JPA base entities, and QueryDSL setup.
-
+`modules/common`은 모든 모듈이 소비하는 공유 라이브러리 (`jar`, `bootJar` 없음).
 Base package: `com.media.bus.common`
 
-## Build Commands
+## Build
 
 ```bash
-# From project root
-./gradlew :modules:common:build          # Build the library jar
-./gradlew :modules:common:test           # Run tests
-./gradlew :modules:common:test --tests "com.media.bus.common.ClassName.methodName"
-
-# Java 25 Byte Buddy workaround (already in build.gradle, but needed for manual runs)
--Dnet.bytebuddy.experimental=true
+./gradlew :modules:common:build
+./gradlew :modules:common:test
 ```
 
 ## Auto-Configuration
 
-Beans are registered via `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`. Consuming modules get all beans without component scanning.
+`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 등록. 소비 모듈은 컴포넌트 스캔 없이 모든 빈을 자동 수신한다.
 
-| Auto-config class | Condition | What it registers |
+| Auto-config 클래스 | 조건 | 등록 빈 |
 |---|---|---|
 | `CommonCoreAutoConfiguration` | `@ConditionalOnClass(Aspect.class)` | `TransactionalBulkheadAspect`, `BoundedConcurrencyAspect` |
-| `CommonWebMvcAutoConfiguration` | Servlet env only | All `ResponseBodyWrapper` beans, `ResponseAdvisor`, `ExceptionAdvisor` |
-| `CommonSecurityAutoConfiguration` | Servlet env only | Default Spring Security filter chain (JWT-delegation friendly) |
-| `CommonLoggingAutoConfiguration` | Servlet env only | `MdcLoggingFilter` (requestId + userId → MDC) |
-| `RestClientConfig` | Servlet env only | `internalRestClient` bean |
-| `QueryDslConfig` | Always | `JPAQueryFactory` bean |
-| `ThreadPoolConfig` | Always | Shared executor config |
-| `SwaggerConfig` | Always | SpringDoc OpenAPI |
+| `CommonWebMvcAutoConfiguration` | Servlet 환경 | `ResponseBodyWrapper` 빈들, `ResponseAdvisor`, `ExceptionAdvisor` |
+| `CommonSecurityAutoConfiguration` | Servlet 환경 | Spring Security 기본 필터 체인 |
+| `CommonLoggingAutoConfiguration` | Servlet 환경 | `MdcLoggingFilter` (requestId + userId → MDC) |
+| `RestClientConfig` | Servlet 환경 | `internalRestClient` 빈 |
+| `QueryDslConfig` | 항상 | `JPAQueryFactory` 빈 |
+| `ThreadPoolConfig` | 항상 | 공유 Executor 설정 |
 
-**Note:** `auth-contract` 모듈의 `AuthContractAutoConfiguration`이 `JwtProvider` 빈을 제공한다 (common의 `TokenProvider` 인터페이스 구현체).
+`JwtProvider` 빈은 `auth-contract`의 `AuthContractAutoConfiguration`이 제공한다 (common의 `TokenProvider` 구현체).
 
-## Required Configuration (consuming modules)
+## 소비 모듈 필수 설정
 
 ```yaml
 hig:
   bulkhead:
-    database-name: <name>   # REQUIRED — must match a resilience4j.bulkhead.instances key
+    database-name: <name>   # resilience4j.bulkhead.instances 키와 일치해야 함
 
 rest:
   service:
-    apply-patterns:         # Ant-path patterns where ResponseAdvisor wraps responses
-      - /api/**
+    apply-patterns:
+      - /api/**             # ResponseAdvisor가 응답을 래핑할 경로 패턴
 ```
 
-## Key Extension Points
+## 응답 래핑 (ResponseBodyWrapper)
 
-### Adding a new response wrapper type
-Implement `ResponseBodyWrapper` and register as a `@Bean`. `ResponseAdvisor` auto-discovers all `ResponseBodyWrapper` beans and tries them in `@Order` sequence.
+`ResponseAdvisor`가 `@Order` 순으로 `ResponseBodyWrapper` 빈을 순회하여 응답 래핑.
 
-Built-in pipeline order:
-1. `PassthroughBodyWrapper` — `AbstractView` or `String` → pass through unchanged
-2. `NullBodyWrapper` — `null` → `NoDataView`
-3. `PageResultBodyWrapper` — `PageResult` → `PageView`
-4. `DefaultObjectBodyWrapper` — anything else → `DataView`
+| 순서 | 래퍼 | 조건 → 결과 |
+|------|------|-------------|
+| 1 | `PassthroughBodyWrapper` | `AbstractView` or `String` → 그대로 통과 |
+| 2 | `NullBodyWrapper` | `null` → `NoDataView` |
+| 3 | `PageResultBodyWrapper` | `PageResult` → `PageView` |
+| 4 | `DefaultObjectBodyWrapper` | 나머지 → `DataView` |
 
-### Adding a new exception type
-Extend `BaseException(Result result, ...)`. The `Result` interface is implemented by the `CommonResult` enum; module-specific enums can also implement `Result`.
+새 래퍼 추가: `ResponseBodyWrapper` 구현 후 `@Bean` 등록.
 
-**Reserved result codes:** `00000`–`00299` (common module). Do not use these in other modules.
+## 예외 처리 (ExceptionAdvisor)
 
-### HTTP status mapping (ExceptionAdvisor)
-| Exception | HTTP Status |
-|---|---|
+| 예외 | HTTP 상태 |
+|------|-----------|
 | `NoAuthenticationException` | 401 |
 | `NoAuthorizationException` / `AccessDeniedException` | 403 |
 | `StorageException` | 404 |
 | `BaseException` | 500 |
 | `Exception` (catch-all) | 500 |
 
-### Adding a new Enum
-모든 코드성 Enum은 `BaseEnum` 인터페이스를 구현한다. 필드: `name` (고유 코드), `displayName` (한글 전시명). `BaseEnum.fromName()` 공통 조회 메서드 제공.
+새 예외 추가: `BaseException(Result result, ...)` 상속. `Result` 인터페이스는 `CommonResult` enum이 구현 — 모듈별 enum도 구현 가능.
+
+**예약된 Result 코드**: `00000`–`00299` (common 전용). 다른 모듈에서 사용 금지.
+
+## Enum 규칙
 
 ```java
-@Getter
-@AllArgsConstructor
-@SuppressWarnings("unused")
+@Getter @AllArgsConstructor @SuppressWarnings("unused")
 public enum MyType implements BaseEnum {
-    FOO("FOO", "전시명"),
-    ;
+    FOO("FOO", "전시명");
     private final String name;
     private final String displayName;
-
     public static Optional<MyType> fromName(String name) {
         return BaseEnum.fromName(MyType.class, name);
     }
 }
 ```
 
-## Logging
-
-### 로깅 스택
-- **Log4j2** (Logback 대체) + **LMAX Disruptor 4.0** — `AsyncRoot`로 락프리 비동기 로깅. Virtual Thread 핀닝 방지.
-- **Micrometer Tracing + OTel 브릿지** — `traceId`/`spanId`를 MDC에 자동 주입. 분산 추적 가능.
-- **`MdcLoggingFilter`** (order=HIGHEST_PRECEDENCE+200, Security 이후 실행) — `requestId`(X-Request-ID 헤더 또는 UUID), `userId`(인증 사용자) 주입.
-
-### MDC 필드 요약
-| 필드 | 주입 주체 | 설명 |
-|---|---|---|
-| `traceId` | Micrometer Tracing | 분산 트레이스 ID (OTel) |
-| `spanId` | Micrometer Tracing | 현재 Span ID |
-| `requestId` | `MdcLoggingFilter` | HTTP 요청 단위 고유 ID |
-| `userId` | `MdcLoggingFilter` | 인증된 사용자 Principal name |
-| `service` | `log4j2-spring.xml` | `spring.application.name` 값 |
-
-### 환경별 로그 포맷
-- `local` 프로파일: 컬러 패턴 로그 (가독성)
-- 그 외 (운영/스테이징): JSON 구조화 로그 → CloudWatch Logs Insights 쿼리 최적화
-  ```json
-  {"@timestamp":"...","level":"INFO","traceId":"...","spanId":"...","requestId":"...","userId":"...","service":"stop","message":"..."}
-  ```
-- JSON 템플릿: `src/main/resources/logging/bus-log-template.json`
-
-### Virtual Thread + MDC 주의사항
-MDC는 ThreadLocal 기반이므로 새 스레드 생성 시 자동 전파되지 않는다.
-`@Async` / `CompletableFuture.supplyAsync()` 등 사용 시 명시적으로 컨텍스트를 복사해야 한다:
-```java
-Map<String, String> mdcCopy = MDC.getCopyOfContextMap();
-CompletableFuture.runAsync(() -> {
-    MDC.setContextMap(mdcCopy);
-    try { /* ... */ } finally { MDC.clear(); }
-});
-```
-
-## Concurrency Patterns
+## 동시성 패턴
 
 ### TransactionalBulkheadAspect
-Wraps every `@Transactional` method and every `@Repository` bean with a Resilience4j semaphore bulkhead. Re-entrance is tracked with `ScopedValue<Boolean>` (Java 25) — do **not** replace with `ThreadLocal`.
+모든 `@Transactional` 메서드와 `@Repository` 빈을 Resilience4j 세마포어 Bulkhead로 감싼다.
+재진입 추적: `ScopedValue<Boolean>` (Java 25) — `ThreadLocal` 대체 금지.
 
 ### @BoundedConcurrency
-For `@Async` methods returning `CompletableFuture<T>`. The annotated method must return `CompletableFuture`; the aspect acquires the named `Semaphore` bean before proceeding and releases it in `whenComplete`.
-
+`@Async` + `CompletableFuture<T>` 반환 메서드에 적용. `Semaphore` 빈 이름을 지정.
 ```java
-@BoundedConcurrency("myTaskSemaphore")   // Semaphore bean name
+@BoundedConcurrency("myTaskSemaphore")
 @Async("myTaskExecutor")
 public CompletableFuture<String> doAsync() { ... }
 ```
+self-invocation (`this.method()`)은 AOP 우회 → 비동기 메서드는 별도 빈으로 분리.
 
-Self-invocation (`this.method()`) bypasses AOP — move async methods to a separate bean.
+## 서비스 간 HTTP 통신
 
-## Inter-Service HTTP Client
+`internalRestClient` 빈: `Authorization` 헤더를 신뢰 내부 호스트에만 자동 전파.
+신뢰 호스트 패턴: `*.local`, `*.internal`, `*service*`, `localhost`, `10.*`
 
-`internalRestClient` (bean name) auto-propagates `Authorization` headers **only** to trusted internal hosts: `*.local`, `*.internal`, `*service*`, `localhost`, `10.*`. For async/scheduler calls without a request context, it falls back to `TokenProvider.generateS2SToken()`.
+비동기/스케줄러 등 요청 컨텍스트 없는 호출은 `TokenProvider.generateS2SToken()`으로 S2S 토큰을 자동 주입.
 
-`TokenProvider` is an interface (`com.media.bus.common.security.TokenProvider`). The implementing bean is provided by `auth-contract` module's `AuthContractAutoConfiguration` (`JwtProvider`).
-
-## JPA Base Entities
+## JPA 기본 엔티티
 
 - `BaseEntity` — UUID PK (`@UuidV7`), Hibernate-proxy-safe `equals`/`hashCode`
-- `DateBaseEntity` — extends `BaseEntity`, adds `createdAt`/`updatedAt` audit fields
-- All entities use `@MappedSuperclass`; QueryDSL Q-types are generated at compile time into `build/generated/`
+- `DateBaseEntity` — `BaseEntity` + `createdAt`/`updatedAt` 감사 필드
 
-### UUID v7 (`@UuidV7` / `UuidV7Generator`)
+UUID v7은 시간 정렬 가능한 monotonically increasing UUID. B-tree 인덱스 친화적, Virtual Thread 안전.
 
-`@UuidV7` is a custom Hibernate `@IdGeneratorType` annotation placed on a `UUID` PK field. At flush time, Hibernate calls `UuidV7Generator.generate()` which builds a time-ordered UUID v7:
-
-```
-msb = (currentTimeMillis << 16) | 0x7000 | random(12 bits)   // version 7
-lsb = 0x8000_0000_0000_0000 | random(62 bits)                 // variant bits
-```
-
-Key properties:
-- **Monotonically increasing** within the same millisecond (12 random bits prevent collisions)
-- **B-tree friendly** — time prefix keeps new rows near the end of the index, reducing page splits
-- **Virtual Thread safe** — uses `ThreadLocalRandom` (no contention across threads)
-- Base package: `com.media.bus.common.entity.common`
-
-Usage:
 ```java
-@Id
-@UuidV7
+@Id @UuidV7
 @Column(name = "id", updatable = false, nullable = false)
 private UUID id;
 ```
+
+## 로깅
+
+- **Log4j2** + **LMAX Disruptor 4.0** — `AsyncRoot` 락프리 비동기 로깅 (Virtual Thread 핀닝 방지)
+- **Micrometer Tracing + OTel** — `traceId`/`spanId` MDC 자동 주입
+- **`MdcLoggingFilter`** — `requestId`, `userId` MDC 주입
+
+MDC는 ThreadLocal 기반이므로 새 스레드에서 자동 전파 안 됨.
+`@Async` 메서드는 `AsyncMdcAspect`가 자동 처리. 수동 스레드 생성 시 `MdcContextUtil.wrap()` 사용.
+
+로그 포맷: `local` 프로파일 → 컬러 패턴 / 그 외 → JSON 구조화 (CloudWatch Logs Insights 최적화)
