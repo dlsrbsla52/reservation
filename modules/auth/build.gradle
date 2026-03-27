@@ -2,6 +2,11 @@ bootJar {
     enabled = true
 }
 
+// Java 25 환경에서 Byte Buddy experimental 모드 활성화 (Mockito 우회)
+test {
+    jvmArgs '-Dnet.bytebuddy.experimental=true'
+}
+
 dependencies {
     implementation project(':modules:common')
     implementation project(':modules:auth-contract')
