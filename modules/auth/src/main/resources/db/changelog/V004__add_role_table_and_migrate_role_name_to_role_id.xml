@@ -83,6 +83,15 @@
     </sql>
   </changeSet>
 
+  <!-- V004-4-h2: member_role.role_name → role_id 데이터 이관 (H2 전용: 상관 서브쿼리 방식) -->
+  <!-- PostgreSQL의 UPDATE...FROM 구문은 H2 미지원. 동일한 결과를 상관 서브쿼리로 구현합니다. -->
+  <changeSet id="V004-4-h2" author="hig" dbms="h2">
+    <sql>
+      UPDATE auth.member_role
+      SET role_id = (SELECT r.id FROM auth.role r WHERE r.name = role_name)
+    </sql>
+  </changeSet>
+
   <!-- V004-5: member_role.role_id NOT NULL 제약 추가 (이관 완료 후) -->
   <changeSet id="V004-5" author="hig">
     <addNotNullConstraint
@@ -144,6 +153,14 @@
       SET role_id = r.id
       FROM auth.role r
       WHERE r.name = rp.role_name;
+    </sql>
+  </changeSet>
+
+  <!-- V004-11-h2: role_permission.role_name → role_id 데이터 이관 (H2 전용: 상관 서브쿼리 방식) -->
+  <changeSet id="V004-11-h2" author="hig" dbms="h2">
+    <sql>
+      UPDATE auth.role_permission
+      SET role_id = (SELECT r.id FROM auth.role r WHERE r.name = role_name)
     </sql>
   </changeSet>
 

@@ -1,6 +1,7 @@
 package com.media.bus.stop.guard.impl;
 
 import com.media.bus.common.exceptions.ServiceException;
+import com.media.bus.stop.guard.StopCommandGuard;
 import com.media.bus.stop.repository.StopRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,13 +21,13 @@ import static org.mockito.Mockito.when;
  * Repository 기반 비즈니스 규칙 검증만 테스트합니다.
  */
 @ExtendWith(MockitoExtension.class)
-class StopCommandGuardImplTest {
+class StopCommandGuardTest {
 
     @Mock
     StopRepository stopRepository;
 
     @InjectMocks
-    StopCommandGuardImpl stopCommandGuard;
+    StopCommandGuard stopCommandGuard;
 
     @Test
     void isStopRegistered_등록된_정류소_예외없음() {

@@ -27,13 +27,11 @@ Base package: `com.media.bus.reservation`
 ```
 modules/reservation/
   controller/
-  service/           # 인터페이스
-    impl/
+  service/           # 서비스
   entity/            # DateBaseEntity 상속, 정적 팩토리 메서드
     enums/           # BaseEnum 구현
   repository/        # JpaRepository 직접 주입
-  guard/             # 인터페이스
-    impl/
+  guard/
   dto/
     request/
     response/
