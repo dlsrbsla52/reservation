@@ -60,7 +60,7 @@ public class AuthorizeHandlerInterceptor implements HandlerInterceptor {
 
         checkCategoryOrType(principal, authorize);
         checkPermissions(principal, authorize);
-        checkEmailVerified(principal, authorize);
+//        checkEmailVerified(principal, authorize);
 
         return true;
     }
@@ -113,6 +113,7 @@ public class AuthorizeHandlerInterceptor implements HandlerInterceptor {
     /**
      * 이메일 인증 여부 검증.
      * requireEmailVerified=true인데 미인증이면 403 발생.
+     * TODO : 현재는 이메일 인증을 붙일 수 없기 때문에 추후 이메일 서버 구축 후 처리
      */
     private void checkEmailVerified(MemberPrincipal principal, Authorize authorize) {
         if (authorize.requireEmailVerified() && !principal.emailVerified()) {

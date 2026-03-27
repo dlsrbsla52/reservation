@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * <h3>커버 범위</h3>
  * <ul>
- *   <li>HTTP 요청 컨텍스트 내 {@code @Async} — requestId, traceId, userId 전파</li>
+ *   <li>HTTP 요청 컨텍스트 내 {@code @Async} — requestId, traceId, memberId 전파</li>
  *   <li>{@code @Scheduled}, 이벤트 리스너 등 HTTP 컨텍스트 없는 환경 — 빈 Map으로 안전 처리</li>
  * </ul>
  *

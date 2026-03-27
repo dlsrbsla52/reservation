@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 public class ThreadPoolConfig implements AsyncConfigurer {
 
     /**
-     * @Async 실행기에 MDC 컨텍스트(requestId, traceId, userId 등)를 전파하는 TaskDecorator.
+     * @Async 실행기에 MDC 컨텍스트(requestId, traceId, memberId 등)를 전파하는 TaskDecorator.
      *
      * <p>태스크 제출 시점에 호출 스레드의 MDC 스냅샷을 캡처하고,
      * 실행 스레드에서 복원한 뒤 작업 완료 후 정리한다.

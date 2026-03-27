@@ -19,7 +19,7 @@ Base package: `com.media.bus.common`
 | `CommonCoreAutoConfiguration` | `@ConditionalOnClass(Aspect.class)` | `TransactionalBulkheadAspect`, `BoundedConcurrencyAspect` |
 | `CommonWebMvcAutoConfiguration` | Servlet 환경 | `ResponseBodyWrapper` 빈들, `ResponseAdvisor`, `ExceptionAdvisor` |
 | `CommonSecurityAutoConfiguration` | Servlet 환경 | Spring Security 기본 필터 체인 |
-| `CommonLoggingAutoConfiguration` | Servlet 환경 | `MdcLoggingFilter` (requestId + userId → MDC) |
+| `CommonLoggingAutoConfiguration` | Servlet 환경 | `MdcLoggingFilter` (requestId + memberId → MDC) |
 | `RestClientConfig` | Servlet 환경 | `internalRestClient` 빈 |
 | `QueryDslConfig` | 항상 | `JPAQueryFactory` 빈 |
 | `ThreadPoolConfig` | 항상 | 공유 Executor 설정 |
@@ -119,7 +119,7 @@ private UUID id;
 
 - **Log4j2** + **LMAX Disruptor 4.0** — `AsyncRoot` 락프리 비동기 로깅 (Virtual Thread 핀닝 방지)
 - **Micrometer Tracing + OTel** — `traceId`/`spanId` MDC 자동 주입
-- **`MdcLoggingFilter`** — `requestId`, `userId` MDC 주입
+- **`MdcLoggingFilter`** — `requestId`, `memberId` MDC 주입
 
 MDC는 ThreadLocal 기반이므로 새 스레드에서 자동 전파 안 됨.
 `@Async` 메서드는 `AsyncMdcAspect`가 자동 처리. 수동 스레드 생성 시 `MdcContextUtil.wrap()` 사용.

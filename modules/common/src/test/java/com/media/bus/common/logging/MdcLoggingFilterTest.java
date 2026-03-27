@@ -129,17 +129,17 @@ class MdcLoggingFilterTest {
         }
     }
 
-    // ── userId 처리 ───────────────────────────────────────────────────────────
+    // ── memberId 처리 ───────────────────────────────────────────────────────────
 
     @Nested
-    @DisplayName("userId 처리")
-    class UserIdTest {
+    @DisplayName("memberId 처리")
+    class memberIdTest {
 
         @Test
         @DisplayName("인증된 사용자가 있으면 Principal name을 MDC에 주입한다")
-        void shouldInjectUserIdForAuthenticatedUser() throws Exception {
+        void shouldInjectmemberIdForAuthenticatedUser() throws Exception {
             authenticateAs("user-123");
-            AtomicReference<String> captured = captureFromMdc("userId");
+            AtomicReference<String> captured = captureFromMdc("memberId");
 
             filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
@@ -147,13 +147,13 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("anonymousUser일 때 userId를 MDC에 주입하지 않는다")
-        void shouldNotInjectUserIdForAnonymous() throws Exception {
+        @DisplayName("anonymousUser일 때 memberId를 MDC에 주입하지 않는다")
+        void shouldNotInjectmemberIdForAnonymous() throws Exception {
             // Spring Security 기본 익명 사용자 principal = "anonymousUser" (문자열)
             UsernamePasswordAuthenticationToken anonymousAuth = new UsernamePasswordAuthenticationToken(
                     "anonymousUser", null, List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS")));
             SecurityContextHolder.getContext().setAuthentication(anonymousAuth);
-            AtomicReference<String> captured = captureFromMdc("userId");
+            AtomicReference<String> captured = captureFromMdc("memberId");
 
             filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
@@ -161,10 +161,10 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("SecurityContext가 비어있으면 userId를 MDC에 주입하지 않는다")
-        void shouldNotInjectUserIdWhenNoAuthentication() throws Exception {
+        @DisplayName("SecurityContext가 비어있으면 memberId를 MDC에 주입하지 않는다")
+        void shouldNotInjectmemberIdWhenNoAuthentication() throws Exception {
             // SecurityContextHolder는 setUp()에서 이미 clear된 상태
-            AtomicReference<String> captured = captureFromMdc("userId");
+            AtomicReference<String> captured = captureFromMdc("memberId");
 
             filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
@@ -173,13 +173,13 @@ class MdcLoggingFilterTest {
 
         @Test
         @DisplayName("인증 객체가 있어도 isAuthenticated()가 false면 주입하지 않는다")
-        void shouldNotInjectUserIdWhenNotAuthenticated() throws Exception {
+        void shouldNotInjectmemberIdWhenNotAuthenticated() throws Exception {
             // 자격증명 없이 생성한 토큰은 authenticated=false 가 될 수 있다
             // AbstractAuthenticationToken.setAuthenticated(false)로 명시 설정
             UsernamePasswordAuthenticationToken unauthenticated =
                     UsernamePasswordAuthenticationToken.unauthenticated("some-user", null);
             SecurityContextHolder.getContext().setAuthentication(unauthenticated);
-            AtomicReference<String> captured = captureFromMdc("userId");
+            AtomicReference<String> captured = captureFromMdc("memberId");
 
             filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
@@ -194,23 +194,23 @@ class MdcLoggingFilterTest {
     class MdcLifecycleTest {
 
         @Test
-        @DisplayName("필터 체인 실행 중 requestId와 userId가 MDC에 존재한다")
+        @DisplayName("필터 체인 실행 중 requestId와 memberId가 MDC에 존재한다")
         void shouldHaveMdcFieldsDuringFilterChainExecution() throws Exception {
             authenticateAs("user-abc");
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("X-Request-ID", "trace-001");
             AtomicReference<String> capturedRequestId = new AtomicReference<>();
-            AtomicReference<String> capturedUserId = new AtomicReference<>();
+            AtomicReference<String> capturedmemberId = new AtomicReference<>();
             doAnswer(inv -> {
                 capturedRequestId.set(MDC.get("requestId"));
-                capturedUserId.set(MDC.get("userId"));
+                capturedmemberId.set(MDC.get("memberId"));
                 return null;
             }).when(filterChain).doFilter(any(), any());
 
             filter.doFilter(request, new MockHttpServletResponse(), filterChain);
 
             assertThat(capturedRequestId.get()).isEqualTo("trace-001");
-            assertThat(capturedUserId.get()).isEqualTo("user-abc");
+            assertThat(capturedmemberId.get()).isEqualTo("user-abc");
         }
 
         @Test
@@ -225,13 +225,13 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("요청 완료 후 userId가 MDC에서 제거된다")
-        void shouldRemoveUserIdAfterRequest() throws Exception {
+        @DisplayName("요청 완료 후 memberId가 MDC에서 제거된다")
+        void shouldRemovememberIdAfterRequest() throws Exception {
             authenticateAs("user-abc");
 
             filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
-            assertThat(MDC.get("userId")).isNull();
+            assertThat(MDC.get("memberId")).isNull();
         }
 
         @Test
@@ -248,7 +248,7 @@ class MdcLoggingFilterTest {
                     .hasMessage("downstream error");
 
             assertThat(MDC.get("requestId")).isNull();
-            assertThat(MDC.get("userId")).isNull();
+            assertThat(MDC.get("memberId")).isNull();
         }
 
         @Test
@@ -262,7 +262,7 @@ class MdcLoggingFilterTest {
                     .isInstanceOf(RuntimeException.class);
 
             assertThat(MDC.get("requestId")).isNull();
-            assertThat(MDC.get("userId")).isNull();
+            assertThat(MDC.get("memberId")).isNull();
         }
 
         @Test

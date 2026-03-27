@@ -57,13 +57,13 @@ public class AsyncMdcAspectTest {
         @DisplayName("호출 스레드의 MDC가 비동기 실행 스레드로 전파된다")
         void shouldPropagateMdcToAsyncThread() throws Exception {
             MDC.put("requestId", "async-test-req-001");
-            MDC.put("userId", "async-test-user");
+            MDC.put("memberId", "async-test-user");
 
             Map<String, String> asyncMdc = asyncTestService.captureMdc()
                 .get(5, TimeUnit.SECONDS);
 
             assertThat(asyncMdc).containsEntry("requestId", "async-test-req-001")
-                                .containsEntry("userId",    "async-test-user");
+                                .containsEntry("memberId",    "async-test-user");
         }
 
         @Test
@@ -80,13 +80,13 @@ public class AsyncMdcAspectTest {
         @DisplayName("@Async 완료 후 호출 스레드의 MDC가 원래 상태로 복원된다")
         void shouldRestoreCallerThreadMdcAfterAsyncCall() throws Exception {
             MDC.put("requestId", "caller-req-restore-test");
-            MDC.put("userId",    "caller-user");
+            MDC.put("memberId",    "caller-user");
 
             asyncTestService.captureMdc().get(5, TimeUnit.SECONDS);
 
             // Aspect finally 블록이 호출 스레드 MDC를 복원해야 한다
             assertThat(MDC.get("requestId")).isEqualTo("caller-req-restore-test");
-            assertThat(MDC.get("userId")).isEqualTo("caller-user");
+            assertThat(MDC.get("memberId")).isEqualTo("caller-user");
         }
     }
 

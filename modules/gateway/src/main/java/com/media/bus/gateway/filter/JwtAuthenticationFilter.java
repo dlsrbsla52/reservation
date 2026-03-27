@@ -106,7 +106,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     )
                     .build();
 
-            log.debug("[JwtAuthenticationFilter] 인증 성공. userId={}, role=ROLE_{}, path={}",
+            log.debug("[JwtAuthenticationFilter] 인증 성공. memberId={}, role=ROLE_{}, path={}",
                     principal.id(), principal.memberType().name(), path);
 
             return chain.filter(mutatedExchange);
