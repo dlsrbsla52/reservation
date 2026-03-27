@@ -12,7 +12,7 @@
                   %-36X{key}      : 최소 36자 왼쪽 정렬
                   %c{1}           : 클래스명(패키지 제외)
                 -->
-                <Pattern>%d{HH:mm:ss.SSS} %highlight{%-5level}{FATAL=red blink, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green} | req=%-38X{requestId} | user=%-14X{userId} | trace=%-16X{traceId} | %-22c{1} %msg%n%throwable</Pattern>
+                <Pattern>%d{HH:mm:ss.SSS} %highlight{%-5level}{FATAL=red blink, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green} | req=%-38X{requestId} | user=%-14X{memberId} | trace=%-16X{traceId} | %-22c{1} %msg%n%throwable</Pattern>
             </PatternLayout>
         </Console>
     </Appenders>

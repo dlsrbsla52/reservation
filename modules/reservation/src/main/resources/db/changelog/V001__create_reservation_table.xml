@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+>
+
+  <!-- ========================
+       V001. 예약(reservation) 관련 테이블 생성
+       - reservation 예약에 관한 정보만 관리합니다.
+       - 예약 상담 내역 등은 별도의 테이블에서 관리합니다.
+       ======================== -->
+  <changeSet id="V001-1" author="hig">
+
+    <!-- reservation 스키마가 없을 경우 생성 -->
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists schemaName="reservation" tableName="reservation"/>
+      </not>
+    </preConditions>
+
+    <sql>CREATE SCHEMA IF NOT EXISTS reservation</sql>
+
+    <createTable tableName="reservation" schemaName="reservation"
+                 remarks="고객의 상담 예약 정보를 저장하는 테이블">
+
+      <column name="id" type="UUID" remarks="예약 정보 PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="member_id" type="UUID" remarks="예약 요청한 memberId(member FK)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="stop_id" type="UUID" remarks="예약 요청한 stopId(stop FK)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="consultation_requested_at" type="TIMESTAMP WITH TIME ZONE" remarks="상담 요청 일시">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="desired_contract_start_date" type="DATE" remarks="계약 시작 희망 일자">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="예약 요청일">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="최종 수정일">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+    
+    
+    <createTable tableName="reservation_consultation" schemaName="reservation">
+
+      <column name="id" type="UUID" remarks="예약 상담 내역 PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="reservation_id" type="UUID" remarks="연관된 예약 ID (FK)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="status" type="VARCHAR(18)" remarks="예약 상태 (PENDING, CONFIRMED, COMPLETE, CANCELLED 등)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="note" type="text" remarks="상담내역 메모"/>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="예약 상담 생성일">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="최종 수정일">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+  </changeSet>
+
+</databaseChangeLog>

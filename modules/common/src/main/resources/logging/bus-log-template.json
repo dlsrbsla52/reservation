@@ -33,9 +33,9 @@
     "$resolver": "mdc",
     "key": "requestId"
   },
-  "userId": {
+  "memberId": {
     "$resolver": "mdc",
-    "key": "userId"
+    "key": "memberId"
   },
   "exception": {
     "$resolver": "exception",

@@ -100,7 +100,7 @@
 | `traceId` | Micrometer Tracing | 분산 트레이스 ID (OpenTelemetry) |
 | `spanId` | Micrometer Tracing | 현재 Span ID |
 | `requestId` | `MdcLoggingFilter` | HTTP 요청 단위 고유 ID (`X-Request-ID` 헤더 또는 UUID 자동 생성) |
-| `userId` | `MdcLoggingFilter` | 인증된 사용자 Principal name |
+| `memberId` | `MdcLoggingFilter` | 인증된 사용자 Principal name |
 | `service` | `log4j2-spring.xml` | `spring.application.name` 값 |
 
 ### 실제 사용법
@@ -110,7 +110,7 @@
 private static final Logger log = LoggerFactory.getLogger(MyService.class);
 // 혹은 @Slf4j 어노테이션 사용
 
-// 2. 로그 호출만 하면 requestId, traceId, userId가 자동으로 붙는다
+// 2. 로그 호출만 하면 requestId, traceId, memberId가 자동으로 붙는다
 log.info("처리 시작 — itemId={}", itemId);
 log.error("처리 실패", exception);
 ```
@@ -127,8 +127,8 @@ log.error("처리 실패", exception);
 ```java
 // executor 지정하거나 생략하거나 — 모두 requestId, traceId 등이 자동 전파된다
 @Async("IoBoundExecutor")
-public CompletableFuture<Void> sendNotification(String userId) {
-    log.info("알림 전송 — userId={}", userId);  // requestId, traceId 자동 포함
+public CompletableFuture<Void> sendNotification(String memberId) {
+    log.info("알림 전송 — memberId={}", memberId);  // requestId, traceId 자동 포함
     return CompletableFuture.completedFuture(null);
 }
 ```
@@ -160,14 +160,14 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap(() -> {
 | 운영/스테이징 | JSON 구조화 로그 | CloudWatch Logs Insights 쿼리 최적화 |
 
 ```json
-{"@timestamp":"...","level":"INFO","traceId":"...","spanId":"...","requestId":"...","userId":"...","service":"stop","message":"..."}
+{"@timestamp":"...","level":"INFO","traceId":"...","spanId":"...","requestId":"...","memberId":"...","service":"stop","message":"..."}
 ```
 
 ### 참조 파일
 
 | 파일 | 역할 |
 |------|------|
-| `common/logging/MdcLoggingFilter.java` | requestId, userId → MDC 주입 필터 |
+| `common/logging/MdcLoggingFilter.java` | requestId, memberId → MDC 주입 필터 |
 | `common/logging/MdcContextUtil.java` | 수동 비동기 MDC 전파 유틸 (`wrap(Runnable)`, `wrap(Callable)`) |
 | `common/core/aop/AsyncMdcAspect.java` | `@Async` 자동 MDC 전파 Aspect |
 | `common/configuration/ThreadPoolConfig.java` | MDC `TaskDecorator` + 기본 Executor (`AsyncConfigurer`) |

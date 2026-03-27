@@ -30,8 +30,8 @@ class MemberPrincipalExtractFilterTest {
 
     @Test
     void 헤더_정상_주입시_principal_attribute_저장() throws Exception {
-        String userId = "550e8400-e29b-41d4-a716-446655440000";
-        request.addHeader(MemberPrincipal.HEADER_USER_ID, userId);
+        String memberId = "550e8400-e29b-41d4-a716-446655440000";
+        request.addHeader(MemberPrincipal.HEADER_USER_ID, memberId);
         request.addHeader(MemberPrincipal.HEADER_USER_LOGIN_ID, "admin");
         request.addHeader(MemberPrincipal.HEADER_USER_EMAIL, "admin@test.com");
         request.addHeader(MemberPrincipal.HEADER_USER_ROLE, "ROLE_ADMIN_MASTER");
@@ -49,8 +49,8 @@ class MemberPrincipalExtractFilterTest {
 
     @Test
     void permissions_헤더_파싱_후_principal에_포함() throws Exception {
-        String userId = "550e8400-e29b-41d4-a716-446655440000";
-        request.addHeader(MemberPrincipal.HEADER_USER_ID, userId);
+        String memberId = "550e8400-e29b-41d4-a716-446655440000";
+        request.addHeader(MemberPrincipal.HEADER_USER_ID, memberId);
         request.addHeader(MemberPrincipal.HEADER_USER_ROLE, "ROLE_ADMIN_USER");
         request.addHeader(MemberPrincipal.HEADER_EMAIL_VERIFIED, "true");
         request.addHeader(MemberPrincipal.HEADER_USER_PERMISSIONS, "READ,WRITE");
@@ -68,8 +68,8 @@ class MemberPrincipalExtractFilterTest {
 
     @Test
     void permissions_헤더_없으면_빈_Set으로_복원() throws Exception {
-        String userId = "550e8400-e29b-41d4-a716-446655440000";
-        request.addHeader(MemberPrincipal.HEADER_USER_ID, userId);
+        String memberId = "550e8400-e29b-41d4-a716-446655440000";
+        request.addHeader(MemberPrincipal.HEADER_USER_ID, memberId);
         request.addHeader(MemberPrincipal.HEADER_USER_ROLE, "ROLE_MEMBER");
         request.addHeader(MemberPrincipal.HEADER_EMAIL_VERIFIED, "false");
         // X-User-Permissions 헤더 없음
@@ -84,8 +84,8 @@ class MemberPrincipalExtractFilterTest {
 
     @Test
     void MANAGE_권한_보유시_모든_permission_통과() throws Exception {
-        String userId = "550e8400-e29b-41d4-a716-446655440000";
-        request.addHeader(MemberPrincipal.HEADER_USER_ID, userId);
+        String memberId = "550e8400-e29b-41d4-a716-446655440000";
+        request.addHeader(MemberPrincipal.HEADER_USER_ID, memberId);
         request.addHeader(MemberPrincipal.HEADER_USER_ROLE, "ROLE_ADMIN_MASTER");
         request.addHeader(MemberPrincipal.HEADER_EMAIL_VERIFIED, "true");
         request.addHeader(MemberPrincipal.HEADER_USER_PERMISSIONS, "READ,WRITE,DELETE,MANAGE");
@@ -136,8 +136,8 @@ class MemberPrincipalExtractFilterTest {
 
     @Test
     void ROLE_prefix_없는_role_헤더도_정상_파싱() throws Exception {
-        String userId = "550e8400-e29b-41d4-a716-446655440000";
-        request.addHeader(MemberPrincipal.HEADER_USER_ID, userId);
+        String memberId = "550e8400-e29b-41d4-a716-446655440000";
+        request.addHeader(MemberPrincipal.HEADER_USER_ID, memberId);
         request.addHeader(MemberPrincipal.HEADER_USER_ROLE, "MEMBER"); // prefix 없음
         request.addHeader(MemberPrincipal.HEADER_EMAIL_VERIFIED, "false");
 
