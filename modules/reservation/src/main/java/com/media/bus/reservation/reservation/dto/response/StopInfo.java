@@ -1,4 +1,4 @@
-package com.media.bus.reservation.dto.response;
+package com.media.bus.reservation.reservation.dto.response;
 
 import java.util.UUID;
 

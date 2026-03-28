@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+>
+
+  <!-- ========================
+       V002-1. contract 테이블 생성
+       - 고객의 계약 정보를 관리한다.
+       - 갱신 시 새 row 생성, previous_contract_id 로 이력 체인 연결
+       ======================== -->
+  <changeSet id="V002-1" author="hig">
+
+    <createTable tableName="contract" schemaName="reservation"
+                 remarks="고객 계약 정보를 저장하는 테이블">
+
+      <column name="id" type="UUID" remarks="계약 PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="stop_id" type="UUID" remarks="계약 버스 정류장 ID PK (UUID)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="previous_contract_id" type="UUID"
+              remarks="갱신 이전 계약 ID (원계약이면 NULL)"/>
+
+      <column name="member_id" type="UUID" remarks="계약 요청한 member ID (member FK)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="manager_id" type="UUID" remarks="담당 관리자 member ID"/>
+
+      <column name="contract_name" type="VARCHAR(300)"
+              remarks="계약 이름 (e.g. CTR-2026-00001)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="status" type="VARCHAR(20)"
+              remarks="계약 상태 (PENDING, CONFIRMED, ACTIVE, EXPIRING, COMPLETE, CANCELLED)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="auto_renewal" type="BOOLEAN" defaultValueBoolean="false"
+              remarks="자동 갱신 여부">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="contract_start_date" type="TIMESTAMP WITH TIME ZONE"
+              remarks="계약 시작일">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="contract_end_date" type="TIMESTAMP WITH TIME ZONE"
+              remarks="계약 종료일">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="renewal_notified_at" type="TIMESTAMP WITH TIME ZONE"
+              remarks="만료 전 갱신 알림 발송 일시 (NULL 이면 미발송)"/>
+
+      <column name="cancelled_at" type="TIMESTAMP WITH TIME ZONE"
+              remarks="취소/해지 처리 일시"/>
+
+      <column name="cancel_reason" type="VARCHAR(500)"
+              remarks="취소/해지 사유"/>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
+              defaultValueComputed="CURRENT_TIMESTAMP" remarks="생성일">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"
+              defaultValueComputed="CURRENT_TIMESTAMP" remarks="최종 수정일">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+    <!-- 갱신 이력 체인 조회 인덱스 -->
+    <createIndex indexName="idx_contract_previous_contract_id"
+                 tableName="contract" schemaName="reservation">
+      <column name="previous_contract_id"/>
+    </createIndex>
+
+    <!-- 회원별 계약 조회 인덱스 -->
+    <createIndex indexName="idx_contract_member_id"
+                 tableName="contract" schemaName="reservation">
+      <column name="member_id"/>
+    </createIndex>
+
+    <!-- 정류소별 계약 조회 인덱스 -->
+    <createIndex indexName="idx_contract_stop_id"
+                 tableName="contract" schemaName="reservation">
+      <column name="stop_id"/>
+      <column name="status"/>
+    </createIndex>
+
+  </changeSet>
+
+  <!-- ========================
+       V002-2. contract_detail 테이블 생성
+       - 계약의 금액, 결제 조건 등 세부 내용을 관리한다.
+       - contract 와 1:1 관계
+       ======================== -->
+  <changeSet id="V002-2" author="hig">
+
+    <createTable tableName="contract_detail" schemaName="reservation"
+                 remarks="계약 세부 내용(금액, 결제 조건)을 저장하는 테이블">
+
+      <column name="id" type="UUID" remarks="계약 세부 PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <column name="contract_id" type="UUID" remarks="계약 ID (contract FK)">
+        <constraints nullable="false" unique="true"/>
+      </column>
+
+      <column name="total_amount" type="NUMERIC(15,2)" remarks="총 계약 금액">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="pay_amount" type="NUMERIC(15,2)"
+              remarks="납부 금액 (payment_cycle 기준)"/>
+
+      <column name="payment_cycle" type="VARCHAR(20)"
+              remarks="납부 주기 (MONTHLY, QUARTERLY, YEARLY)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="payment_method" type="VARCHAR(30)"
+              remarks="결제 수단 (CARD, BANK_TRANSFER 등)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="payment_status" type="VARCHAR(20)"
+              defaultValue="UNPAID"
+              remarks="납부 상태 (UNPAID, PAID, OVERDUE, CANCELLED)">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="paid_amount" type="NUMERIC(15,2)"
+              remarks="실제 납부된 금액"/>
+
+      <column name="paid_at" type="TIMESTAMP WITH TIME ZONE"
+              remarks="납부 확인 일시 (NULL 이면 미납)"/>
+
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE"
+              defaultValueComputed="CURRENT_TIMESTAMP" remarks="생성일">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"
+              defaultValueComputed="CURRENT_TIMESTAMP" remarks="최종 수정일">
+        <constraints nullable="false"/>
+      </column>
+
+    </createTable>
+
+  </changeSet>
+
+</databaseChangeLog>
