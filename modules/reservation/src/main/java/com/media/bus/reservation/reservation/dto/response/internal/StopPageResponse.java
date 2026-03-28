@@ -1,7 +1,7 @@
-package com.media.bus.reservation.dto.response.internal;
+package com.media.bus.reservation.reservation.dto.response.internal;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.media.bus.reservation.dto.response.StopInfo;
+import com.media.bus.reservation.reservation.dto.response.StopInfo;
 
 import java.util.List;
 

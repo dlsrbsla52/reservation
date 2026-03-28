@@ -16,7 +16,7 @@ spring:
         - id: iam-service
           uri: http://iam-service:8181
           predicates:
-            - Path=/api/v1/iam/**, /api/v1/member/**
+            - Path=/api/v1/auth/**, /api/v1/member/**
         - id: stop-service
           uri: http://stop-service:8182
           predicates:
@@ -24,7 +24,7 @@ spring:
         - id: reservation-service
           uri: http://reservation-service:8183
           predicates:
-            - Path=/api/v1/reservation/**
+            - Path=/api/v1/reservation/**, /api/v1/contract/**
 
 hig:
   bulkhead:

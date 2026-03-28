@@ -1,8 +1,8 @@
-package com.media.bus.reservation.service;
+package com.media.bus.reservation.reservation.service;
 
 import com.media.bus.contract.security.MemberPrincipal;
-import com.media.bus.reservation.dto.request.CreateStopReservationRequest;
-import com.media.bus.reservation.dto.response.StopInfo;
+import com.media.bus.reservation.reservation.dto.request.CreateStopReservationRequest;
+import com.media.bus.reservation.reservation.dto.response.StopInfo;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
