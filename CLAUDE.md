@@ -54,7 +54,7 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 - **모듈 경계** — 타 모듈 Repository 직접 참조 금지. 해당 모듈 Service 또는 API 경유
 - **응답** — `common`의 `ApiResponse<T>` 래퍼 필수
 - **예외** — Controller 내 try-catch 금지. `common` 글로벌 핸들러(`ExceptionAdvisor`)에 위임
+- **javadoc** - 모든 javadoc은 마크다운 스타일로 작성
 - **DB 마이그레이션** — Liquibase changelog만 사용, 수동 DDL 금지
-- **패키지** — 인터페이스는 패키지 상위, 구현체는 `impl/` 하위. Guard/Validator는 인터페이스 경유
 - **테스트** — Repository: `@Mock`, Guard/Validator: 익명 Stub. ByteBuddy 플래그 필수
 - **스키마 격리** — DB는 모듈별 schema (`?schema=auth|stop|member|reservation`)

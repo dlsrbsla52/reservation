@@ -68,15 +68,15 @@ public class JwtProvider implements TokenProvider {
 
     /**
      * Refresh Token을 생성하고 Redis에 저장합니다.
-     * Redis Key: "refresh:{userId}", Value: refreshToken, TTL: 7일
+     * Redis Key: "refresh:{memberId}", Value: refreshToken, TTL: 7일
      *
-     * @param userId 회원 ID(UUID)
+     * @param memberId 회원 ID(UUID)
      * @return 생성된 Refresh Token
      */
-    public String generateRefreshToken(String userId) {
+    public String generateRefreshToken(String memberId) {
         long now = System.currentTimeMillis();
         String refreshToken = Jwts.builder()
-                .subject(userId)
+                .subject(memberId)
                 .claim("type", "refresh") // Refresh Token 전용 타입 클레임
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + REFRESH_TOKEN_EXPIRE_MS))
@@ -85,7 +85,7 @@ public class JwtProvider implements TokenProvider {
 
         // Redis에 Refresh Token 저장 (TTL 7일)
         redisTemplate.opsForValue().set(
-                REFRESH_TOKEN_KEY_PREFIX + userId,
+                REFRESH_TOKEN_KEY_PREFIX + memberId,
                 refreshToken,
                 Duration.ofMillis(REFRESH_TOKEN_EXPIRE_MS));
 
@@ -172,16 +172,16 @@ public class JwtProvider implements TokenProvider {
     /**
      * Redis에서 특정 회원의 Refresh Token을 삭제합니다 (로그아웃 처리).
      */
-    public void deleteRefreshToken(String userId) {
-        redisTemplate.delete(REFRESH_TOKEN_KEY_PREFIX + userId);
+    public void deleteRefreshToken(String memberId) {
+        redisTemplate.delete(REFRESH_TOKEN_KEY_PREFIX + memberId);
     }
 
     /**
      * Redis에 저장된 Refresh Token과 요청으로 들어온 토큰을 비교합니다.
      * Token Rotation 또는 Revoke 여부 검증 시 사용합니다.
      */
-    public boolean validateRefreshToken(String userId, String refreshToken) {
-        String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + userId);
+    public boolean validateRefreshToken(String memberId, String refreshToken) {
+        String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + memberId);
         return refreshToken.equals(storedToken);
     }
 }

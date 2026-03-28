@@ -17,10 +17,10 @@ import java.util.concurrent.CountDownLatch;
  *
  * <h2>보여주는 것</h2>
  * <ol>
- *   <li>HTTP 요청이 들어오면 필터가 MDC에 requestId/userId를 주입한다</li>
+ *   <li>HTTP 요청이 들어오면 필터가 MDC에 requestId/memberId를 주입한다</li>
  *   <li>컨트롤러 → 서비스 → 레포지토리 계층에서 로거를 호출하기만 해도
- *       모든 로그에 같은 requestId/userId가 자동으로 붙는다</li>
- *   <li>비인증 요청에서는 userId 필드가 없다</li>
+ *       모든 로그에 같은 requestId/memberId가 자동으로 붙는다</li>
+ *   <li>비인증 요청에서는 memberId 필드가 없다</li>
  *   <li>예외가 발생해도 요청이 끝나면 MDC가 깨끗하게 정리된다</li>
  *   <li>새 스레드를 만들면 MDC가 전파되지 않고, 명시적 복사로 해결한다</li>
  * </ol>
@@ -64,9 +64,9 @@ public class MdcLoggingFilterDemo {
         //   GET /api/v1/stop/health-check
         //   X-Request-ID 헤더 없음 → 필터가 UUID 자동 생성
         // ──────────────────────────────────────────────────────────────────────
-        divider("시나리오 2 — 비인증 요청 (userId 없음, requestId 자동 생성)");
+        divider("시나리오 2 — 비인증 요청 (memberId 없음, requestId 자동 생성)");
 
-        simulateRequest(null /* userId 없음 */, null /* 헤더 없음 → UUID 자동생성 */, () -> {
+        simulateRequest(null /* memberId 없음 */, null /* 헤더 없음 → UUID 자동생성 */, () -> {
 
             controller.info("healthCheck() 호출");
             controller.info("HTTP 200 OK 반환");
@@ -98,7 +98,7 @@ public class MdcLoggingFilterDemo {
         // 필터의 finally 블록이 실행돼 MDC가 비어있어야 한다
         System.out.println();
         System.out.printf("  ✅ 예외 후 ThreadContext.requestId = \"%s\"  (null이어야 정상)%n", ThreadContext.get("requestId"));
-        System.out.printf("  ✅ 예외 후 ThreadContext.userId    = \"%s\"  (null이어야 정상)%n%n", ThreadContext.get("userId"));
+        System.out.printf("  ✅ 예외 후 ThreadContext.memberId    = \"%s\"  (null이어야 정상)%n%n", ThreadContext.get("memberId"));
 
         sleep();
 
@@ -153,7 +153,7 @@ public class MdcLoggingFilterDemo {
 
         Thread.ofVirtual().name("vt-request-handler").start(() -> {
             ThreadContext.put("requestId", "vt-park-resume-req-001");
-            ThreadContext.put("userId",    "vt-user-park");
+            ThreadContext.put("memberId",    "vt-user-park");
             ThreadContext.put("traceId",   "parktrace00001a");
 
             service.info("VT 실행 — IO 호출 직전 (carrier thread 점유 중)");
@@ -258,10 +258,10 @@ public class MdcLoggingFilterDemo {
      * non-Spring main()에서는 브릿지 초기화가 보장되지 않아 직접 호출한다.
      *
      * @param requestId X-Request-ID 헤더 값. null이면 UUID 자동 생성.
-     * @param userId    인증된 사용자 ID. null이면 주입 생략.
+     * @param memberId    인증된 사용자 ID. null이면 주입 생략.
      * @param logic     비즈니스 로직 (컨트롤러/서비스/레포지토리 호출)
      */
-    private static void simulateRequest(String requestId, String userId, Runnable logic) {
+    private static void simulateRequest(String requestId, String memberId, Runnable logic) {
 
         // ── 필터 진입 (MdcLoggingFilter.doFilterInternal 역할) ──────────────
         String resolvedId = (requestId != null && !requestId.isBlank())
@@ -271,14 +271,14 @@ public class MdcLoggingFilterDemo {
         // 실제 MdcLoggingFilter 코드: MDC.put("requestId", resolvedId)
         // Spring Boot 환경에서 org.slf4j.MDC → ThreadContext로 자동 브릿지된다
         ThreadContext.put("requestId", resolvedId);
-        if (userId != null) {
-            ThreadContext.put("userId", userId);
+        if (memberId != null) {
+            ThreadContext.put("memberId", memberId);
         }
         // Micrometer Tracing이 실제로는 여기서 traceId/spanId도 자동 주입한다.
         // 데모에서는 가짜 값으로 시뮬레이션한다.
         ThreadContext.put("traceId", UUID.randomUUID().toString().replace("-", "").substring(0, 16));
 
-        filter.info("── 요청 진입 ── MDC 주입 완료: requestId={}, userId={}", resolvedId, userId);
+        filter.info("── 요청 진입 ── MDC 주입 완료: requestId={}, memberId={}", resolvedId, memberId);
 
         // ── 비즈니스 로직 실행 ───────────────────────────────────────────────
         try {
@@ -287,7 +287,7 @@ public class MdcLoggingFilterDemo {
             // ── 필터 종료 (finally 블록에서 반드시 실행) ────────────────────
             filter.info("── 요청 종료 ── MDC 정리");
             ThreadContext.remove("requestId");
-            ThreadContext.remove("userId");
+            ThreadContext.remove("memberId");
             ThreadContext.remove("traceId");
         }
     }
@@ -309,7 +309,7 @@ public class MdcLoggingFilterDemo {
                 │  // 1. 각 클래스에 Logger 선언 (평소와 동일)                                        │
                 │  private static final Logger log = LoggerFactory.getLogger(MyService.class); │
                 │                                                                              │
-                │  // 2. 로그 호출 (MDC 건드리지 않아도 requestId, userId가 자동으로 붙음)               │
+                │  // 2. 로그 호출 (MDC 건드리지 않아도 requestId, memberId가 자동으로 붙음)               │
                 │  log.info("처리 시작 — itemId={}", itemId);                                    │
                 │  log.debug("DB 쿼리 실행");                                                    │
                 │  log.error("처리 실패", exception);                                            │
@@ -328,7 +328,7 @@ public class MdcLoggingFilterDemo {
                 ┌─ CloudWatch Logs Insights 쿼리 예시 ───────────────────────────────────────┐
                 │                                                                              │
                 │  # 특정 요청의 전체 로그 추적                                              │
-                │  fields @timestamp, level, message, userId                                  │
+                │  fields @timestamp, level, message, memberId                                  │
                 │  | filter requestId = "front-abc-123-def-456-789"                           │
                 │  | sort @timestamp asc                                                       │
                 │                                                                              │

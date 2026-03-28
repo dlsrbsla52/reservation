@@ -38,7 +38,7 @@ public class MemberPrincipalExtractFilter extends OncePerRequestFilter {
         FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String userId            = request.getHeader(MemberPrincipal.HEADER_USER_ID);
+        String memberId            = request.getHeader(MemberPrincipal.HEADER_USER_ID);
         String loginId           = request.getHeader(MemberPrincipal.HEADER_USER_LOGIN_ID);
         String email             = request.getHeader(MemberPrincipal.HEADER_USER_EMAIL);
         String role              = request.getHeader(MemberPrincipal.HEADER_USER_ROLE);
@@ -46,14 +46,14 @@ public class MemberPrincipalExtractFilter extends OncePerRequestFilter {
         String permissionsHeader = request.getHeader(MemberPrincipal.HEADER_USER_PERMISSIONS);
 
         // 필수 헤더 누락 시 attribute 미설정 — 인터셉터가 @Authorize 여부에 따라 401 처리
-        if (userId == null || role == null) {
+        if (memberId == null || role == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
             MemberPrincipal principal = MemberPrincipal.fromHeaders(
-                    userId, loginId, email, role, emailVerified, permissionsHeader);
+                    memberId, loginId, email, role, emailVerified, permissionsHeader);
             request.setAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY, principal);
         } catch (Exception e) {
             // 헤더 값이 잘못된 경우(UUID 형식 오류, 알 수 없는 MemberType 등) warn 후 미설정
