@@ -16,14 +16,15 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ReservationFacade {
 
-    private final StopResolvationService stopResolvationService;
+    private final StopResolutionService stopResolutionService;
 
     public void createReservation(MemberPrincipal principal, @Valid CreateStopReservationRequest request) {
         // 1단계: stop 서비스에서 정류소 존재 여부 확인 (S2S, 트랜잭션 외부)
-        StopInfo stop = stopResolvationService.resolveStop(request.stopId());
+        StopInfo stop = stopResolutionService.resolveStop(request.stopId());
 
         log.debug("[ReservationFacade] 정류소 확인 완료: stopName={}, memberId={}", stop.stopName(), principal.id());
 
         // 2단계: 예약 생성 로직 (추후 구현)
+
     }
 }

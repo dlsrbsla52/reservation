@@ -35,12 +35,12 @@ public class MemberRole extends DateBaseEntity {
 
     /** 역할을 소유한 회원. LAZY 로딩으로 불필요한 JOIN 방지. 생성 후 변경 불가. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false, updatable = false)
+    @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
     /** 부여된 역할. LAZY 로딩. 생성 후 변경 불가. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false, updatable = false)
+    @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
     public static MemberRole of(Member member, Role role) {

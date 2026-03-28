@@ -16,7 +16,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class StopResolvationService {
+public class StopResolutionService {
 
     private final StopServiceClient stopServiceClient;
 
@@ -33,7 +33,7 @@ public class StopResolvationService {
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.warn("[StopResolvationService] 존재하지 않는 정류소: stopId={}", stopId);
+                    log.warn("[StopResolutionService] 존재하지 않는 정류소: stopId={}", stopId);
                     return new StorageException("요청한 정류소를 찾을 수 없습니다. stopId=" + stopId);
                 });
     }
