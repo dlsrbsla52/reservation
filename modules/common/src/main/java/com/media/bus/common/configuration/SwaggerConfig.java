@@ -20,7 +20,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("ACT Boilerplate API")
-                        .description("Spring Boot 3 & JPA Boilerplate API 명세서")
+                        .description("API 명세서")
                         .version("v1.0.0"))
                 // JWT 인증 설정 (헤더에 Bearer Token 추가 기능)
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
