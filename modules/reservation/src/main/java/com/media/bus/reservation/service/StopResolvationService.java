@@ -9,13 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-/**
- * stop 서비스와의 연동을 담당하는 서비스.
- *
- * Facade에서 직접 StopServiceClient를 호출하지 않고 이 서비스를 경유합니다.
- * - 정류소 존재 여부 검증, 예외 변환 등 stop 관련 비즈니스 규칙을 이곳에서 처리합니다.
- * - stop 서비스 응답 구조 변경 시 이 클래스만 수정합니다 (Facade 변경 불필요).
- */
+/// stop 서비스와의 연동을 담당하는 서비스.
+/// Facade에서 직접 StopServiceClient를 호출하지 않고 이 서비스를 경유합니다.
+/// - 정류소 존재 여부 검증, 예외 변환 등 stop 관련 비즈니스 규칙을 이곳에서 처리합니다.
+/// - stop 서비스 응답 구조 변경 시 이 클래스만 수정합니다 (Facade 변경 불필요).
 @Slf4j
 @Service
 @RequiredArgsConstructor

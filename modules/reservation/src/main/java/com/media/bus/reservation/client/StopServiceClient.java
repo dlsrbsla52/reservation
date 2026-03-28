@@ -1,12 +1,12 @@
 package com.media.bus.reservation.client;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.media.bus.common.security.TokenProvider;
+import com.media.bus.common.client.BaseServiceClient;
+import com.media.bus.common.client.S2SRestClientFactory;
 import com.media.bus.reservation.dto.response.StopInfo;
+import com.media.bus.reservation.dto.response.internal.StopPageResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,30 +15,23 @@ import java.util.UUID;
  * stop 서비스 내부 API 클라이언트.
  *
  * 설계 의도:
- * - 유저 요청 컨텍스트와 무관하게 항상 S2S 토큰을 사용합니다.
- *   (internalRestClient는 유저 컨텍스트가 있으면 유저 JWT를 전파하므로 이 용도에 부적합)
- * - X-Service-Token 헤더에 S2S JWT를 주입 → stop의 S2STokenFilter 통과
- * - 호출 시마다 토큰을 새로 생성하여 만료 위험을 최소화합니다.
+ * - BaseServiceClient를 상속하여 HTTP 메서드(GET/POST/PUT/DELETE)를 직접 구성하지 않고
+ *   상위 클래스의 사전 정의된 메서드를 사용한다.
+ * - S2SRestClientFactory.create()로 생성한 RestClient를 super()에 전달하므로
+ *   X-Service-Token 헤더는 팩토리 인터셉터가 자동으로 주입한다.
  */
 @Slf4j
 @Component
-public class StopServiceClient {
+public class StopServiceClient extends BaseServiceClient {
 
-    private static final String S2S_TOKEN_HEADER = "X-Service-Token";
-    private static final String INTERNAL_STOP_PATH = "/api/v1/internal/stop";
-
-    private final RestClient restClient;
-    private final TokenProvider tokenProvider;
+    private static final String STOP_PATH = "/api/v1/internal/stop";
 
     public StopServiceClient(
             @Value("${services.stop.url}") String stopServiceUrl,
-            TokenProvider tokenProvider
+            S2SRestClientFactory s2sRestClientFactory
     ) {
-        this.tokenProvider = tokenProvider;
-        // stop 내부 API 전용 RestClient — 인증 헤더 자동 전파 없이 순수 HTTP 클라이언트로 사용
-        this.restClient = RestClient.builder()
-                .baseUrl(stopServiceUrl)
-                .build();
+        // S2S 인터셉터가 적용된 RestClient를 상위 클래스에 전달
+        super(s2sRestClientFactory.create(stopServiceUrl));
     }
 
     /**
@@ -47,41 +40,32 @@ public class StopServiceClient {
      */
     public List<StopInfo> getStopByPk(UUID pk) {
         log.debug("[StopServiceClient] pk 기준 정류소 조회: pk={}", pk);
-        return fetch("pk", pk.toString());
+        StopPageResponse response = get(
+                uri -> uri.path(STOP_PATH).queryParam("pk", pk).build(),
+                StopPageResponse.class
+        );
+        return extractList(response);
     }
 
     /**
      * stopId(정류소 번호) 기준으로 정류소를 조회합니다.
+     * 존재하지 않으면 빈 리스트를 반환합니다.
      */
     public List<StopInfo> getStopByStopId(String stopId) {
         log.debug("[StopServiceClient] stopId 기준 정류소 조회: stopId={}", stopId);
-        return fetch("stopId", stopId);
+        StopPageResponse response = get(
+                uri -> uri.path(STOP_PATH).queryParam("stopId", stopId).build(),
+                StopPageResponse.class
+        );
+        return extractList(response);
     }
 
-    private List<StopInfo> fetch(String paramName, String paramValue) {
-        StopPageResponse response = restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path(INTERNAL_STOP_PATH)
-                        .queryParam(paramName, paramValue)
-                        .build())
-                .header(S2S_TOKEN_HEADER, tokenProvider.generateS2SToken())
-                .retrieve()
-                .body(StopPageResponse.class);
+    // ── private ──────────────────────────────────────────────────────────────
 
+    private List<StopInfo> extractList(StopPageResponse response) {
         if (response == null || response.data() == null) {
             return List.of();
         }
         return response.data().list() != null ? response.data().list() : List.of();
-    }
-
-    /**
-     * stop 내부 API PageView 응답 역직렬화용 내부 레코드
-     * stop 모듈 클래스를 직접 참조하지 않기 위해 클라이언트 내부에 선언
-     */
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    private record StopPageResponse(StopPageData data) {
-
-        @JsonIgnoreProperties(ignoreUnknown = true)
-        private record StopPageData(List<StopInfo> list) {}
     }
 }
