@@ -95,8 +95,8 @@ public class AuthController {
      */
     @Operation(summary = "로그아웃", description = "서버에서 사용자의 Refresh Token을 삭제하여 로그아웃 처리합니다.")
     @PostMapping("/logout")
-    public NoDataView logout(@RequestHeader("X-User-Id") String userId) {
-        authService.logout(userId);
+    public NoDataView logout(@RequestHeader("X-User-Id") String memberId) {
+        authService.logout(memberId);
         return NoDataView.builder()
                 .result(CommonResult.SUCCESS)
                 .build();

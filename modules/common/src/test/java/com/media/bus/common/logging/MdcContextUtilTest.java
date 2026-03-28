@@ -35,13 +35,13 @@ class MdcContextUtilTest {
         @DisplayName("현재 MDC 내용의 복사본을 반환한다")
         void returnsCopyOfCurrentMdc() {
             MDC.put("requestId", "req-001");
-            MDC.put("userId", "user-001");
+            MDC.put("memberId", "user-001");
 
             Map<String, String> captured = MdcContextUtil.capture();
 
             assertThat(captured)
                 .containsEntry("requestId", "req-001")
-                .containsEntry("userId", "user-001");
+                .containsEntry("memberId", "user-001");
         }
 
         @Test
@@ -68,17 +68,17 @@ class MdcContextUtilTest {
         @DisplayName("호출 시점 MDC가 실행 스레드로 전파된다")
         void propagatesMdcToNewThread() throws Exception {
             MDC.put("requestId", "req-runnable-001");
-            MDC.put("userId", "user-runnable");
+            MDC.put("memberId", "user-runnable");
             AtomicReference<String> capturedReqId  = new AtomicReference<>();
-            AtomicReference<String> capturedUserId = new AtomicReference<>();
+            AtomicReference<String> capturedmemberId = new AtomicReference<>();
 
             CompletableFuture.runAsync(MdcContextUtil.wrap(() -> {
                 capturedReqId.set(MDC.get("requestId"));
-                capturedUserId.set(MDC.get("userId"));
+                capturedmemberId.set(MDC.get("memberId"));
             })).get();
 
             assertThat(capturedReqId.get()).isEqualTo("req-runnable-001");
-            assertThat(capturedUserId.get()).isEqualTo("user-runnable");
+            assertThat(capturedmemberId.get()).isEqualTo("user-runnable");
         }
 
         @Test

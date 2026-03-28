@@ -82,10 +82,10 @@ public record MemberPrincipal(
      * MemberPrincipalExtractFilter 전용. "ROLE_" prefix 제거 후 MemberType을 파싱합니다.
      *
      * @param permissionsHeader "READ,WRITE" 형태의 권한 헤더 (null 허용 → 빈 Set)
-     * @throws IllegalArgumentException userId 또는 role 파싱 실패 시
+     * @throws IllegalArgumentException memberId 또는 role 파싱 실패 시
      */
     public static MemberPrincipal fromHeaders(
-        String userId,
+        String memberId,
         String loginId,
         String email,
         String role,
@@ -98,7 +98,7 @@ public record MemberPrincipal(
             : role;
 
         return new MemberPrincipal(
-            UUID.fromString(userId),
+            UUID.fromString(memberId),
             loginId,
             email,
             MemberType.valueOf(memberTypeName),

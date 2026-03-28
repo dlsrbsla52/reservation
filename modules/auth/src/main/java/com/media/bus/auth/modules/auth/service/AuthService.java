@@ -185,14 +185,14 @@ public class AuthService {
             throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL);
         }
         Claims claims = jwtProvider.parseClaimsFromToken(refreshToken);
-        String userId = claims.getSubject();
+        String memberId = claims.getSubject();
 
         // Redis에 저장된 토큰과 비교 (Refresh Token Rotation 지원)
-        if (!jwtProvider.validateRefreshToken(userId, refreshToken)) {
+        if (!jwtProvider.validateRefreshToken(memberId, refreshToken)) {
             throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_VERIFICATION_FAIL);
         }
 
-        Member member = memberRepository.findById(UUID.fromString(userId))
+        Member member = memberRepository.findById(UUID.fromString(memberId))
                 .orElseThrow(() -> new NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL));
 
         // JOIN FETCH로 역할 조회 — 최신 역할 정보 반영
@@ -219,7 +219,7 @@ public class AuthService {
                 .findPermissionNamesByRoleName(memberType.name());
 
         String newAccessToken = jwtProvider.generateAccessToken(principal, permissionNames);
-        String newRefreshToken = jwtProvider.generateRefreshToken(userId); // Token Rotation
+        String newRefreshToken = jwtProvider.generateRefreshToken(memberId); // Token Rotation
 
         return TokenResponse.of(newAccessToken, newRefreshToken);
     }
@@ -228,8 +228,8 @@ public class AuthService {
      * 로그아웃 처리.
      * Redis에서 Refresh Token을 삭제하여 서버 측 무효화합니다.
      */
-    public void logout(String userId) {
-        jwtProvider.deleteRefreshToken(userId);
-        log.info("[AuthService.logout] 로그아웃 처리. memberId={}", userId);
+    public void logout(String memberId) {
+        jwtProvider.deleteRefreshToken(memberId);
+        log.info("[AuthService.logout] 로그아웃 처리. memberId={}", memberId);
     }
 }

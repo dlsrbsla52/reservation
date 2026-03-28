@@ -18,7 +18,7 @@ import java.util.UUID;
  * <p>주입 필드:
  * <ul>
  *   <li>{@code requestId} — X-Request-ID 요청 헤더 값, 없으면 UUID v4 생성</li>
- *   <li>{@code userId} — 인증된 사용자의 Principal name (비인증 요청은 생략)</li>
+ *   <li>{@code memberId} — 인증된 사용자의 Principal name (비인증 요청은 생략)</li>
  * </ul>
  *
  * <p>traceId / spanId 는 Micrometer Tracing(OTel 브릿지)이 자동으로 주입한다.
@@ -34,7 +34,7 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
 
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
     private static final String MDC_REQUEST_ID = "requestId";
-    private static final String MDC_USER_ID = "userId";
+    private static final String MDC_USER_ID = "memberId";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -45,7 +45,7 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
             MDC.put(MDC_REQUEST_ID, requestId);
             response.setHeader(REQUEST_ID_HEADER, requestId);
 
-            resolveUserId().ifPresent(uid -> MDC.put(MDC_USER_ID, uid));
+            resolvememberId().ifPresent(uid -> MDC.put(MDC_USER_ID, uid));
 
             filterChain.doFilter(request, response);
         } finally {
@@ -60,7 +60,7 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
         return (requestId != null && !requestId.isBlank()) ? requestId : UUID.randomUUID().toString();
     }
 
-    private java.util.Optional<String> resolveUserId() {
+    private java.util.Optional<String> resolvememberId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             return java.util.Optional.ofNullable(auth.getName());

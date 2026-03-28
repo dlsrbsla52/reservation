@@ -1,5 +1,6 @@
 package com.media.bus.common.configuration;
 
+import com.media.bus.common.client.S2SRestClientFactory;
 import com.media.bus.common.security.TokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -20,6 +21,15 @@ public class RestClientConfig {
 
     public RestClientConfig(TokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;
+    }
+
+    /**
+     * S2S 전용 RestClient 팩토리 Bean.
+     * S2S 호출이 필요한 클라이언트는 이 팩토리를 주입받아 baseUrl을 지정해 RestClient를 생성합니다.
+     */
+    @Bean
+    public S2SRestClientFactory s2sRestClientFactory() {
+        return new S2SRestClientFactory(tokenProvider);
     }
 
     /**

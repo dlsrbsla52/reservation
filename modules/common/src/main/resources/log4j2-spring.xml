@@ -9,7 +9,7 @@
     traceId   — Micrometer Tracing(OTel)이 자동 주입
     spanId    — Micrometer Tracing(OTel)이 자동 주입
     requestId — MdcLoggingFilter가 요청 단위로 주입 (X-Request-ID 헤더 또는 UUID)
-    userId    — MdcLoggingFilter가 인증된 사용자 Principal name 주입
+    memberId    — MdcLoggingFilter가 인증된 사용자 Principal name 주입
     service   — spring.application.name 값
 -->
 <Configuration status="WARN">
@@ -26,7 +26,7 @@
         <!-- 사람이 읽기 편한 컬러 로그 (local 개발) -->
         <Console name="PatternConsole" target="SYSTEM_OUT">
             <PatternLayout>
-                <Pattern>%d{HH:mm:ss.SSS} %highlight{%-5level}{FATAL=red blink, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green, TRACE=white} [%t] [trace:%X{traceId} span:%X{spanId}] [req:%X{requestId}] [user:%X{userId}] %cyan{%logger{36}} - %msg%n%throwable</Pattern>
+                <Pattern>%d{HH:mm:ss.SSS} %highlight{%-5level}{FATAL=red blink, ERROR=red, WARN=yellow, INFO=cyan, DEBUG=green, TRACE=white} [%t] [trace:%X{traceId} span:%X{spanId}] [req:%X{requestId}] [user:%X{memberId}] %cyan{%logger{36}} - %msg%n%throwable</Pattern>
             </PatternLayout>
         </Console>
     </Appenders>

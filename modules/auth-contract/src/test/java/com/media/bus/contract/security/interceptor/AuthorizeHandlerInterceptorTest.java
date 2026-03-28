@@ -85,16 +85,17 @@ class AuthorizeHandlerInterceptorTest {
         assertThat(result).isTrue();
     }
 
-    @Test
-    void 이메일_미인증_403() {
-        MemberPrincipal unverified = new MemberPrincipal(
-                UUID.randomUUID(), "user", "user@test.com", MemberType.ADMIN_MASTER, false, null
-        );
-        request.setAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY, unverified);
-        HandlerMethod handler = handlerMethod("requireEmailVerified");
-        assertThatThrownBy(() -> interceptor.preHandle(request, response, handler))
-                .isInstanceOf(NoAuthorizationException.class);
-    }
+//    TODO : 추후 이메일 인증 활성화 시 테스트 코드 활성화 필요
+//    @Test
+//    void 이메일_미인증_403() {
+//        MemberPrincipal unverified = new MemberPrincipal(
+//                UUID.randomUUID(), "member", "user@test.com", MemberType.ADMIN_MASTER, false, null
+//        );
+//        request.setAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY, unverified);
+//        HandlerMethod handler = handlerMethod("requireEmailVerified");
+//        assertThatThrownBy(() -> interceptor.preHandle(request, response, handler))
+//                .isInstanceOf(NoAuthorizationException.class);
+//    }
 
     @Test
     void 이메일_인증_완료_통과() throws Exception {
