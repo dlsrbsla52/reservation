@@ -1,4 +1,4 @@
-package com.media.bus.reservation.entity;
+package com.media.bus.reservation.reservation.entity;
 
 import com.media.bus.common.entity.common.DateBaseEntity;
 import jakarta.persistence.Column;

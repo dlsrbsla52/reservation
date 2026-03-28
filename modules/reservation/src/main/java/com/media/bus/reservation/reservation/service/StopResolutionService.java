@@ -1,8 +1,8 @@
-package com.media.bus.reservation.service;
+package com.media.bus.reservation.reservation.service;
 
 import com.media.bus.common.exceptions.StorageException;
-import com.media.bus.reservation.client.StopServiceClient;
-import com.media.bus.reservation.dto.response.StopInfo;
+import com.media.bus.reservation.reservation.client.StopServiceClient;
+import com.media.bus.reservation.reservation.dto.response.StopInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
-package com.media.bus.reservation.service;
+package com.media.bus.reservation.reservation.service;
 
-import com.media.bus.reservation.repository.ReservationRepository;
+import com.media.bus.reservation.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
