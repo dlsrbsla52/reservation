@@ -14,23 +14,19 @@ import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 
-/**
- * {@link BoundedConcurrency} 어노테이션을 처리하는 AOP Aspect 입니다.
- * <p>
- * 이 Aspect는 {@code @BoundedConcurrency}가 붙은 메서드 실행을 가로채,
- * 메서드 실행 전에 지정된 {@link Semaphore}의 허가를 획득하고,
- * 메서드가 반환한 {@link CompletableFuture}가 완료될 때 허가를 반납하는 로직을 수행합니다.
- * </p>
- *
- * <h3>사용법</h3>
- * <p>
- * 개발자는 이 클래스를 직접 호출할 필요가 없습니다.
- * 대신, 비동기 제어가 필요한 서비스 메서드에 {@link BoundedConcurrency} 어노테이션을 적용하여 기능을 활성화합니다.
- * 자세한 사용법과 전체 코드 예제는 {@link BoundedConcurrency} 어노테이션의 Javadoc을 참고하십시오.
- * </p>
- *
- * @see BoundedConcurrency
- */
+/// [BoundedConcurrency] 어노테이션을 처리하는 AOP Aspect 입니다.
+///
+/// 이 Aspect는 `@BoundedConcurrency`가 붙은 메서드 실행을 가로채,
+/// 메서드 실행 전에 지정된 [Semaphore]의 허가를 획득하고,
+/// 메서드가 반환한 [CompletableFuture]가 완료될 때 허가를 반납하는 로직을 수행합니다.
+///
+/// ### 사용법
+///
+/// 개발자는 이 클래스를 직접 호출할 필요가 없습니다.
+/// 대신, 비동기 제어가 필요한 서비스 메서드에 [BoundedConcurrency] 어노테이션을 적용하여 기능을 활성화합니다.
+/// 자세한 사용법과 전체 코드 예제는 [BoundedConcurrency] 어노테이션의 Javadoc을 참고하십시오.
+///
+/// @see BoundedConcurrency
 @Aspect
 @Component
 @SuppressWarnings("unused")

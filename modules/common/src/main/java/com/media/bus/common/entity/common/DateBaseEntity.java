@@ -12,10 +12,8 @@ import lombok.experimental.SuperBuilder;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 
-/**
- * 생성 및 수정 시간에 대한 공통 속성을 제공하는 엔티티입니다.
- * BaseEntity를 상속받아 시간 속성 관리를 통합합니다.
- */
+/// 생성 및 수정 시간에 대한 공통 속성을 제공하는 엔티티입니다.
+/// BaseEntity를 상속받아 시간 속성 관리를 통합합니다.
 @Getter
 @SuperBuilder
 @NoArgsConstructor

@@ -20,11 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 인증 API 컨트롤러.
- * 모든 엔드포인트는 Gateway의 JWT 검증 화이트리스트에 포함되어야 합니다.
- * (인증 없이 접근 가능한 Public Endpoints)
- */
+/// 인증 API 컨트롤러.
+/// 모든 엔드포인트는 Gateway의 JWT 검증 화이트리스트에 포함되어야 합니다.
+/// (인증 없이 접근 가능한 Public Endpoints)
 @Tag(name = "인증(IAM) API", description = "회원가입, 로그인, 로그아웃 등 인증 관련 API")
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -33,10 +31,8 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * 회원가입.
-     * 이메일 인증 토큰은 보안상 응답에 포함하지 않으며 이메일로만 발송됩니다.
-     */
+    /// 회원가입.
+    /// 이메일 인증 토큰은 보안상 응답에 포함하지 않으며 이메일로만 발송됩니다.
     @Operation(summary = "회원가입", description = "새로운 회원을 가입시킵니다. 이메일 인증 안내 메일이 발송됩니다.")
     @PostMapping("/register")
     public NoDataView register(@RequestBody @Valid RegisterRequest request) {
@@ -47,10 +43,8 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * 로그인.
-     * Access Token + Refresh Token을 발급하여 반환합니다.
-     */
+    /// 로그인.
+    /// Access Token + Refresh Token을 발급하여 반환합니다.
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인하여 Access Token과 Refresh Token을 발급받습니다.")
     @PostMapping("/login")
     public DataView<TokenResponse> login(@RequestBody @Valid LoginRequest request) {
@@ -60,11 +54,9 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * 이메일 인증.
-     * 이메일로 발송된 인증 링크의 token 파라미터를 검증합니다.
-     * 예: GET /api/v1/auth/verify-email?token={uuid}
-     */
+    /// 이메일 인증.
+    /// 이메일로 발송된 인증 링크의 token 파라미터를 검증합니다.
+    /// 예: GET /api/v1/auth/verify-email?token={uuid}
     @Operation(summary = "이메일 인증", description = "가입 시 제공받은 인증 토큰으로 이메일을 인증합니다.")
     @GetMapping("/verify-email")
     public NoDataView verifyEmail(@RequestParam String token) {
@@ -75,10 +67,8 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * Access Token 재발급.
-     * Refresh Token으로 새로운 Access Token과 Refresh Token을 발급합니다 (Token Rotation).
-     */
+    /// Access Token 재발급.
+    /// Refresh Token으로 새로운 Access Token과 Refresh Token을 발급합니다 (Token Rotation).
     @Operation(summary = "토큰 재발급(Refresh)", description = "Refresh Token을 사용하여 새로운 Access Token과 Refresh Token을 발급받습니다.")
     @PostMapping("/token/refresh")
     public DataView<TokenResponse> refreshToken(@RequestBody @Valid TokenRefreshRequest request) {
@@ -88,11 +78,9 @@ public class AuthController {
                 .build();
     }
 
-    /**
-     * 로그아웃.
-     * Gateway에서 주입한 X-User-Id 헤더를 기반으로 Redis의 Refresh Token을 삭제합니다.
-     * 이 엔드포인트는 JWT 인증이 필요한 Protected Endpoint입니다.
-     */
+    /// 로그아웃.
+    /// Gateway에서 주입한 X-User-Id 헤더를 기반으로 Redis의 Refresh Token을 삭제합니다.
+    /// 이 엔드포인트는 JWT 인증이 필요한 Protected Endpoint입니다.
     @Operation(summary = "로그아웃", description = "서버에서 사용자의 Refresh Token을 삭제하여 로그아웃 처리합니다.")
     @PostMapping("/logout")
     public NoDataView logout(@RequestHeader("X-User-Id") String memberId) {

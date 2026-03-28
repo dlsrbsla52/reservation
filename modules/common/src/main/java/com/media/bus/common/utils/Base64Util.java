@@ -4,9 +4,7 @@ import java.util.Base64;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-/**
- * Base64 인코딩 및 디코딩
- */
+/// Base64 인코딩 및 디코딩
 @SuppressWarnings("unused")
 public class Base64Util {
 	

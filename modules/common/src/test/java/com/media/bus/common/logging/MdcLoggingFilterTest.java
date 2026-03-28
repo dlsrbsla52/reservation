@@ -303,10 +303,8 @@ class MdcLoggingFilterTest {
 
     // ── 헬퍼 ──────────────────────────────────────────────────────────────────
 
-    /**
-     * filterChain.doFilter() 실행 시점의 MDC 값을 캡처하는 AtomicReference를 반환한다.
-     * doAnswer stub은 이 메서드 호출 즉시 등록된다.
-     */
+    /// filterChain.doFilter() 실행 시점의 MDC 값을 캡처하는 AtomicReference를 반환한다.
+    /// doAnswer stub은 이 메서드 호출 즉시 등록된다.
     private AtomicReference<String> captureFromMdc(String key) throws Exception {
         AtomicReference<String> ref = new AtomicReference<>();
         doAnswer(inv -> { ref.set(MDC.get(key)); return null; })

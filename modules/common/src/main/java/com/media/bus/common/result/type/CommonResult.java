@@ -6,9 +6,7 @@ import lombok.ToString;
 
 import java.util.function.UnaryOperator;
 
-/**
- * 작업 결과에 대한 Enum
- */
+/// 작업 결과에 대한 Enum
 @ToString
 public enum CommonResult implements Result {
 
@@ -82,12 +80,10 @@ public enum CommonResult implements Result {
 		this.message = message;
 	}
 
-	/**
-	 * operator의 실행결과로 받은 메시지가 존재할 경우 그 메시지를 리턴하며 존재하지 않을 경우 message의 값을 리턴함
-	 * @param operator 연산자 주어진 ID에 대한 메시지를 검색하거나 변환하는 데 사용되는 단항 연산자
-	 * @param id 메시지의 고유 식별자
-	 * @return message
-	 */
+	/// operator의 실행결과로 받은 메시지가 존재할 경우 그 메시지를 리턴하며 존재하지 않을 경우 message의 값을 리턴함
+	/// @param operator 연산자 주어진 ID에 대한 메시지를 검색하거나 변환하는 데 사용되는 단항 연산자
+	/// @param id 메시지의 고유 식별자
+	/// @return message
 	@Override
 	public String getMessage(UnaryOperator<String> operator, String id) {
 		String bundleMessage = operator.apply(id);

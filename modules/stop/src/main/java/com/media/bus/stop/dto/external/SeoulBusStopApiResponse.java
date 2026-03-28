@@ -4,17 +4,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-/**
- * 서울 열린데이터광장 getBusStopInfo API 전체 응답 래퍼
- * 응답 구조:
- * {
- *   "busStopLocationXyInfo": {
- *     "list_total_count": 11237,
- *     "RESULT": { "CODE": "INFO-000", "MESSAGE": "정상 처리되었습니다" },
- *     "row": [ { ... } ]
- *   }
- * }
- */
+/// 서울 열린데이터광장 getBusStopInfo API 전체 응답 래퍼
+/// 응답 구조:
+/// {
+///   "busStopLocationXyInfo": {
+///     "list\_total\_count": 11237,
+///     "RESULT": { "CODE": "INFO-000", "MESSAGE": "정상 처리되었습니다" },
+///     "row": [ { ... } ]
+///   }
+/// }
 public record SeoulBusStopApiResponse(
 
     @JsonProperty("busStopLocationXyInfo")

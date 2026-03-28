@@ -14,17 +14,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.util.List;
 
-/**
- * stop 서비스 Spring Security 설정.
- *
- * 설계 원칙:
- * - Gateway가 JWT를 검증하므로 stop 서비스는 사용자 토큰을 재검증하지 않습니다.
- * - /api/v1/internal/** 경로는 S2STokenFilter로 내부 서비스 호출만 허용합니다.
- * - 그 외 경로는 인증 없이 통과 (MemberPrincipalExtractFilter + AuthorizeHandlerInterceptor 담당).
- *
- * 사이드 이펙트:
- * - 이 빈이 등록되면 common의 CommonSecurityAutoConfiguration(@ConditionalOnMissingBean)이 비활성화됩니다.
- */
+/// stop 서비스 Spring Security 설정.
+/// 설계 원칙:
+/// - Gateway가 JWT를 검증하므로 stop 서비스는 사용자 토큰을 재검증하지 않습니다.
+/// - /api/v1/internal/\*\* 경로는 S2STokenFilter로 내부 서비스 호출만 허용합니다.
+/// - 그 외 경로는 인증 없이 통과 (MemberPrincipalExtractFilter + AuthorizeHandlerInterceptor 담당).
+/// 사이드 이펙트:
+/// - 이 빈이 등록되면 common의 CommonSecurityAutoConfiguration(@ConditionalOnMissingBean)이 비활성화됩니다.
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor

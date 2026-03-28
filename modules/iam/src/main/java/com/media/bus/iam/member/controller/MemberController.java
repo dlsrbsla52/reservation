@@ -25,9 +25,7 @@ public class MemberController {
 
     private final MemberService memberService;
 
-    /**
-     * 로그인시 사용된 jwt 토큰으로 회원 조회.
-     */
+    /// 로그인시 사용된 jwt 토큰으로 회원 조회.
     @Operation(summary = "회원조회", description = "jtw를 기준으로 회원을 조회합니다.")
     @PostMapping("/jwt")
     public DataView<MemberResponse> findByJwtMember(@RequestBody @Valid FindMemberByJwtRequest request) {
@@ -37,9 +35,7 @@ public class MemberController {
             .build();
     }
 
-    /**
-     * 유저 아이디를 통한 회원 조회.
-     */
+    /// 유저 아이디를 통한 회원 조회.
     @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
     @PostMapping("/id")
     public DataView<MemberResponse> findByMemberId(@RequestBody @Valid FindMemberByMemberIdRequest request) {
@@ -49,9 +45,7 @@ public class MemberController {
             .build();
     }
 
-    /**
-     * 유저 아이디를 통한 회원 조회.
-     */
+    /// 유저 아이디를 통한 회원 조회.
     @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
     @PostMapping("/login-id")
     public DataView<MemberResponse> findByLoginId(@RequestBody @Valid FindMemberByLoginIdRequest request) {
@@ -61,9 +55,7 @@ public class MemberController {
             .build();
     }
 
-    /**
-     * 유저 이메일을 통한 회원 조회.
-     */
+    /// 유저 이메일을 통한 회원 조회.
     @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
     @PostMapping("/email")
     public DataView<MemberResponse> findByEmail(@RequestBody @Valid FindMemberByEmailRequest request) {

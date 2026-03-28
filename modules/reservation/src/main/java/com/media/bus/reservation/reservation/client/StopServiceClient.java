@@ -11,15 +11,12 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * stop 서비스 내부 API 클라이언트.
- *
- * 설계 의도:
- * - BaseServiceClient를 상속하여 HTTP 메서드(GET/POST/PUT/DELETE)를 직접 구성하지 않고
- *   상위 클래스의 사전 정의된 메서드를 사용한다.
- * - S2SRestClientFactory.create()로 생성한 RestClient를 super()에 전달하므로
- *   X-Service-Token 헤더는 팩토리 인터셉터가 자동으로 주입한다.
- */
+/// stop 서비스 내부 API 클라이언트.
+/// 설계 의도:
+/// - BaseServiceClient를 상속하여 HTTP 메서드(GET/POST/PUT/DELETE)를 직접 구성하지 않고
+///   상위 클래스의 사전 정의된 메서드를 사용한다.
+/// - S2SRestClientFactory.create()로 생성한 RestClient를 super()에 전달하므로
+///   X-Service-Token 헤더는 팩토리 인터셉터가 자동으로 주입한다.
 @Slf4j
 @Component
 public class StopServiceClient extends BaseServiceClient {
@@ -34,10 +31,8 @@ public class StopServiceClient extends BaseServiceClient {
         super(s2sRestClientFactory.create(stopServiceUrl));
     }
 
-    /**
-     * pk(UUID) 기준으로 정류소를 조회합니다.
-     * 존재하지 않으면 빈 리스트를 반환합니다.
-     */
+    /// pk(UUID) 기준으로 정류소를 조회합니다.
+    /// 존재하지 않으면 빈 리스트를 반환합니다.
     public List<StopInfo> getStopByPk(UUID pk) {
         log.debug("[StopServiceClient] pk 기준 정류소 조회: pk={}", pk);
         StopPageResponse response = get(
@@ -47,10 +42,8 @@ public class StopServiceClient extends BaseServiceClient {
         return extractList(response);
     }
 
-    /**
-     * stopId(정류소 번호) 기준으로 정류소를 조회합니다.
-     * 존재하지 않으면 빈 리스트를 반환합니다.
-     */
+    /// stopId(정류소 번호) 기준으로 정류소를 조회합니다.
+    /// 존재하지 않으면 빈 리스트를 반환합니다.
     public List<StopInfo> getStopByStopId(String stopId) {
         log.debug("[StopServiceClient] stopId 기준 정류소 조회: stopId={}", stopId);
         StopPageResponse response = get(

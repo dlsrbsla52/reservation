@@ -5,9 +5,7 @@ import com.media.bus.common.result.type.CommonResult;
 
 import java.io.Serial;
 
-/**
- * 해당 기능 또는 자원에 권한이 없을 경우 throw
- */
+/// 해당 기능 또는 자원에 권한이 없을 경우 throw
 @SuppressWarnings("unused")
 public class NoAuthorizationException extends BaseException {
 

@@ -12,22 +12,20 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * {@code @Authorize} 어노테이션 기반 선언적 인가를 처리하는 HandlerInterceptor.
- *<p>
- * AOP(AspectJ) 대신 HandlerInterceptor를 사용하는 이유:
- * - AOP는 HttpServletRequest 접근 시 RequestContextHolder(ThreadLocal 기반)를 필요로 함
- * - 프로젝트 Virtual Thread + ThreadLocal 금지 규칙에 위배
- * - HandlerInterceptor는 HttpServletRequest를 직접 받아 attribute를 읽으므로 ThreadLocal 불필요
- *</p>
- * preHandle 흐름:
- * 1. HandlerMethod가 아니면 통과 (정적 리소스 등)
- * 2. 메서드 레벨 @Authorize 조회 → 없으면 클래스 레벨 → 없으면 통과
- * 3. request attribute에서 MemberPrincipal 조회 → null이면 401
- * 4. categories/types OR 조건 매칭 → 실패 시 403
- * 5. permissions AND 조건 매칭 → 실패 시 403
- * 6. requireEmailVerified 체크 → 미인증 시 403
- */
+/// `@Authorize` 어노테이션 기반 선언적 인가를 처리하는 HandlerInterceptor.
+///
+/// AOP(AspectJ) 대신 HandlerInterceptor를 사용하는 이유:
+/// - AOP는 HttpServletRequest 접근 시 RequestContextHolder(ThreadLocal 기반)를 필요로 함
+/// - 프로젝트 Virtual Thread + ThreadLocal 금지 규칙에 위배
+/// - HandlerInterceptor는 HttpServletRequest를 직접 받아 attribute를 읽으므로 ThreadLocal 불필요
+///
+/// preHandle 흐름:
+/// 1. HandlerMethod가 아니면 통과 (정적 리소스 등)
+/// 2. 메서드 레벨 @Authorize 조회 → 없으면 클래스 레벨 → 없으면 통과
+/// 3. request attribute에서 MemberPrincipal 조회 → null이면 401
+/// 4. categories/types OR 조건 매칭 → 실패 시 403
+/// 5. permissions AND 조건 매칭 → 실패 시 403
+/// 6. requireEmailVerified 체크 → 미인증 시 403
 public class AuthorizeHandlerInterceptor implements HandlerInterceptor {
 
     @Override
@@ -65,10 +63,8 @@ public class AuthorizeHandlerInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    /**
-     * categories / types OR 조건 검증.
-     * 둘 다 비어있으면 "인증된 사용자면 통과" 처리합니다.
-     */
+    /// categories / types OR 조건 검증.
+    /// 둘 다 비어있으면 "인증된 사용자면 통과" 처리합니다.
     private void checkCategoryOrType(MemberPrincipal principal, Authorize authorize) {
         MemberCategory[] categories = authorize.categories();
         MemberType[] types = authorize.types();
@@ -98,10 +94,8 @@ public class AuthorizeHandlerInterceptor implements HandlerInterceptor {
         }
     }
 
-    /**
-     * permissions AND 조건 검증.
-     * 지정된 권한 중 하나라도 없으면 403 발생.
-     */
+    /// permissions AND 조건 검증.
+    /// 지정된 권한 중 하나라도 없으면 403 발생.
     private void checkPermissions(MemberPrincipal principal, Authorize authorize) {
         for (Permission permission : authorize.permissions()) {
             if (!principal.hasPermission(permission)) {
@@ -110,11 +104,9 @@ public class AuthorizeHandlerInterceptor implements HandlerInterceptor {
         }
     }
 
-    /**
-     * 이메일 인증 여부 검증.
-     * requireEmailVerified=true인데 미인증이면 403 발생.
-     * TODO : 현재는 이메일 인증을 붙일 수 없기 때문에 추후 이메일 서버 구축 후 처리
-     */
+    /// 이메일 인증 여부 검증.
+    /// requireEmailVerified=true인데 미인증이면 403 발생.
+    /// TODO : 현재는 이메일 인증을 붙일 수 없기 때문에 추후 이메일 서버 구축 후 처리
     private void checkEmailVerified(MemberPrincipal principal, Authorize authorize) {
         if (authorize.requireEmailVerified() && !principal.emailVerified()) {
             throw new NoAuthorizationException();

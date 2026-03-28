@@ -127,12 +127,12 @@ class AuthorizeHandlerInterceptorTest {
         }
     }
 
-    /** 기본 권한 없는 principal 생성 — 카테고리·이메일 검증 테스트용 */
+    /// 기본 권한 없는 principal 생성 — 카테고리·이메일 검증 테스트용
     private MemberPrincipal principal(MemberType type) {
         return new MemberPrincipal(UUID.randomUUID(), "user", "user@test.com", type, true, null);
     }
 
-    /** 명시적 permissions를 가진 principal 생성 — 권한 검증 테스트용 */
+    /// 명시적 permissions를 가진 principal 생성 — 권한 검증 테스트용
     private MemberPrincipal principal(MemberType type, Set<Permission> permissions) {
         return new MemberPrincipal(UUID.randomUUID(), "user", "user@test.com", type, true, permissions);
     }

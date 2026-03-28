@@ -6,9 +6,7 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 
 import java.util.Locale;
 
-/**
- * Message Bundle 관련 Utility
- */
+/// Message Bundle 관련 Utility
 @Slf4j
 public class MessageUtil {
 	

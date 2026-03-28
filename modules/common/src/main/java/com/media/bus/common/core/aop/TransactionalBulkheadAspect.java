@@ -13,29 +13,30 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
-/**
- * DB 동시 접근 수를 Resilience4j 세마포어 Bulkhead로 제한하는 AOP Aspect.
- *
- * <p><b>실행 순서 — @Order(HIGHEST_PRECEDENCE)</b><br>
- * 반드시 Spring의 {@code TransactionInterceptor}보다 먼저(바깥쪽에서) 실행되어야 한다.
- * {@code TransactionInterceptor}는 실행 시점에 HikariCP에서 물리적 DB 커넥션을 획득하므로,
- * Bulkhead가 트랜잭션 안쪽에서 동작한다면 커넥션을 이미 점유한 채 스레드가 대기하게 되어
- * Bulkhead의 목적(커넥션 풀 고갈 방지)이 상실된다.
- * {@code HIGHEST_PRECEDENCE}는 커넥션 획득 전에 퍼밋을 제어하여 이 문제를 방지한다.
- *
- * <p><b>재진입 방지 — ScopedValue</b><br>
- * 동일 실행 흐름 내 중첩 {@code @Transactional} 호출 시 추가 퍼밋 소비를 막기 위해
- * {@link ScopedValue}를 사용한다. Virtual Thread 환경에서 스코프를 벗어나면 자동 해제되므로
- * {@code ThreadLocal}과 달리 별도 remove() 없이도 안전하다.
- * (프로젝트 규약: Virtual Thread 환경에서 ThreadLocal 사용 금지)
- *
- * <p><b>Pointcut 범위 설계 결정</b><br>
- * {@code @Transactional} 서비스 레이어 메서드를 포함한다.
- * "트랜잭션 = DB 작업"이라는 전제 하에 서비스 레이어 트랜잭션도 DB 커넥션을 소비하므로
- * Bulkhead 범위에 포함하는 것이 의도된 설계다.
- * DB 접근이 없는 {@code @Transactional} 메서드가 생기면 해당 메서드의 어노테이션을 제거하거나
- * {@code propagation = NOT_SUPPORTED}를 적용하라.
- */
+/// DB 동시 접근 수를 Resilience4j 세마포어 Bulkhead로 제한하는 AOP Aspect.
+///
+/// **실행 순서 — @Order(HIGHEST\_PRECEDENCE)**
+///
+/// 반드시 Spring의 `TransactionInterceptor`보다 먼저(바깥쪽에서) 실행되어야 한다.
+/// `TransactionInterceptor`는 실행 시점에 HikariCP에서 물리적 DB 커넥션을 획득하므로,
+/// Bulkhead가 트랜잭션 안쪽에서 동작한다면 커넥션을 이미 점유한 채 스레드가 대기하게 되어
+/// Bulkhead의 목적(커넥션 풀 고갈 방지)이 상실된다.
+/// `HIGHEST_PRECEDENCE`는 커넥션 획득 전에 퍼밋을 제어하여 이 문제를 방지한다.
+///
+/// **재진입 방지 — ScopedValue**
+///
+/// 동일 실행 흐름 내 중첩 `@Transactional` 호출 시 추가 퍼밋 소비를 막기 위해
+/// [ScopedValue]를 사용한다. Virtual Thread 환경에서 스코프를 벗어나면 자동 해제되므로
+/// `ThreadLocal`과 달리 별도 remove() 없이도 안전하다.
+/// (프로젝트 규약: Virtual Thread 환경에서 ThreadLocal 사용 금지)
+///
+/// **Pointcut 범위 설계 결정**
+///
+/// `@Transactional` 서비스 레이어 메서드를 포함한다.
+/// "트랜잭션 = DB 작업"이라는 전제 하에 서비스 레이어 트랜잭션도 DB 커넥션을 소비하므로
+/// Bulkhead 범위에 포함하는 것이 의도된 설계다.
+/// DB 접근이 없는 `@Transactional` 메서드가 생기면 해당 메서드의 어노테이션을 제거하거나
+/// `propagation = NOT_SUPPORTED`를 적용하라.
 @Slf4j
 @Aspect
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -45,12 +46,10 @@ public class TransactionalBulkheadAspect {
     private final BulkheadRegistry bulkheadRegistry;
     private final BulkheadProperties bulkheadProperties;
 
-    /**
-     * Bulkhead 인스턴스 캐시.
-     * databaseName은 애플리케이션 수명 동안 불변이므로 초기화 시점에 한 번만 조회한다.
-     * {@code BulkheadRegistry.bulkhead(name)}은 매 호출마다 ConcurrentHashMap lookup을 수행하므로
-     * 캐싱으로 불필요한 반복 조회를 제거한다.
-     */
+    /// Bulkhead 인스턴스 캐시.
+    /// databaseName은 애플리케이션 수명 동안 불변이므로 초기화 시점에 한 번만 조회한다.
+    /// `BulkheadRegistry.bulkhead(name)`은 매 호출마다 ConcurrentHashMap lookup을 수행하므로
+    /// 캐싱으로 불필요한 반복 조회를 제거한다.
     private Bulkhead bulkhead;
 
     @PostConstruct
@@ -110,13 +109,11 @@ public class TransactionalBulkheadAspect {
         }
     }
 
-    /**
-     * ScopedValue 내부에서 발생한 Throwable을 외부로 전달하기 위한 전용 마커 예외.
-     *
-     * <p>Callable 시그니처(throws Exception)의 제약을 우회하면서,
-     * catch 블록에서 이 클래스만 선택적으로 잡아 안전하게 원본 예외를 언래핑한다.
-     * 이 클래스 외부에서 인스턴스를 생성하거나 catch해서는 안 된다.
-     */
+    /// ScopedValue 내부에서 발생한 Throwable을 외부로 전달하기 위한 전용 마커 예외.
+    ///
+    /// Callable 시그니처(throws Exception)의 제약을 우회하면서,
+    /// catch 블록에서 이 클래스만 선택적으로 잡아 안전하게 원본 예외를 언래핑한다.
+    /// 이 클래스 외부에서 인스턴스를 생성하거나 catch해서는 안 된다.
     private static final class BulkheadCallException extends RuntimeException {
         BulkheadCallException(Throwable cause) {
             super(cause);

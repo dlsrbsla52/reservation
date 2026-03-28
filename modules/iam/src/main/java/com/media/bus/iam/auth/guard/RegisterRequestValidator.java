@@ -10,24 +10,19 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
-/**
- * 회원가입 요청 검증 구현체.
- * allowlist 방식으로 등록 가능한 MemberType만 허용하여 관리자 계정의 자가 가입을 차단합니다.
- *
- * 검증 순서:
- * 1. 등록 불가 타입 차단 (allowlist 외 모두 거부)
- * 2. 비즈니스 회원 사업자번호 필수 검사
- * 3. loginId 중복 검사
- * 4. email 중복 검사
- */
+/// 회원가입 요청 검증 구현체.
+/// allowlist 방식으로 등록 가능한 MemberType만 허용하여 관리자 계정의 자가 가입을 차단합니다.
+/// 검증 순서:
+/// 1. 등록 불가 타입 차단 (allowlist 외 모두 거부)
+/// 2. 비즈니스 회원 사업자번호 필수 검사
+/// 3. loginId 중복 검사
+/// 4. email 중복 검사
 @Component
 @RequiredArgsConstructor
 public class RegisterRequestValidator {
 
-    /**
-     * 자가 가입이 허용된 회원 유형.
-     * ADMIN 계열은 별도 관리자 화면을 통해서만 생성 가능합니다.
-     */
+    /// 자가 가입이 허용된 회원 유형.
+    /// ADMIN 계열은 별도 관리자 화면을 통해서만 생성 가능합니다.
     private static final Set<MemberType> REGISTRABLE_TYPES =
         Set.of(MemberType.MEMBER, MemberType.BUSINESS);
 
