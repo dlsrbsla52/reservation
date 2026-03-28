@@ -1,9 +1,9 @@
-package com.media.bus.reservation.client;
+package com.media.bus.reservation.reservation.client;
 
 import com.media.bus.common.client.BaseServiceClient;
 import com.media.bus.common.client.S2SRestClientFactory;
-import com.media.bus.reservation.dto.response.StopInfo;
-import com.media.bus.reservation.dto.response.internal.StopPageResponse;
+import com.media.bus.reservation.reservation.dto.response.StopInfo;
+import com.media.bus.reservation.reservation.dto.response.internal.StopPageResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

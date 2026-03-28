@@ -2,4 +2,4 @@ server:
   port: 8080
 
 jwt:
-  secret: this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
+  secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}

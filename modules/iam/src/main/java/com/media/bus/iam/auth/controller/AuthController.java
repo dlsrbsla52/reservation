@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Tag(name = "인증(IAM) API", description = "회원가입, 로그인, 로그아웃 등 인증 관련 API")
 @RestController
-@RequestMapping("/api/v1/iam")
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

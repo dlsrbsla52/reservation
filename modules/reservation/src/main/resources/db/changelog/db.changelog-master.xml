@@ -8,5 +8,6 @@
 >
 
   <include file="/db/changelog/V001__create_reservation_table.xml"/>
+  <include file="/db/changelog/V002__contract_reservation_table.xml"/>
 
 </databaseChangeLog>

@@ -1,4 +1,4 @@
-package com.media.bus.reservation.controller;
+package com.media.bus.reservation.reservation.controller;
 
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.DataView;
@@ -6,8 +6,8 @@ import com.media.bus.common.web.response.NoDataView;
 import com.media.bus.contract.security.MemberPrincipal;
 import com.media.bus.contract.security.annotation.Authorize;
 import com.media.bus.contract.security.annotation.CurrentMember;
-import com.media.bus.reservation.dto.request.CreateStopReservationRequest;
-import com.media.bus.reservation.service.ReservationFacade;
+import com.media.bus.reservation.reservation.dto.request.CreateStopReservationRequest;
+import com.media.bus.reservation.reservation.service.ReservationFacade;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
