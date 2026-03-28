@@ -56,6 +56,8 @@ jwt:
 services:
   stop:
     url: ${STOP_SERVICE_URL:http://msa-stop:8182}
+  iam:
+    url: ${IAM_SERVICE_URL:http://msa-iam:8181}
 springdoc:
   api-docs:
     path: /api-docs # OpenAPI JSON 문서 경로

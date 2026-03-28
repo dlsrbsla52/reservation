@@ -46,7 +46,9 @@ resilience4j:
 jwt:
   secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
 
-# 로컬 개발환경 — stop 서비스 직접 호출
+# 로컬 개발환경 — 내부 서비스 직접 호출
 services:
   stop:
     url: http://localhost:8182
+  iam:
+    url: http://localhost:8181
