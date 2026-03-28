@@ -13,7 +13,10 @@ import java.util.function.UnaryOperator;
 public enum AuthResult implements Result {
 
     // 역할(Role) 관련 오류
-    ROLE_NOT_FOUND("A0001", "auth.role.not-found.fail.msg", "역할 정보를 찾을 수 없습니다.");
+    ROLE_NOT_FOUND("A0001", "auth.role.not-found.fail.msg", "역할 정보를 찾을 수 없습니다."),
+
+    // 어드민 계정 생성 관련 오류
+    ADMIN_TYPE_REQUIRED("A0002", "auth.admin-type.required.fail.msg", "어드민 계정 유형만 생성 가능합니다.");
 
     private final String code;
     private final String messageId;
