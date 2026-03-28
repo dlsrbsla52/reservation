@@ -22,7 +22,7 @@ Base package: `com.media.bus.gateway`
 
 | 경로 패턴 | 대상 서비스 |
 |-----------|-------------|
-| `/api/v1/auth/**`, `/api/v1/member/**` | `auth-service:8181` |
+| `/api/v1/iam/**`, `/api/v1/member/**` | `iam-service:8181` |
 | `/api/v1/stop/**` | `stop-service:8182` |
 | `/api/v1/reservation/**` | `reservation-service:8183` |
 
