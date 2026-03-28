@@ -16,13 +16,11 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.Set;
 
-/**
- * JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트.
- * 토큰 전략:
- * - Access Token : 단기(60분), 무상태(Stateless). JWT 서명으로만 검증.
- * - Refresh Token : 장기(7일), Redis에 저장하여 서버 측 무효화(Revoke) 지원.
- * - S2S Token : 시스템 간 내부 통신 전용 토큰. 특수 클레임으로 구분.
- */
+/// JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트.
+/// 토큰 전략:
+/// - Access Token : 단기(60분), 무상태(Stateless). JWT 서명으로만 검증.
+/// - Refresh Token : 장기(7일), Redis에 저장하여 서버 측 무효화(Revoke) 지원.
+/// - S2S Token : 시스템 간 내부 통신 전용 토큰. 특수 클레임으로 구분.
 @Component
 public class JwtProvider implements TokenProvider {
 
@@ -44,13 +42,11 @@ public class JwtProvider implements TokenProvider {
         this.redisTemplate = redisTemplate;
     }
 
-    /**
-     * 인증된 회원 정보와 DB에서 조회한 권한 목록으로 Access Token을 생성합니다.
-     * permissions claim에 쉼표 구분 문자열로 포함합니다 (예: "READ,WRITE").
-     *
-     * @param principal       인증된 회원 정보
-     * @param permissionNames DB에서 조회한 권한 이름 집합
-     */
+    /// 인증된 회원 정보와 DB에서 조회한 권한 목록으로 Access Token을 생성합니다.
+    /// permissions claim에 쉼표 구분 문자열로 포함합니다 (예: "READ,WRITE").
+    ///
+    /// @param principal       인증된 회원 정보
+    /// @param permissionNames DB에서 조회한 권한 이름 집합
     public String generateAccessToken(MemberPrincipal principal, Set<String> permissionNames) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
@@ -66,13 +62,11 @@ public class JwtProvider implements TokenProvider {
                 .compact();
     }
 
-    /**
-     * Refresh Token을 생성하고 Redis에 저장합니다.
-     * Redis Key: "refresh:{memberId}", Value: refreshToken, TTL: 7일
-     *
-     * @param memberId 회원 ID(UUID)
-     * @return 생성된 Refresh Token
-     */
+    /// Refresh Token을 생성하고 Redis에 저장합니다.
+    /// Redis Key: "refresh:{memberId}", Value: refreshToken, TTL: 7일
+    ///
+    /// @param memberId 회원 ID(UUID)
+    /// @return 생성된 Refresh Token
     public String generateRefreshToken(String memberId) {
         long now = System.currentTimeMillis();
         String refreshToken = Jwts.builder()
@@ -92,11 +86,9 @@ public class JwtProvider implements TokenProvider {
         return refreshToken;
     }
 
-    /**
-     * 시스템 간 내부 호출(S2S)에 사용되는 전용 토큰을 생성합니다.
-     * 'system:true' 클레임으로 일반 유저 토큰과 구분하며, 하위 서비스는
-     * 이 클레임을 확인하여 S2S 요청에 대한 별도 처리를 적용할 수 있습니다.
-     */
+    /// 시스템 간 내부 호출(S2S)에 사용되는 전용 토큰을 생성합니다.
+    /// 'system:true' 클레임으로 일반 유저 토큰과 구분하며, 하위 서비스는
+    /// 이 클레임을 확인하여 S2S 요청에 대한 별도 처리를 적용할 수 있습니다.
     @Override
     public String generateS2SToken() {
         long now = System.currentTimeMillis();
@@ -109,11 +101,9 @@ public class JwtProvider implements TokenProvider {
                 .compact();
     }
 
-    /**
-     * JWT 토큰의 서명을 검증하고 클레임을 파싱하여 반환합니다.
-     *
-     * @throws JwtException 서명이 유효하지 않거나 만료된 경우
-     */
+    /// JWT 토큰의 서명을 검증하고 클레임을 파싱하여 반환합니다.
+    ///
+    /// @throws JwtException 서명이 유효하지 않거나 만료된 경우
     public Claims parseClaimsFromToken(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
@@ -122,10 +112,8 @@ public class JwtProvider implements TokenProvider {
                 .getPayload();
     }
 
-    /**
-     * 토큰 유효성 검사 (서명 + 만료 시간).
-     * Gateway Filter에서 빠른 검증을 위해 boolean 반환으로 제공합니다.
-     */
+    /// 토큰 유효성 검사 (서명 + 만료 시간).
+    /// Gateway Filter에서 빠른 검증을 위해 boolean 반환으로 제공합니다.
     public boolean isInvalidToken(String token) {
         try {
             parseClaimsFromToken(token);
@@ -135,23 +123,19 @@ public class JwtProvider implements TokenProvider {
         }
     }
 
-    /**
-     * jwt 토큰을 기반으로 Claims 반환
-     *
-     * @param jwtToken JWT 토큰
-     * @return Claims
-     */
+    /// jwt 토큰을 기반으로 Claims 반환
+    ///
+    /// @param jwtToken JWT 토큰
+    /// @return Claims
     public Claims getClaimsFromRefreshToken(String jwtToken) {
 
         return parseClaimsFromToken(jwtToken);
     }
 
-    /**
-     * jwt 토큰을 기반으로 Claims 반환
-     *
-     * @param jwtToken JWT 토큰
-     * @return Claims
-     */
+    /// jwt 토큰을 기반으로 Claims 반환
+    ///
+    /// @param jwtToken JWT 토큰
+    /// @return Claims
     public MemberPrincipal getMemberPrincipalFromRefreshToken(String jwtToken) {
         String token = jwtToken.startsWith("Bearer ") ? jwtToken.substring(7) : jwtToken;
         Claims claimsFromRefreshToken = getClaimsFromRefreshToken(token);
@@ -161,25 +145,19 @@ public class JwtProvider implements TokenProvider {
 
     
 
-    /**
-     * Claims에서 MemberPrincipal 객체를 복원합니다.
-     * MemberPrincipal.fromClaims()에 위임합니다.
-     */
+    /// Claims에서 MemberPrincipal 객체를 복원합니다.
+    /// MemberPrincipal.fromClaims()에 위임합니다.
     public MemberPrincipal getPrincipalFromClaims(Claims claims) {
         return MemberPrincipal.fromClaims(claims);
     }
 
-    /**
-     * Redis에서 특정 회원의 Refresh Token을 삭제합니다 (로그아웃 처리).
-     */
+    /// Redis에서 특정 회원의 Refresh Token을 삭제합니다 (로그아웃 처리).
     public void deleteRefreshToken(String memberId) {
         redisTemplate.delete(REFRESH_TOKEN_KEY_PREFIX + memberId);
     }
 
-    /**
-     * Redis에 저장된 Refresh Token과 요청으로 들어온 토큰을 비교합니다.
-     * Token Rotation 또는 Revoke 여부 검증 시 사용합니다.
-     */
+    /// Redis에 저장된 Refresh Token과 요청으로 들어온 토큰을 비교합니다.
+    /// Token Rotation 또는 Revoke 여부 검증 시 사용합니다.
     public boolean validateRefreshToken(String memberId, String refreshToken) {
         String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_KEY_PREFIX + memberId);
         return refreshToken.equals(storedToken);

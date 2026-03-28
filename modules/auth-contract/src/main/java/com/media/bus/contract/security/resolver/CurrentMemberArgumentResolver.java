@@ -10,15 +10,11 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-/**
- * @CurrentMember 어노테이션이 붙은 MemberPrincipal 파라미터를 주입하는 ArgumentResolver.
- *
- * MemberPrincipalExtractFilter가 request attribute에 저장한 MemberPrincipal을 꺼내
- * Controller 파라미터에 바인딩합니다.
- *
- * - required=true(기본값): 미인증 시 NoAuthenticationException(401) 발생
- * - required=false: 미인증 시 null 반환 — 선택적 인증 엔드포인트에 활용
- */
+/// @CurrentMember 어노테이션이 붙은 MemberPrincipal 파라미터를 주입하는 ArgumentResolver.
+/// MemberPrincipalExtractFilter가 request attribute에 저장한 MemberPrincipal을 꺼내
+/// Controller 파라미터에 바인딩합니다.
+/// - required=true(기본값): 미인증 시 NoAuthenticationException(401) 발생
+/// - required=false: 미인증 시 null 반환 — 선택적 인증 엔드포인트에 활용
 public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResolver {
 
     @Override

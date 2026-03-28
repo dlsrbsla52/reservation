@@ -5,9 +5,7 @@ import com.media.bus.common.result.type.CommonResult;
 
 import java.io.Serial;
 
-/**
- * 인증에 실패할 경우 throw
- */
+/// 인증에 실패할 경우 throw
 @SuppressWarnings("unused")
 public class NoAuthenticationException extends BaseException {
 

@@ -4,11 +4,9 @@ import com.media.bus.stop.entity.enums.StopType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-/**
- * DTO for {@link com.media.bus.stop.entity.Stop}
- */
+/// DTO for [com.media.bus.stop.entity.Stop]
 public record SimpleStopCreateRequest(
-
+    
     @NotNull
     @Size(max = 50)
     String stopId,

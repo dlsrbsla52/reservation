@@ -23,20 +23,16 @@ public class RestClientConfig {
         this.tokenProvider = tokenProvider;
     }
 
-    /**
-     * S2S 전용 RestClient 팩토리 Bean.
-     * S2S 호출이 필요한 클라이언트는 이 팩토리를 주입받아 baseUrl을 지정해 RestClient를 생성합니다.
-     */
+    /// S2S 전용 RestClient 팩토리 Bean.
+    /// S2S 호출이 필요한 클라이언트는 이 팩토리를 주입받아 baseUrl을 지정해 RestClient를 생성합니다.
     @Bean
     public S2SRestClientFactory s2sRestClientFactory() {
         return new S2SRestClientFactory(tokenProvider);
     }
 
-    /**
-     * 내부 통신용 RestClient Bean
-     * 시스템 간 내부 호출 시 이 Bean을 의존성 주입(DI) 받아 사용합니다.
-     * 호출 시 현재 스레드의 Security Context (Authorization Token)를 자동으로 전파합니다.
-     */
+    /// 내부 통신용 RestClient Bean
+    /// 시스템 간 내부 호출 시 이 Bean을 의존성 주입(DI) 받아 사용합니다.
+    /// 호출 시 현재 스레드의 Security Context (Authorization Token)를 자동으로 전파합니다.
     @Bean
     public RestClient internalRestClient(RestClient.Builder builder) {
         return builder
@@ -45,10 +41,8 @@ public class RestClientConfig {
                 .build();
     }
 
-    /**
-     * 현재 스레드의 HTTP Request에서 Authorization 토큰을 추출해
-     * RestClient Request Header에 주입하는 Interceptor 로직입니다.
-     */
+    /// 현재 스레드의 HTTP Request에서 Authorization 토큰을 추출해
+    /// RestClient Request Header에 주입하는 Interceptor 로직입니다.
     private ClientHttpRequestInterceptor securityContextPropagationInterceptor() {
         return (request, body, execution) -> {
             // 보안 강화: 요청 대상이 신뢰할 수 있는 내부(Internal) 엔드포인트인 경우에만 토큰 주입
@@ -71,10 +65,8 @@ public class RestClientConfig {
         };
     }
 
-    /**
-     * 요청 목적지 URI가 신뢰할 수 있는 내부 서비스인지 검증합니다.
-     * 외부(External) API 호출 시 인증 정보가 유출되는 것을 원천 차단합니다.
-     */
+    /// 요청 목적지 URI가 신뢰할 수 있는 내부 서비스인지 검증합니다.
+    /// 외부(External) API 호출 시 인증 정보가 유출되는 것을 원천 차단합니다.
     private boolean isTrustedInternalService(java.net.URI uri) {
         String host = uri.getHost();
         if (host == null)
@@ -89,10 +81,8 @@ public class RestClientConfig {
                 host.startsWith("10."); // 내부망 IP 대역 예시
     }
 
-    /**
-     * RequestContextHolder를 참조하여 현재 유저의 토큰을 안전하게 추출합니다.
-     * 주의: 비동기(@Async) 스레드 또는 스케줄러 환경에서는 값을 가져오지 못하므로 대체 전략이 필요합니다.
-     */
+    /// RequestContextHolder를 참조하여 현재 유저의 토큰을 안전하게 추출합니다.
+    /// 주의: 비동기(@Async) 스레드 또는 스케줄러 환경에서는 값을 가져오지 못하므로 대체 전략이 필요합니다.
     private String extractBearerToken() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes != null) {

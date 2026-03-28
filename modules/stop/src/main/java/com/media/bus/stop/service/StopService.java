@@ -24,24 +24,20 @@ public class StopService {
     private final StopRepository stopRepository;
     private final StopCommandGuard stopCommandGuard;
 
-    /**
-     * 정류소 단건 수기 등록.
-     * Guard는 stopId 중복 등 비즈니스 규칙만 검증합니다.
-     *
-     * @param principal 인터셉터가 주입한 인증된 회원 정보
-     * @param request   등록 요청 DTO
-     */
+    /// 정류소 단건 수기 등록.
+    /// Guard는 stopId 중복 등 비즈니스 규칙만 검증합니다.
+    ///
+    /// @param principal 인터셉터가 주입한 인증된 회원 정보
+    /// @param request   등록 요청 DTO
     @Transactional
     public void createOneStop(MemberPrincipal principal, @Valid SimpleStopCreateRequest request) {
         stopCommandGuard.isStopRegistered(request.stopId());
         stopRepository.save(Stop.requestOf(request, principal.id()));
     }
 
-    /**
-     * pk, stopId, stopName 중 하나의 기준으로 정류소 조회.
-     * - pk / stopId : unique 컬럼이므로 0~1건 반환
-     * - stopName    : non-unique이므로 동명 정류소 다건 반환 가능
-     */
+    /// pk, stopId, stopName 중 하나의 기준으로 정류소 조회.
+    /// - pk / stopId : unique 컬럼이므로 0\~1건 반환
+    /// - stopName    : non-unique이므로 동명 정류소 다건 반환 가능
     public List<BusStopResponse> getBusStop(StopSearchCriteria criteria) {
         return switch (criteria) {
             case StopSearchCriteria.ByPk(var pk)         -> stopRepository.findById(pk).stream().map(BusStopResponse::of).toList();

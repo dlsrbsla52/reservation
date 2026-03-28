@@ -9,25 +9,21 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
-/**
- * MdcLoggingFilter 실사용 패턴 시각화 데모.
- *
- * <h2>실행 방법</h2>
- * IDE에서 main() 왼쪽 ▶ 버튼 클릭.
- *
- * <h2>보여주는 것</h2>
- * <ol>
- *   <li>HTTP 요청이 들어오면 필터가 MDC에 requestId/memberId를 주입한다</li>
- *   <li>컨트롤러 → 서비스 → 레포지토리 계층에서 로거를 호출하기만 해도
- *       모든 로그에 같은 requestId/memberId가 자동으로 붙는다</li>
- *   <li>비인증 요청에서는 memberId 필드가 없다</li>
- *   <li>예외가 발생해도 요청이 끝나면 MDC가 깨끗하게 정리된다</li>
- *   <li>새 스레드를 만들면 MDC가 전파되지 않고, 명시적 복사로 해결한다</li>
- * </ol>
- *
- * <p><b>핵심:</b> 개발자는 MDC를 직접 건드리지 않는다.
- * 로거를 평소처럼 쓰기만 하면 필터와 Micrometer Tracing이 모든 context 필드를 채운다.
- */
+/// MdcLoggingFilter 실사용 패턴 시각화 데모.
+/// ## 실행 방법
+///
+/// IDE에서 main() 왼쪽 ▶ 버튼 클릭.
+/// ## 보여주는 것
+///
+///   1. HTTP 요청이 들어오면 필터가 MDC에 requestId/memberId를 주입한다
+///   2. 컨트롤러 → 서비스 → 레포지토리 계층에서 로거를 호출하기만 해도
+///     모든 로그에 같은 requestId/memberId가 자동으로 붙는다
+///   3. 비인증 요청에서는 memberId 필드가 없다
+///   4. 예외가 발생해도 요청이 끝나면 MDC가 깨끗하게 정리된다
+///   5. 새 스레드를 만들면 MDC가 전파되지 않고, 명시적 복사로 해결한다
+///
+/// **핵심:** 개발자는 MDC를 직접 건드리지 않는다.
+/// 로거를 평소처럼 쓰기만 하면 필터와 Micrometer Tracing이 모든 context 필드를 채운다.
 public class MdcLoggingFilterDemo {
 
     // 실제 코드에서는 각 클래스에 선언한다. 예: LoggerFactory.getLogger(StopController.class)
@@ -248,19 +244,17 @@ public class MdcLoggingFilterDemo {
 
     // ── 내부 시뮬레이터 ───────────────────────────────────────────────────────
 
-    /**
-     * MdcLoggingFilter의 동작을 수동으로 재현한다.
-     * 실제 HTTP 환경에서는 이 코드를 작성할 필요가 없다 — 필터가 자동으로 처리한다.
-     *
-     * <p><b>데모 주의:</b> 이 시뮬레이션 메서드는 Log4j2의 {@code ThreadContext}를 직접 사용한다.
-     * 실제 {@link MdcLoggingFilter}는 {@code org.slf4j.MDC}를 사용하며,
-     * Spring Boot 환경에서 {@code log4j-slf4j2-impl}이 이를 {@code ThreadContext}로 자동 위임한다.
-     * non-Spring main()에서는 브릿지 초기화가 보장되지 않아 직접 호출한다.
-     *
-     * @param requestId X-Request-ID 헤더 값. null이면 UUID 자동 생성.
-     * @param memberId    인증된 사용자 ID. null이면 주입 생략.
-     * @param logic     비즈니스 로직 (컨트롤러/서비스/레포지토리 호출)
-     */
+    /// MdcLoggingFilter의 동작을 수동으로 재현한다.
+    /// 실제 HTTP 환경에서는 이 코드를 작성할 필요가 없다 — 필터가 자동으로 처리한다.
+    ///
+    /// **데모 주의:** 이 시뮬레이션 메서드는 Log4j2의 `ThreadContext`를 직접 사용한다.
+    /// 실제 [MdcLoggingFilter]는 `org.slf4j.MDC`를 사용하며,
+    /// Spring Boot 환경에서 `log4j-slf4j2-impl`이 이를 `ThreadContext`로 자동 위임한다.
+    /// non-Spring main()에서는 브릿지 초기화가 보장되지 않아 직접 호출한다.
+    ///
+    /// @param requestId X-Request-ID 헤더 값. null이면 UUID 자동 생성.
+    /// @param memberId    인증된 사용자 ID. null이면 주입 생략.
+    /// @param logic     비즈니스 로직 (컨트롤러/서비스/레포지토리 호출)
     private static void simulateRequest(String requestId, String memberId, Runnable logic) {
 
         // ── 필터 진입 (MdcLoggingFilter.doFilterInternal 역할) ──────────────

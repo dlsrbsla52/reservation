@@ -20,10 +20,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
-/**
- * StopService 단위 테스트.
- * 인가 처리가 인터셉터로 이전되어 MemberPrincipal을 직접 주입합니다.
- */
+/// StopService 단위 테스트.
+/// 인가 처리가 인터셉터로 이전되어 MemberPrincipal을 직접 주입합니다.
 @ExtendWith(MockitoExtension.class)
 class StopServiceTest {
 

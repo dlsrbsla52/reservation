@@ -4,9 +4,7 @@ import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.common.web.response.NoDataView;
 import org.springframework.core.annotation.Order;
 
-/**
- * null body를 NoDataView로 래핑하는 Wrapper.
- */
+/// null body를 NoDataView로 래핑하는 Wrapper.
 @Order(2)
 public class NullBodyWrapper implements ResponseBodyWrapper {
 

@@ -14,10 +14,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * MemberRepository 테스트 클래스.
- * 엔티티의 PK(UUID) 수동 삽입 및 자동 생성 동작을 검증합니다.
- */
+/// MemberRepository 테스트 클래스.
+/// 엔티티의 PK(UUID) 수동 삽입 및 자동 생성 동작을 검증합니다.
 @DataJpaTest
 @ActiveProfiles("test")
 class MemberRepositoryTest {

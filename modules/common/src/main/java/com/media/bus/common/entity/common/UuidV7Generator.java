@@ -6,10 +6,8 @@ import org.hibernate.id.IdentifierGenerator;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * RFC 9562 표준 기반 UUID v7 생성기
- * Time-ordered 특성을 가지며 B-Tree 인덱스 환경에 최적화되어 있습니다.
- */
+/// RFC 9562 표준 기반 UUID v7 생성기
+/// Time-ordered 특성을 가지며 B-Tree 인덱스 환경에 최적화되어 있습니다.
 public class UuidV7Generator implements IdentifierGenerator {
 
     /* UUID v7 비트 조작을 위한 상수 정의 */
