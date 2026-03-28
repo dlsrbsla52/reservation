@@ -33,14 +33,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RolePermission extends DateBaseEntity {
 
-    /** 권한이 부여된 역할. LAZY 로딩. 생성 후 변경 불가. */
+    /** 권한이 부여된 역할. LAZY 로딩. 생성 후 변경 가능. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false, updatable = false)
+    @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
-    /** 부여된 권한. LAZY 로딩. 생성 후 변경 불가. */
+    /** 부여된 권한. LAZY 로딩. 생성 후 변경 가능. */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "permission_id", nullable = false, updatable = false)
+    @JoinColumn(name = "permission_id", nullable = false)
     private Permission permission;
 
     public static RolePermission of(Role role, Permission permission) {
