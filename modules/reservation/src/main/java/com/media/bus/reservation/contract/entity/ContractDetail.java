@@ -1,6 +1,8 @@
 package com.media.bus.reservation.contract.entity;
 
 import com.media.bus.common.entity.common.DateBaseEntity;
+import com.media.bus.reservation.contract.dto.request.CreateContractRequest;
+import com.media.bus.reservation.contract.entity.enums.PaymentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -63,5 +65,22 @@ public class ContractDetail extends DateBaseEntity {
     @Column(name = "paid_at")
     private OffsetDateTime paidAt;
 
-
+    /// Contract 엔티티와 요청 DTO로부터 ContractDetail을 생성하는 정적 팩토리 메서드.
+    /// 초기 납부 상태는 항상 UNPAID입니다.
+    ///
+    /// @param contract 이미 저장된 Contract 엔티티
+    /// @param request  계약 생성 요청 DTO
+    /// @return 저장 전 ContractDetail 인스턴스
+    public static ContractDetail create(Contract contract, CreateContractRequest request) {
+        ContractDetail detail = new ContractDetail();
+        detail.setContract(contract);
+        detail.setTotalAmount(request.totalAmount());
+        detail.setPayAmount(request.payAmount());
+        // paymentCycle, paymentMethod는 Enum.getName()으로 문자열 변환하여 저장
+        detail.setPaymentCycle(request.paymentCycle().getName());
+        detail.setPaymentMethod(request.paymentMethod().getName());
+        // 계약 생성 시 납부 상태는 항상 미납(UNPAID)
+        detail.setPaymentStatus(PaymentStatus.UNPAID.getName());
+        return detail;
+    }
 }

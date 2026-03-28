@@ -4,6 +4,7 @@ import com.media.bus.contract.entity.member.MemberCategory;
 import com.media.bus.contract.entity.member.MemberType;
 import com.media.bus.contract.entity.member.Permission;
 import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
@@ -97,6 +98,19 @@ public record MemberPrincipal(
             Boolean.parseBoolean(emailVerified),
             parsePermissions(permissionsHeader)
         );
+    }
+
+    /// HttpServletRequest의 Authorization 헤더에서 Bearer 토큰 문자열을 추출합니다.
+    /// Bearer 접두사가 없거나 헤더가 없으면 null을 반환합니다.
+    ///
+    /// @param request 현재 HTTP 요청
+    /// @return Bearer 접두사를 제거한 JWT 문자열, 없으면 null
+    public static String extractBearerToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 
     /// JWT Claims에서 MemberPrincipal을 복원합니다.
