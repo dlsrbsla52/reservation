@@ -27,9 +27,7 @@ public class ReservationController {
 
     private final ReservationFacade facade;
 
-    /**
-     * 예약 생성.
-     */
+    /// 예약 생성.
     @Authorize
     @Operation(summary = "예약 생성", description = "새로운 예약을 생성합니다.")
     @PostMapping
@@ -45,9 +43,7 @@ public class ReservationController {
                 .build();
     }
 
-    /**
-     * 내 예약 목록 조회.
-     */
+    /// 내 예약 목록 조회.
     @Operation(summary = "내 예약 목록 조회", description = "로그인한 사용자의 예약 목록을 조회합니다.")
     @org.springframework.web.bind.annotation.GetMapping("/me")
     public DataView<List<Object>> getMyReservations(

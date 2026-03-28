@@ -8,12 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * 예약 생성 흐름을 조율하는 Facade.
- *
- * MSA 환경에서 SQS/이벤트 기반 분산 트랜잭션 적용이 어려운 현재 단계에서,
- * 각 서비스 호출을 순서대로 조합하고 트랜잭션을 명시적으로 분리합니다.
- */
+/// 예약 생성 흐름을 조율하는 Facade.
+/// MSA 환경에서 SQS/이벤트 기반 분산 트랜잭션 적용이 어려운 현재 단계에서,
+/// 각 서비스 호출을 순서대로 조합하고 트랜잭션을 명시적으로 분리합니다.
 @Slf4j
 @Service
 @RequiredArgsConstructor
