@@ -1,11 +1,14 @@
 package com.media.bus.contract.autoconfigure;
 
 import com.media.bus.contract.security.JwtProvider;
+import com.media.bus.contract.security.annotation.CurrentMember;
 import com.media.bus.contract.security.filter.MemberPrincipalExtractFilter;
 import com.media.bus.contract.security.interceptor.AuthorizeHandlerInterceptor;
 import com.media.bus.contract.security.resolver.CurrentMemberArgumentResolver;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +32,15 @@ public class AuthContractAutoConfiguration {
         StringRedisTemplate redisTemplate
     ) {
         return new JwtProvider(secret, redisTemplate);
+    }
+
+    @Configuration
+    @ConditionalOnClass(SpringDocUtils.class)
+    static class SpringDocBeans {
+        static {
+            // @CurrentMember 파라미터는 ArgumentResolver가 처리하므로 Swagger 문서에서 숨김
+            SpringDocUtils.getConfig().addAnnotationsToIgnore(CurrentMember.class);
+        }
     }
 
     @Configuration
