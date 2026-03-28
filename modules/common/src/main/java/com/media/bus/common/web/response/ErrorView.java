@@ -9,9 +9,7 @@ import lombok.experimental.SuperBuilder;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * Error View
- */
+/// Error View
 @ToString(callSuper = true)
 @SuperBuilder
 public class ErrorView extends AbstractView {

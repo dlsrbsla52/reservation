@@ -27,14 +27,11 @@ public class StopRegisterService {
     private final StopRepository stopRepository;
     private final StopUpdateHistoryRepository stopUpdateHistoryRepository;
 
-    /**
-     * 서울 열린데이터광장 공공 API에서 전체 버스 정류소를 가져와 DB에 저장한다.
-     * - 신규 stopId → insert
-     * - 기존 stopId + 필드 변경 → Stop 업데이트 + StopUpdateHistory 기록
-     * - 기존 stopId + 변경 없음 → 건너뜀
-     *
-     * 인가 처리는 @Authorize + AuthorizeHandlerInterceptor가 Controller 진입 전에 완료합니다.
-     */
+    /// 서울 열린데이터광장 공공 API에서 전체 버스 정류소를 가져와 DB에 저장한다.
+    /// - 신규 stopId → insert
+    /// - 기존 stopId + 필드 변경 → Stop 업데이트 + StopUpdateHistory 기록
+    /// - 기존 stopId + 변경 없음 → 건너뜀
+    /// 인가 처리는 @Authorize + AuthorizeHandlerInterceptor가 Controller 진입 전에 완료합니다.
     @Transactional
     public StopBulkRegisterResult registerAllFromPublicApi() {
 

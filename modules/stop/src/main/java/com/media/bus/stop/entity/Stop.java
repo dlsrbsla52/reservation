@@ -83,10 +83,8 @@ public class Stop extends DateBaseEntity {
     private List<StopUpdateHistory> updateHistories = new ArrayList<>();
 
 
-    /**
-     * 공공 API 데이터와 현재 엔티티를 비교해 변경이 있으면 필드를 갱신하고 히스토리 객체를 반환한다.
-     * 변경이 없으면 null을 반환한다.
-     */
+    /// 공공 API 데이터와 현재 엔티티를 비교해 변경이 있으면 필드를 갱신하고 히스토리 객체를 반환한다.
+    /// 변경이 없으면 null을 반환한다.
     public StopUpdateHistory applyUpdate(SeoulBusStopRow row, ChangeSource changeSource) {
         StopType newType = StopType.fromDisplayName(row.stopsType());
         boolean changed = !Objects.equals(this.stopName, row.stopsName())

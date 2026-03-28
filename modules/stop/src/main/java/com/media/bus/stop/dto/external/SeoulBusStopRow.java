@@ -2,10 +2,8 @@ package com.media.bus.stop.dto.external;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/**
- * 서울 열린데이터광장 busStopLocationXyInfo API 단건 행(row) DTO
- * 참고: <a href="http://openapi.seoul.go.kr:8088/">...</a>{serviceKey}/json/busStopLocationXyInfo/{start}/{end}/
- */
+/// 서울 열린데이터광장 busStopLocationXyInfo API 단건 행(row) DTO
+/// 참고: [...](http://openapi.seoul.go.kr:8088/){serviceKey}/json/busStopLocationXyInfo/{start}/{end}/
 public record SeoulBusStopRow(
 
     @JsonProperty("STOPS_NO")

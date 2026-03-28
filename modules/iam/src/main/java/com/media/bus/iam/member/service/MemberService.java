@@ -30,12 +30,10 @@ public class MemberService {
     private final JwtProvider jwtProvider;
     private final MemberRoleRepository memberRoleRepository;
 
-    /**
-     * 로그인시 사용된 jwt 토큰으로 회원 조회.
-     *
-     * @param jwt jwt 토큰
-     * @return MemberResponse
-     */
+    /// 로그인시 사용된 jwt 토큰으로 회원 조회.
+    ///
+    /// @param jwt jwt 토큰
+    /// @return MemberResponse
     @Transactional(readOnly = true)
     public MemberResponse findByJwtMember(@NotBlank @NotEmpty String jwt) {
         MemberPrincipal principal = jwtProvider.getPrincipalFromClaims(
@@ -48,12 +46,10 @@ public class MemberService {
         return toResponse(member);
     }
 
-    /**
-     * memberId를 통한 회원 조회.
-     *
-     * @param memberId memberId(pk)
-     * @return MemberResponse
-     */
+    /// memberId를 통한 회원 조회.
+    ///
+    /// @param memberId memberId(pk)
+    /// @return MemberResponse
     @Transactional(readOnly = true)
     public MemberResponse findByMemberId(@NotBlank @NotEmpty String memberId) {
 
@@ -63,12 +59,10 @@ public class MemberService {
         return toResponse(member);
     }
 
-    /**
-     * 로그인 아이디를 통한 회원 조회.
-     *
-     * @param loginId 로그인시 사용되는 아이디
-     * @return MemberResponse
-     */
+    /// 로그인 아이디를 통한 회원 조회.
+    ///
+    /// @param loginId 로그인시 사용되는 아이디
+    /// @return MemberResponse
     public MemberResponse findByLoginId(@NotBlank @NotEmpty String loginId) {
 
         Member member = memberRepository.findByLoginId(loginId)
@@ -77,12 +71,10 @@ public class MemberService {
         return toResponse(member);
     }
 
-    /**
-     * 이메일을 통한 회원 조회.
-     *
-     * @param email 회원 이메일
-     * @return MemberResponse
-     */
+    /// 이메일을 통한 회원 조회.
+    ///
+    /// @param email 회원 이메일
+    /// @return MemberResponse
     public MemberResponse findByEmail(@NotBlank @NotEmpty String email) {
 
         Member member = memberRepository.findByEmail(email)
@@ -91,13 +83,11 @@ public class MemberService {
         return toResponse(member);
     }
 
-    /**
-     * Member 엔티티를 MemberResponse로 변환한다.
-     * 역할 조회, MemberType 결정, 응답 생성을 통합 처리.
-     *
-     * @param member 변환할 Member 엔티티
-     * @return MemberResponse
-     */
+    /// Member 엔티티를 MemberResponse로 변환한다.
+    /// 역할 조회, MemberType 결정, 응답 생성을 통합 처리.
+    ///
+    /// @param member 변환할 Member 엔티티
+    /// @return MemberResponse
     private MemberResponse toResponse(Member member) {
         // JOIN FETCH로 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
         List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());

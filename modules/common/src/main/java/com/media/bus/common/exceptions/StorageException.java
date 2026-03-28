@@ -5,10 +5,8 @@ import com.media.bus.common.result.type.CommonResult;
 
 import java.io.Serial;
 
-/**
- * Storage 관련 로직을 처리하는 중 예외가 발생할 경우 throw.
- * AWS NoSuchKeyException 등 스토리지 라이브러리 예외는 이 예외로 래핑하여 던진다.
- */
+/// Storage 관련 로직을 처리하는 중 예외가 발생할 경우 throw.
+/// AWS NoSuchKeyException 등 스토리지 라이브러리 예외는 이 예외로 래핑하여 던진다.
 @SuppressWarnings("unused")
 public class StorageException extends BaseException {
 

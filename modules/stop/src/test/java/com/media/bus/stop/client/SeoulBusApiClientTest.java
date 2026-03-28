@@ -6,11 +6,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * 서울 공공 API 실제 연결 통합 테스트
- * - Spring 컨텍스트 없이 HTTP 클라이언트만 검증
- * - 실행 전 네트워크에서 openapi.seoul.go.kr:8088 접근 가능해야 함
- */
+/// 서울 공공 API 실제 연결 통합 테스트
+/// - Spring 컨텍스트 없이 HTTP 클라이언트만 검증
+/// - 실행 전 네트워크에서 openapi.seoul.go.kr:8088 접근 가능해야 함
 class SeoulBusApiClientTest {
 
     private SeoulBusApiClient client;

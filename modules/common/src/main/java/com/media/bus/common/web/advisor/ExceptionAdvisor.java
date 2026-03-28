@@ -22,20 +22,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.time.Instant;
 import java.util.List;
 
-/**
- * 중앙 집중 예외 처리기.
- * 모든 예외는 buildErrorResponse 팩토리 메서드를 통해 일관된 ErrorView로 변환된다.
- */
+/// 중앙 집중 예외 처리기.
+/// 모든 예외는 buildErrorResponse 팩토리 메서드를 통해 일관된 ErrorView로 변환된다.
 @Slf4j
 @ControllerAdvice
 public class ExceptionAdvisor {
 
-	/**
-	 * Bulkhead 동시 요청 한도 초과 시 429 Too Many Requests로 응답.
-	 *
-	 * <p>DB 커넥션 풀 고갈 방지를 위한 {@code TransactionalBulkheadAspect}가 퍼밋을 거부할 때 발생한다.
-	 * 클라이언트는 잠시 대기 후 재시도해야 하며, {@code Retry-After: 1} 헤더로 최소 대기 시간을 안내한다.
-	 */
+	/// Bulkhead 동시 요청 한도 초과 시 429 Too Many Requests로 응답.
+	///
+	/// DB 커넥션 풀 고갈 방지를 위한 `TransactionalBulkheadAspect`가 퍼밋을 거부할 때 발생한다.
+	/// 클라이언트는 잠시 대기 후 재시도해야 하며, `Retry-After: 1` 헤더로 최소 대기 시간을 안내한다.
 	@ExceptionHandler(BulkheadFullException.class)
 	public ResponseEntity<ErrorView> bulkheadFullHandler(HttpServletRequest request, BulkheadFullException error) {
 		log.warn("bulkheadFullHandler: Bulkhead 동시 요청 한도 초과. uri={}", request.getRequestURI());

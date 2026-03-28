@@ -5,9 +5,7 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * List 형태의 정보
- */
+/// List 형태의 정보
 @Data
 @Builder
 public class ListData<E> {

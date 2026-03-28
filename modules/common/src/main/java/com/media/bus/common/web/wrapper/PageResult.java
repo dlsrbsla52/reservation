@@ -10,11 +10,9 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
-/**
- * Paging Result 객체.
- * ArrayList 상속 대신 컴포지션으로 items 리스트를 보유한다.
- * 빌드 후 items는 불변(unmodifiable)이며, 페이징 메타(totalCnt, pageRows, pageNum)도 변경 불가하다.
- */
+/// Paging Result 객체.
+/// ArrayList 상속 대신 컴포지션으로 items 리스트를 보유한다.
+/// 빌드 후 items는 불변(unmodifiable)이며, 페이징 메타(totalCnt, pageRows, pageNum)도 변경 불가하다.
 @Getter
 @ToString
 @EqualsAndHashCode
