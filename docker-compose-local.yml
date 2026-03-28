@@ -28,13 +28,13 @@ services:
       timeout: 3s
       retries: 5
 
-  auth-service:
+  iam-service:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        MODULE_NAME: auth
-    container_name: msa-auth
+        MODULE_NAME: iam
+    container_name: msa-iam
     ports:
       - "8181:8181"
       - "18181:18181"
@@ -111,7 +111,7 @@ services:
       - "8080:8080"
       - "18080:18080"
     depends_on:
-      - auth-service
+      - iam-service
       - reservation-service
     environment:
       - SPRING_PROFILES_ACTIVE=local

@@ -32,13 +32,13 @@ services:
       timeout: 3s
       retries: 5
 
-  auth-service:
+  iam-service:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        MODULE_NAME: auth
-    container_name: msa-auth
+        MODULE_NAME: iam
+    container_name: msa-iam
     expose:
       - "8181"
     depends_on:
@@ -100,7 +100,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - auth-service
+      - iam-service
       - reservation-service
     environment:
       - REDIS_HOST=valkey
