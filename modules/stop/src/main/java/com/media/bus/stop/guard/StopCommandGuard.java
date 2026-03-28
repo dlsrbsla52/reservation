@@ -6,13 +6,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * StopCommandGuard 구현체.
- *
- * JwtProvider 의존성을 제거하였습니다.
- * 인가 처리는 AuthorizeHandlerInterceptor가 담당하므로
- * Guard는 Repository 기반 비즈니스 규칙 검증만 수행합니다.
- */
+/// StopCommandGuard 구현체.
+/// JwtProvider 의존성을 제거하였습니다.
+/// 인가 처리는 AuthorizeHandlerInterceptor가 담당하므로
+/// Guard는 Repository 기반 비즈니스 규칙 검증만 수행합니다.
 @Slf4j
 @Service
 @RequiredArgsConstructor

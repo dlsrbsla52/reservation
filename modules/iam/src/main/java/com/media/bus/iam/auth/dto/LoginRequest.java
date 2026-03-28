@@ -3,9 +3,7 @@ package com.media.bus.iam.auth.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 
-/**
- * 로그인 요청 DTO.
- */
+/// 로그인 요청 DTO.
 @Schema(description = "로그인 요청 DTO")
 public record LoginRequest(
 

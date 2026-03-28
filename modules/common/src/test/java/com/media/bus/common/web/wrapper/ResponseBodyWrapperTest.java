@@ -11,12 +11,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * ResponseBodyWrapper 구현체 단위 테스트.
- *
- * <p>새로운 Wrapper를 추가할 때 참고용 예제를 포함한다.
- * {@link CustomWrapperExample} 참고.
- */
+/// ResponseBodyWrapper 구현체 단위 테스트.
+///
+/// 새로운 Wrapper를 추가할 때 참고용 예제를 포함한다.
+/// [CustomWrapperExample] 참고.
 class ResponseBodyWrapperTest {
 
     // ── 테스트용 DTO ──────────────────────────────────────────────────────────
@@ -24,21 +22,18 @@ class ResponseBodyWrapperTest {
 
     // ── 커스텀 Wrapper 예제 ───────────────────────────────────────────────────
 
-    /**
-     * ResponseBodyWrapper 확장 예제.
-     *
-     * <p>SampleDto를 특수한 형태로 래핑해야 하는 경우를 가정한다.
-     * 실제 사용 시 Bean으로 등록하면 ResponseAdvisor가 자동으로 주입받아 사용한다.
-     *
-     * <pre>{@code
-     * // CommonWebMvcAutoConfiguration 또는 각 모듈의 @Configuration에 추가
-     * @Bean
-     * @Order(3)   // 기존 Wrapper보다 앞에 두어 우선 처리
-     * public SampleDtoBodyWrapper sampleDtoBodyWrapper() {
-     *     return new SampleDtoBodyWrapper();
-     * }
-     * }</pre>
-     */
+    /// ResponseBodyWrapper 확장 예제.
+    ///
+    /// SampleDto를 특수한 형태로 래핑해야 하는 경우를 가정한다.
+    /// 실제 사용 시 Bean으로 등록하면 ResponseAdvisor가 자동으로 주입받아 사용한다.
+    ///
+    /// ```
+    /// // CommonWebMvcAutoConfiguration 또는 각 모듈의 @Configuration에 추가
+    ///  기존 Wrapper보다 앞에 두어 우선 처리
+    /// public SampleDtoBodyWrapper sampleDtoBodyWrapper() {
+    ///     return new SampleDtoBodyWrapper();
+    /// }
+    /// ```
     static class CustomWrapperExample implements ResponseBodyWrapper {
 
         @Override

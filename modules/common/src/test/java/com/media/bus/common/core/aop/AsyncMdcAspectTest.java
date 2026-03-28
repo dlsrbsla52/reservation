@@ -98,10 +98,8 @@ public class AsyncMdcAspectTest {
         }
     }
 
-    /**
-     * @Async 실행 스레드에서 MDC를 캡처하여 반환하는 테스트용 서비스.
-     * executor 미지정 → AsyncConfigurer.getAsyncExecutor() (IoBoundExecutor) 사용
-     */
+    /// @Async 실행 스레드에서 MDC를 캡처하여 반환하는 테스트용 서비스.
+    /// executor 미지정 → AsyncConfigurer.getAsyncExecutor() (IoBoundExecutor) 사용
     static class AsyncTestService {
         @Async
         public CompletableFuture<Map<String, String>> captureMdc() {

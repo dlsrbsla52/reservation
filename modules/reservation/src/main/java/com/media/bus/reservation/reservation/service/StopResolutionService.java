@@ -20,14 +20,12 @@ public class StopResolutionService {
 
     private final StopServiceClient stopServiceClient;
 
-    /**
-     * stopId(UUID pk)로 정류소를 조회하고 반환합니다.
-     * 존재하지 않으면 StorageException(404)을 던집니다.
-     *
-     * @param stopId 예약 요청의 stopId (stop 테이블 UUID pk)
-     * @return 조회된 정류소 정보
-     * @throws StorageException 정류소를 찾을 수 없는 경우
-     */
+    /// stopId(UUID pk)로 정류소를 조회하고 반환합니다.
+    /// 존재하지 않으면 StorageException(404)을 던집니다.
+    ///
+    /// @param stopId 예약 요청의 stopId (stop 테이블 UUID pk)
+    /// @return 조회된 정류소 정보
+    /// @throws StorageException 정류소를 찾을 수 없는 경우
     public StopInfo resolveStop(UUID stopId) {
         return stopServiceClient.getStopByPk(stopId)
                 .stream()

@@ -12,14 +12,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 회원-역할 매핑 JPA Entity.
- * auth.member_role 테이블과 매핑됩니다.
- *
- * 회원(Member)과 역할(Role)의 관계를 저장합니다.
- * member_id는 UNIQUE 제약으로 한 회원이 하나의 역할만 가질 수 있도록 보장합니다.
- * 생성은 정적 팩토리 메서드 of()를 통해서만 허용합니다.
- */
+/// 회원-역할 매핑 JPA Entity.
+/// auth.member\_role 테이블과 매핑됩니다.
+/// 회원(Member)과 역할(Role)의 관계를 저장합니다.
+/// member\_id는 UNIQUE 제약으로 한 회원이 하나의 역할만 가질 수 있도록 보장합니다.
+/// 생성은 정적 팩토리 메서드 of()를 통해서만 허용합니다.
 @Getter
 @Entity
 @Table(
@@ -33,12 +30,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MemberRole extends DateBaseEntity {
 
-    /** 역할을 소유한 회원. LAZY 로딩으로 불필요한 JOIN 방지. 생성 후 변경 불가. */
+    /// 역할을 소유한 회원. LAZY 로딩으로 불필요한 JOIN 방지. 생성 후 변경 불가.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    /** 부여된 역할. LAZY 로딩. 생성 후 변경 불가. */
+    /// 부여된 역할. LAZY 로딩. 생성 후 변경 불가.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;

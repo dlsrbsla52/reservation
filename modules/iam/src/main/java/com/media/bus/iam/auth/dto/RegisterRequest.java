@@ -9,12 +9,10 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
-/**
- * 회원가입 요청 DTO.
- * - 일반 회원(MEMBER): businessNumber 필드 불필요.
- * - 비즈니스 회원(BUSINESS): businessNumber 필수.
- * 비즈니스 규칙에 따른 Cross-Field 검증은 AuthService 계층에서 수행합니다.
- */
+/// 회원가입 요청 DTO.
+/// - 일반 회원(MEMBER): businessNumber 필드 불필요.
+/// - 비즈니스 회원(BUSINESS): businessNumber 필수.
+/// 비즈니스 규칙에 따른 Cross-Field 검증은 AuthService 계층에서 수행합니다.
 @Schema(description = "회원가입 요청 DTO")
 @Builder
 public record RegisterRequest(

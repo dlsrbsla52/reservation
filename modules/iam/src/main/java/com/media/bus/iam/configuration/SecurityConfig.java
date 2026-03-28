@@ -16,16 +16,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.util.List;
 
-/**
- * auth 서비스 Spring Security 설정.
- * 설계 원칙:
- * - auth 서비스는 Gateway 내부 망에서만 호출됩니다. JWT 검증은 Gateway에서 수행합니다.
- * - /api/v1/member/** 경로는 S2STokenFilter로 내부 서비스 호출만 허용합니다.
- * - CSRF는 Stateless REST API 특성상 비활성화합니다.
- * 보안 Note:
- * 실제 운영 환경에서는 네트워크 레벨(Security Group, VPC)에서 Gateway를 통한 요청만
- * auth 서비스에 도달할 수 있도록 제한합니다.
- */
+/// auth 서비스 Spring Security 설정.
+/// 설계 원칙:
+/// - auth 서비스는 Gateway 내부 망에서만 호출됩니다. JWT 검증은 Gateway에서 수행합니다.
+/// - /api/v1/member/\*\* 경로는 S2STokenFilter로 내부 서비스 호출만 허용합니다.
+/// - CSRF는 Stateless REST API 특성상 비활성화합니다.
+/// 보안 Note:
+/// 실제 운영 환경에서는 네트워크 레벨(Security Group, VPC)에서 Gateway를 통한 요청만
+/// auth 서비스에 도달할 수 있도록 제한합니다.
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor

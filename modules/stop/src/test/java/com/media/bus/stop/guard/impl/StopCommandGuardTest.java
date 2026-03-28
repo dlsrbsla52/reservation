@@ -15,11 +15,9 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-/**
- * StopCommandGuardImpl 단위 테스트.
- * JwtProvider 의존성은 인가 인터셉터로 이전되어 제거되었습니다.
- * Repository 기반 비즈니스 규칙 검증만 테스트합니다.
- */
+/// StopCommandGuardImpl 단위 테스트.
+/// JwtProvider 의존성은 인가 인터셉터로 이전되어 제거되었습니다.
+/// Repository 기반 비즈니스 규칙 검증만 테스트합니다.
 @ExtendWith(MockitoExtension.class)
 class StopCommandGuardTest {
 

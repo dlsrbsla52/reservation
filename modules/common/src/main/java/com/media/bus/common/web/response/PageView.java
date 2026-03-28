@@ -4,9 +4,7 @@ import lombok.Getter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Page 스타일의 Data View
- */
+/// Page 스타일의 Data View
 @ToString(callSuper = true)
 @SuperBuilder
 public class PageView<E> extends AbstractView {

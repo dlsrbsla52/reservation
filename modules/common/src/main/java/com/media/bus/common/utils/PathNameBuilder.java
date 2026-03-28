@@ -2,9 +2,7 @@ package com.media.bus.common.utils;
 
 import java.util.Arrays;
 
-/**
- * Path name을 조합하기 위한 유틸 클래스
- */
+/// Path name을 조합하기 위한 유틸 클래스
 @SuppressWarnings("unused")
 public class PathNameBuilder {
 	

@@ -31,15 +31,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * 회원 인증/인가 비즈니스 로직 서비스.
- * 핵심 비즈니스 규칙:
- * 1. 입력 검증은 RegisterRequestValidator(Guard 계층)에 위임합니다.
- * 2. 이메일 인증 전 로그인은 허용하나, emailVerified = false 상태의 토큰을 발급하여
- *    Gateway / 각 서비스에서 이메일 미인증 사용자를 주요 기능에서 차단합니다.
- * 3. 이메일 인증 토큰은 UUID로 생성, Redis에 TTL 24h로 저장합니다.
- *    보안상 이유로 토큰은 HTTP 응답에 포함하지 않습니다 (이메일 발송 전용).
- */
+/// 회원 인증/인가 비즈니스 로직 서비스.
+/// 핵심 비즈니스 규칙:
+/// 1. 입력 검증은 RegisterRequestValidator(Guard 계층)에 위임합니다.
+/// 2. 이메일 인증 전 로그인은 허용하나, emailVerified = false 상태의 토큰을 발급하여
+///    Gateway / 각 서비스에서 이메일 미인증 사용자를 주요 기능에서 차단합니다.
+/// 3. 이메일 인증 토큰은 UUID로 생성, Redis에 TTL 24h로 저장합니다.
+///    보안상 이유로 토큰은 HTTP 응답에 포함하지 않습니다 (이메일 발송 전용).
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -57,13 +55,11 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final RegisterRequestValidator registerRequestValidator;
 
-    /**
-     * 회원가입 처리.
-     * 1. Guard 계층(RegisterRequestValidator)에 입력 검증 위임
-     * 2. BCrypt 비밀번호 암호화 저장
-     * 3. 역할 조회 및 member_role 저장 (같은 트랜잭션)
-     * 4. 이메일 인증 토큰 발급 및 Redis 저장 (응답에는 포함하지 않음)
-     */
+    /// 회원가입 처리.
+    /// 1. Guard 계층(RegisterRequestValidator)에 입력 검증 위임
+    /// 2. BCrypt 비밀번호 암호화 저장
+    /// 3. 역할 조회 및 member\_role 저장 (같은 트랜잭션)
+    /// 4. 이메일 인증 토큰 발급 및 Redis 저장 (응답에는 포함하지 않음)
     @Transactional
     public void register(RegisterRequest request) {
         // 1. 입력 검증 (Guard 계층에 위임)
@@ -98,14 +94,12 @@ public class AuthService {
         log.debug("[개발용] 이메일 인증 토큰: {}", verifyToken);
     }
 
-    /**
-     * 로그인 처리.
-     * 1. 자격증명(아이디/비밀번호) 검증
-     * 2. 계정 상태(ACTIVE) 검증
-     * 3. JOIN FETCH로 역할 조회 (N+1 방지)
-     * 4. Access Token + Refresh Token 발급
-     * emailVerified = false 상태에서도 로그인은 허용합니다.
-     */
+    /// 로그인 처리.
+    /// 1. 자격증명(아이디/비밀번호) 검증
+    /// 2. 계정 상태(ACTIVE) 검증
+    /// 3. JOIN FETCH로 역할 조회 (N+1 방지)
+    /// 4. Access Token + Refresh Token 발급
+    /// emailVerified = false 상태에서도 로그인은 허용합니다.
     @Transactional(readOnly = true)
     public TokenResponse login(LoginRequest request) {
         Member member = memberRepository.findByLoginId(request.loginId())
@@ -153,10 +147,8 @@ public class AuthService {
         return TokenResponse.of(accessToken, refreshToken);
     }
 
-    /**
-     * 이메일 인증 처리.
-     * Redis에서 인증 토큰으로 회원 ID를 조회하고, emailVerified 플래그를 업데이트합니다.
-     */
+    /// 이메일 인증 처리.
+    /// Redis에서 인증 토큰으로 회원 ID를 조회하고, emailVerified 플래그를 업데이트합니다.
     @Transactional
     public void verifyEmail(String token) {
         String memberId = redisTemplate.opsForValue().get(EMAIL_VERIFY_KEY_PREFIX + token);
@@ -174,10 +166,8 @@ public class AuthService {
         log.info("[AuthService.verifyEmail] 이메일 인증 완료. memberId={}", memberId);
     }
 
-    /**
-     * Refresh Token을 검증하고 새로운 Access Token을 발급합니다.
-     * Redis에 저장된 토큰과 요청 토큰을 비교하여 탈취 여부를 검증합니다.
-     */
+    /// Refresh Token을 검증하고 새로운 Access Token을 발급합니다.
+    /// Redis에 저장된 토큰과 요청 토큰을 비교하여 탈취 여부를 검증합니다.
     @Transactional(readOnly = true)
     public TokenResponse refreshAccessToken(String refreshToken) {
         // 서명/만료 검증
@@ -224,10 +214,8 @@ public class AuthService {
         return TokenResponse.of(newAccessToken, newRefreshToken);
     }
 
-    /**
-     * 로그아웃 처리.
-     * Redis에서 Refresh Token을 삭제하여 서버 측 무효화합니다.
-     */
+    /// 로그아웃 처리.
+    /// Redis에서 Refresh Token을 삭제하여 서버 측 무효화합니다.
     public void logout(String memberId) {
         jwtProvider.deleteRefreshToken(memberId);
         log.info("[AuthService.logout] 로그아웃 처리. memberId={}", memberId);

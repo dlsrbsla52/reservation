@@ -12,14 +12,10 @@ import org.springframework.web.client.RestClient;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 서울 열린데이터광장 버스 정류소 공공 API 클라이언트
- *
- * 사용 API: busStopLocationXyInfo
- * URL: http://openapi.seoul.go.kr:8088/{serviceKey}/json/busStopLocationXyInfo/{startIndex}/{endIndex}/
- *
- * API 키 발급: https://data.seoul.go.kr
- */
+/// 서울 열린데이터광장 버스 정류소 공공 API 클라이언트
+/// 사용 API: busStopLocationXyInfo
+/// URL: http://openapi.seoul.go.kr:8088/{serviceKey}/json/busStopLocationXyInfo/{startIndex}/{endIndex}/
+/// API 키 발급: https://data.seoul.go.kr
 @Slf4j
 @Component
 public class SeoulBusApiClient {
@@ -42,17 +38,13 @@ public class SeoulBusApiClient {
                 .build();
     }
 
-    /**
-     * 전체 정류소 수를 조회한다 (1건만 요청해 totalCount 추출)
-     */
+    /// 전체 정류소 수를 조회한다 (1건만 요청해 totalCount 추출)
     public int fetchTotalCount() {
         SeoulBusStopApiResponse response = call(1, 1);
         return response.busStopInfo().totalCount();
     }
 
-    /**
-     * startIndex ~ endIndex 범위의 정류소 목록을 조회한다 (1-based index)
-     */
+    /// startIndex \~ endIndex 범위의 정류소 목록을 조회한다 (1-based index)
     public List<SeoulBusStopRow> fetchStops(int startIndex, int endIndex) {
         SeoulBusStopApiResponse response = call(startIndex, endIndex);
         List<SeoulBusStopRow> rows = response.busStopInfo().rows();

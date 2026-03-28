@@ -8,9 +8,7 @@ import org.springframework.core.annotation.Order;
 
 import java.util.List;
 
-/**
- * PageResult를 PageView로 래핑하는 Wrapper.
- */
+/// PageResult를 PageView로 래핑하는 Wrapper.
 @Order(3)
 @SuppressWarnings("unchecked")
 public class PageResultBodyWrapper implements ResponseBodyWrapper {

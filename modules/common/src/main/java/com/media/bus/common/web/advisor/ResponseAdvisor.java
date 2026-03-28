@@ -15,10 +15,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import java.util.List;
 
-/**
- * ResponseBody(Json) 타입의 응답이 있기 전 실행 클래스.
- * 실제 래핑 로직은 {@link ResponseBodyWrapper} 구현체에 위임한다.
- */
+/// ResponseBody(Json) 타입의 응답이 있기 전 실행 클래스.
+/// 실제 래핑 로직은 [ResponseBodyWrapper] 구현체에 위임한다.
 @ControllerAdvice
 @RequiredArgsConstructor
 public class ResponseAdvisor implements ResponseBodyAdvice<Object> {

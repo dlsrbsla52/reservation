@@ -7,10 +7,8 @@ import lombok.Getter;
 
 import java.io.Serial;
 
-/**
- * Root Exception.
- * result와 message는 이 클래스에서만 선언한다. 하위 클래스는 중복 선언하지 않는다.
- */
+/// Root Exception.
+/// result와 message는 이 클래스에서만 선언한다. 하위 클래스는 중복 선언하지 않는다.
 @SuppressWarnings("unused")
 public class BaseException extends RuntimeException {
 
