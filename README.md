@@ -6,14 +6,14 @@
 
 - **common**: 전체 프로젝트에서 공유하는 공통 도메인/DTO, 유틸리티, 글로벌 예외 처리, JPA 엔티티, QueryDSL Q-Class 빈, AWS SDK, DB 설정 및 Security 기본 설정이 응집된 핵심 라이브러리 모듈입니다.
 - **gateway**: 클라이언트의 모든 요청을 단일 진입점으로 받아 각 마이크로서비스로 라우팅하는 Spring Cloud Gateway 모듈입니다. (Expected Port: 8080)
-- **auth**: JWT 토큰 발급 프로세스와 사용자의 인증(Authentication)/인가(Authorization) 및 회원의 라이프사이클(가입, 조회, 수정, 제재, 탈퇴 등) 및 회원 관련 비즈니스 도메인을 관리하는 모듈 전담하여 처리하는 인증 인가 모듈입니다. (Expected Port: 8181)
+- **iam**: JWT 토큰 발급 프로세스와 사용자의 인증(Authentication)/인가(Authorization) 및 회원의 라이프사이클(가입, 조회, 수정, 제재, 탈퇴 등) 및 회원 관련 비즈니스 도메인을 관리하는 모듈 전담하여 처리하는 인증 인가 모듈입니다. (Expected Port: 8181)
 - **stop**: 정류소의 관리 매니저를 담당하는 서비스 모듈입니다. 각 정류소의 매칭 상태와 가격(유동인구, 판매가격, 결제 시기, 재계약 시기) 등 비즈니스 도메인을 책임지는 메인 워커 모듈입니다. (Expected Port: 8182)
 - **reservation**: 시스템의 Core 비즈니스인 실제 예약 생성, 변경, 취소 등의 트랜잭션 로직을 책임지는 메인 워커 모듈입니다. (Expected Port: 8183)
 
 ## DB 및 통합 테스트(MSA) 구동 환경
 > 본 프로젝트는 Docker Compose를 이용해 모든 MSA 모듈을 로컬 컨테이너 환경에서 통합 테스트할 수 있도록 최적화되어 있습니다.
 > 
-> 다음과 같은 명령어로 DB(PostgreSQL) 및 API Gateway를 포함한 3개의 마이크로서비스(`gateway`, `auth`, `reservation`)를 띄울 수 있습니다.
+> 다음과 같은 명령어로 DB(PostgreSQL) 및 API Gateway를 포함한 3개의 마이크로서비스(`gateway`, `iam`, `reservation`)를 띄울 수 있습니다.
 >
 > ```bash
 > docker-compose up --build -d
@@ -78,7 +78,7 @@
 1. **S2STokenFilter (시스템 간 인증)**:
    - **적용 대상**: 외부 사용자가 아닌 시스템(Gateway, 백그라운드 워커, 스케줄러, 내부 타 모듈 등)
    - **목적**: 해당 API가 인터넷을 통한 접속이 아니라, **신뢰할 수 있는 내부 망(Service-to-Service)에서 넘어온 호출인지 1차로 확인**하여 외부로부터의 접근을 원천 차단합니다.
-   - **구현**: `X-Service-Token` 헤더를 검증합니다. (예: `auth` 서비스의 `/api/v1/member/**` 등 서비스 간 정보 조회 API에 주로 적용)
+   - **구현**: `X-Service-Token` 헤더를 검증합니다. (예: `iam` 서비스의 `/api/v1/member/**` 등 서비스 간 정보 조회 API에 주로 적용)
    - **설정**: 각 서비스의 `SecurityConfig`에서 이 필터를 Bean으로 등록할 때 적용할 경로 리스트(`List.of(...)`)를 주입하여 유연하게 적용 범위를 제어합니다.
 
 2. **@Authorize (사용자 인가)**:
@@ -86,7 +86,7 @@
    - **목적**: 사용자의 자격 증명(MemberType, MemberCategory, EmailVerified 여부, Permission 등)을 확인하여 **비즈니스 로직 연산(API) 수행 권한이 있는지 세밀하게 제어**합니다.
    - **구현**: 유저 토큰이 Gateway에서 검증 및 해석되어 주입된 `X-User-...` 헤더 기반의 `MemberPrincipal` 객체를 `AuthorizeHandlerInterceptor`가 AOP 동작 이전에 가로채어 검사합니다.
 
-> 💡 **Best Practice Tip**: 타 서비스(예: `reservation`)가 회원 상세 데이터 조회를 위해 `auth` 서비스를 호출할 때 유저 컨텍스트를 억지로 조작하여 `@Authorize`를 뚫으려 하지 마십시오. **S2STokenFilter**를 사용해 시스템 간 인증만 통과시킨 후 데이터를 자유롭게 조회하도록 분리된 엔드포인트를 두는 방식이 도메인 모델의 순수성을 지키는 데 적합합니다.
+> 💡 **Best Practice Tip**: 타 서비스(예: `reservation`)가 회원 상세 데이터 조회를 위해 `iam` 서비스를 호출할 때 유저 컨텍스트를 억지로 조작하여 `@Authorize`를 뚫으려 하지 마십시오. **S2STokenFilter**를 사용해 시스템 간 인증만 통과시킨 후 데이터를 자유롭게 조회하도록 분리된 엔드포인트를 두는 방식이 도메인 모델의 순수성을 지키는 데 적합합니다.
 
 
 ## 로깅 (Logging & MDC 전파)
@@ -184,10 +184,10 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap(() -> {
    - **Name**: `Remote: Auth Service` 등 원하는 이름 설정
    - **Host**: `localhost` / **Port**: 해당 서비스의 디버그 포트 입력
      - `gateway`: `18080`
-     - `auth`: `18181`
+     - `iam`: `18181`
      - `stop`: `18182`
      - `reservation`: `18183`
-   - **Use module classpath**: 디버깅 타겟 모듈 지정 (예: `reservation.modules.auth.main`)
+   - **Use module classpath**: 디버깅 타겟 모듈 지정 (예: `reservation.modules.iam.main`)
 2. **실행 및 Attach**
    - `docker-compose up -d` 로 컨테이너 기동
    - 비즈니스 로직에 Breakpoint(중단점) 지정
