@@ -1,0 +1,28 @@
+### 로그인
+POST {{domain-gateway}}/api/v1/auth/login
+Content-Type: {{json}}
+
+{
+    "loginId" : "vhkdrb521",
+    "password" : "ghkddlsrb1!"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 계약 생성
+POST {{domain-gateway}}/api/v1/contract
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+    "stopId": "018f1e2a-0000-7000-8000-000000000001",
+    "contractName": "광역버스 정류소 광고 계약",
+    "totalAmount": 1200000.00,
+    "payAmount": 100000.00,
+    "paymentCycle": "MONTHLY",
+    "paymentMethod": "BANK_TRANSFER",
+    "contractStartDate": "2026-04-01T00:00:00+09:00",
+    "contractEndDate": "2027-03-31T23:59:59+09:00"
+}

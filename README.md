@@ -10,6 +10,21 @@
 - **stop**: 정류소의 관리 매니저를 담당하는 서비스 모듈입니다. 각 정류소의 매칭 상태와 가격(유동인구, 판매가격, 결제 시기, 재계약 시기) 등 비즈니스 도메인을 책임지는 메인 워커 모듈입니다. (Expected Port: 8182)
 - **reservation**: 시스템의 Core 비즈니스인 실제 예약 생성, 변경, 취소 등의 트랜잭션 로직을 책임지는 메인 워커 모듈입니다. (Expected Port: 8183)
 
+## API 문서 (Swagger UI)
+
+> 각 마이크로서비스는 **springdoc-openapi**를 통해 Swagger UI를 독립적으로 제공합니다.
+> 로컬 실행 후 아래 URL로 접근할 수 있습니다.
+
+| 서비스 | Swagger UI | OpenAPI JSON |
+|--------|-----------|--------------|
+| `iam` (인증/회원) | http://localhost:8181/swagger-ui.html | http://localhost:8181/api-docs |
+| `stop` (정류소) | http://localhost:8182/swagger-ui.html | http://localhost:8182/api-docs |
+| `reservation` (예약) | http://localhost:8183/swagger-ui.html | http://localhost:8183/api-docs |
+
+> **참고**: Gateway(8080)를 통해서는 Swagger UI에 접근할 수 없습니다. 각 서비스 포트로 직접 접근해야 합니다.
+
+---
+
 ## DB 및 통합 테스트(MSA) 구동 환경
 > 본 프로젝트는 Docker Compose를 이용해 모든 MSA 모듈을 로컬 컨테이너 환경에서 통합 테스트할 수 있도록 최적화되어 있습니다.
 > 
