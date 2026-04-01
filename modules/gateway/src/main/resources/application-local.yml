@@ -3,3 +3,5 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:local-dev-dummy-jwt-secret-for-tests-only-0000000000}
+
+CORS_ALLOWED_ORIGIN: "http://localhost:3000"
