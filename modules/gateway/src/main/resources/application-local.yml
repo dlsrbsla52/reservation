@@ -3,3 +3,5 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
+
+CORS_ALLOWED_ORIGIN: "http://localhost:3000"

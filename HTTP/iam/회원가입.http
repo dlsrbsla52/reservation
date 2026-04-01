@@ -11,19 +11,32 @@ Content-Type: {{json}}
 }
 
 ### 로그인
+# 응답: Access Token → Body, Refresh Token → HttpOnly Cookie(refresh_token) 자동 저장
 POST {{domain-gateway}}/api/v1/auth/login
 Content-Type: {{json}}
 
 {
-    "loginId" : "vhkdrb52",
+    "loginId" : "vhkdrb521",
     "password" : "ghkddlsrb1!"
 }
 
+> {%
+    client.global.set("accessToken", response.body.data.accessToken);
+%}
 
 ### 토큰 재발급
+# Refresh Token은 쿠키에서 자동으로 전송됩니다 — Request Body 불필요
+# IntelliJ HTTP Client가 Set-Cookie로 저장된 refresh_token을 자동으로 함께 전송합니다
 POST {{domain-gateway}}/api/v1/auth/token/refresh
-Content-Type: {{json}}
 
-{
-    "refreshToken" : "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYzE1MDAwNi05Y2U3LTE5M2QtODE5Yy1lNzU5ZDYzNDAwMDAiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc3MzQxMDEwMSwiZXhwIjoxNzc0MDE0OTAxfQ.OKd6BE6SXnafJbsX-mpsgtKg3l3FKugclhxaYdfRqrG9x8ZMwq2D9gn0iPuIl8bxUpi8QdJ4AGub287UbvkCUg"
-}
+> {%
+    client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 이메일 인증
+GET {{domain-gateway}}/api/v1/auth/verify-email?token={이메일로_받은_토큰}
+
+### 로그아웃
+# Redis의 Refresh Token 삭제 + Cookie 즉시 만료
+POST {{domain-gateway}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}
