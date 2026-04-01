@@ -6,9 +6,9 @@ import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.entity.member.MemberType;
 import com.media.bus.contract.security.JwtProvider;
 import com.media.bus.contract.security.MemberPrincipal;
+import com.media.bus.iam.auth.dto.AuthTokenResult;
 import com.media.bus.iam.auth.dto.LoginRequest;
 import com.media.bus.iam.auth.dto.RegisterRequest;
-import com.media.bus.iam.auth.dto.TokenResponse;
 import com.media.bus.iam.auth.entity.MemberRole;
 import com.media.bus.iam.auth.entity.Role;
 import com.media.bus.iam.auth.guard.RegisterRequestValidator;
@@ -101,7 +101,7 @@ public class AuthService {
     /// 4. Access Token + Refresh Token 발급
     /// emailVerified = false 상태에서도 로그인은 허용합니다.
     @Transactional(readOnly = true)
-    public TokenResponse login(LoginRequest request) {
+    public AuthTokenResult login(LoginRequest request) {
         Member member = memberRepository.findByLoginId(request.loginId())
                 .orElseThrow(() -> new NoAuthenticationException(CommonResult.BAD_CREDENTIAL_FAIL));
 
@@ -144,7 +144,7 @@ public class AuthService {
         String refreshToken = jwtProvider.generateRefreshToken(member.getId().toString());
 
         log.info("[AuthService.login] 로그인 성공. memberId={}", member.getId());
-        return TokenResponse.of(accessToken, refreshToken);
+        return new AuthTokenResult(accessToken, refreshToken);
     }
 
     /// 이메일 인증 처리.
@@ -169,7 +169,7 @@ public class AuthService {
     /// Refresh Token을 검증하고 새로운 Access Token을 발급합니다.
     /// Redis에 저장된 토큰과 요청 토큰을 비교하여 탈취 여부를 검증합니다.
     @Transactional(readOnly = true)
-    public TokenResponse refreshAccessToken(String refreshToken) {
+    public AuthTokenResult refreshAccessToken(String refreshToken) {
         // 서명/만료 검증
         if (jwtProvider.isInvalidToken(refreshToken)) {
             throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL);
@@ -211,7 +211,7 @@ public class AuthService {
         String newAccessToken = jwtProvider.generateAccessToken(principal, permissionNames);
         String newRefreshToken = jwtProvider.generateRefreshToken(memberId); // Token Rotation
 
-        return TokenResponse.of(newAccessToken, newRefreshToken);
+        return new AuthTokenResult(newAccessToken, newRefreshToken);
     }
 
     /// 로그아웃 처리.

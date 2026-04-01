@@ -1,4 +1,5 @@
 ### 로그인
+# 응답: Access Token → Body, Refresh Token → HttpOnly Cookie(refresh_token) 자동 저장
 POST {{domain-gateway}}/api/v1/auth/login
 Content-Type: {{json}}
 
@@ -35,7 +36,7 @@ Content-Type: {{json}}
 Authorization: Bearer {{accessToken}}
 
 {
-    "loginId": "vhkdrb52"
+    "loginId": "vhkdrb521"
 }
 
 ### email 로 회원 조회
@@ -44,5 +45,5 @@ Content-Type: {{json}}
 Authorization: Bearer {{accessToken}}
 
 {
-    "email": "vhkdrb52@gmail.com"
+    "email": "vhkdrb521@gmail.com"
 }
