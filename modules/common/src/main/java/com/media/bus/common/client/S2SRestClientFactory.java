@@ -2,6 +2,8 @@ package com.media.bus.common.client;
 
 import com.media.bus.common.security.TokenProvider;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 /// S2S(System-to-System) 전용 RestClient 팩토리.
 /// 설계 의도:
@@ -19,6 +21,18 @@ public class S2SRestClientFactory {
 
     public S2SRestClientFactory(TokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;
+    }
+
+    /// 지정된 baseUrl과 서비스 인터페이스 타입으로 @HttpExchange 프록시를 생성합니다.
+    /// S2S 토큰 자동 주입이 적용된 RestClient를 기반으로 프록시가 동작합니다.
+    ///
+    /// @param baseUrl          대상 서비스 베이스 URL (예: http://stop-service:8182)
+    /// @param serviceInterface @HttpExchange가 선언된 인터페이스 타입
+    /// @return S2S 토큰 인터셉터가 적용된 @HttpExchange 프록시 객체
+    public <T> T createProxy(String baseUrl, Class<T> serviceInterface) {
+        RestClientAdapter adapter = RestClientAdapter.create(create(baseUrl));
+        HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
+        return factory.createClient(serviceInterface);
     }
 
     /// 지정된 baseUrl을 대상으로 S2S 토큰을 자동 주입하는 RestClient를 생성합니다.

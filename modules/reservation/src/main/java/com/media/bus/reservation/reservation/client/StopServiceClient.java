@@ -1,11 +1,9 @@
 package com.media.bus.reservation.reservation.client;
 
-import com.media.bus.common.client.BaseServiceClient;
-import com.media.bus.common.client.S2SRestClientFactory;
 import com.media.bus.reservation.reservation.dto.response.StopInfo;
 import com.media.bus.reservation.reservation.dto.response.internal.StopPageResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,32 +11,21 @@ import java.util.UUID;
 
 /// stop 서비스 내부 API 클라이언트.
 /// 설계 의도:
-/// - BaseServiceClient를 상속하여 HTTP 메서드(GET/POST/PUT/DELETE)를 직접 구성하지 않고
-///   상위 클래스의 사전 정의된 메서드를 사용한다.
-/// - S2SRestClientFactory.create()로 생성한 RestClient를 super()에 전달하므로
-///   X-Service-Token 헤더는 팩토리 인터셉터가 자동으로 주입한다.
+/// - StopApi(@HttpExchange 프록시)에 HTTP 호출을 위임하고,
+///   응답 변환(extractList) 등 비즈니스 로직을 이 클래스에서 처리한다.
+/// - 소비자(StopResolutionService)의 공개 API는 변경하지 않는다.
 @Slf4j
 @Component
-public class StopServiceClient extends BaseServiceClient {
+@RequiredArgsConstructor
+public class StopServiceClient {
 
-    private static final String STOP_PATH = "/api/v1/internal/stop";
-
-    public StopServiceClient(
-            @Value("${services.stop.url}") String stopServiceUrl,
-            S2SRestClientFactory s2sRestClientFactory
-    ) {
-        // S2S 인터셉터가 적용된 RestClient를 상위 클래스에 전달
-        super(s2sRestClientFactory.create(stopServiceUrl));
-    }
+    private final StopApi stopApi;
 
     /// pk(UUID) 기준으로 정류소를 조회합니다.
     /// 존재하지 않으면 빈 리스트를 반환합니다.
     public List<StopInfo> getStopByPk(UUID pk) {
         log.debug("[StopServiceClient] pk 기준 정류소 조회: pk={}", pk);
-        StopPageResponse response = get(
-                uri -> uri.path(STOP_PATH).queryParam("pk", pk).build(),
-                StopPageResponse.class
-        );
+        StopPageResponse response = stopApi.getStopByPk(pk);
         return extractList(response);
     }
 
@@ -46,10 +33,7 @@ public class StopServiceClient extends BaseServiceClient {
     /// 존재하지 않으면 빈 리스트를 반환합니다.
     public List<StopInfo> getStopByStopId(String stopId) {
         log.debug("[StopServiceClient] stopId 기준 정류소 조회: stopId={}", stopId);
-        StopPageResponse response = get(
-                uri -> uri.path(STOP_PATH).queryParam("stopId", stopId).build(),
-                StopPageResponse.class
-        );
+        StopPageResponse response = stopApi.getStopByStopId(stopId);
         return extractList(response);
     }
 
