@@ -6,6 +6,9 @@ bootJar {
 // Tomcat을 모든 configuration에서 전역 제거
 configurations.all {
     exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+    // Spring Cloud Gateway 5.x WebFlux는 spring-webmvc가 classpath에 있으면 라우팅을 비활성화함
+    // common 모듈이 spring-boot-starter-web을 전이 의존성으로 끌어오므로 명시적으로 제외
+    exclude group: 'org.springframework', module: 'spring-webmvc'
 }
 
 dependencies {
