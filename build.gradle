@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        springbootVersion = "3.4.13"
+        springbootVersion = "4.0.5"
     }
     repositories {
         mavenCentral()
@@ -26,7 +26,7 @@ allprojects {
 
     repositories {
         mavenCentral()
-        // Spring Boot 4.0.0 스냅샷 및 마일스톤 버전 유입을 원천 차단하기 위해 주석 처리 상태 유지
+        // Spring Boot 4.0.5는 Maven Central에 GA 배포됨 — milestone/snapshot 불필요
         // maven { url 'https://repo.spring.io/milestone' }
         // maven { url 'https://repo.spring.io/snapshot' }
     }
@@ -37,8 +37,8 @@ subprojects {
     apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
 
-    // 하위 모듈 전체에 Spring Boot 3.4.13 버전을 강제하기 위한 BOM(Bill of Materials) 설정 추가.
-    // 이는 Spring Web, Tomcat, Servlet 등 전이적(Transitive) 의존성이 4.0.0 버전으로 임의 격상되는 현상을 물리적으로 방지합니다.
+    // 하위 모듈 전체에 Spring Boot 4.0.5 버전을 강제하기 위한 BOM(Bill of Materials) 설정 추가.
+    // Spring Cloud 2025.1.1 (Oakwood) Release Train이 Spring Boot 4.0.x를 공식 지원합니다.
     dependencyManagement {
         imports {
             mavenBom "org.springframework.boot:spring-boot-dependencies:${springbootVersion}"

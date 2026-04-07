@@ -11,11 +11,14 @@ configurations.all {
 dependencies {
     implementation project(':modules:common')
     implementation project(':modules:auth-contract')
-    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+    // Spring Cloud Gateway 5.0.x: spring-cloud-starter-gateway → 역할별 분리
+    // WebFlux(Netty) 기반 게이트웨이는 -server-webflux artifact 사용
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway-server-webflux'
 }
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
+        // Spring Cloud 2025.1.1 (Oakwood) — Spring Boot 4.0.x 공식 지원 Release Train
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2025.1.1"
     }
 }

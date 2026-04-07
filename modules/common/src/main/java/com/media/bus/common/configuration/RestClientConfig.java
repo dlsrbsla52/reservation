@@ -34,8 +34,15 @@ public class RestClientConfig {
     /// 내부 통신용 RestClient Bean
     /// 시스템 간 내부 호출 시 이 Bean을 의존성 주입(DI) 받아 사용합니다.
     /// 호출 시 현재 스레드의 Security Context (Authorization Token)를 자동으로 전파합니다.
+    /// Spring Boot 4에서 RestClient.Builder 자동 빈 등록이 제거되어 정적 팩토리 메서드로 직접 생성합니다.
     @Bean
-    public RestClient internalRestClient(RestClient.Builder builder) {
+    public RestClient internalRestClient() {
+        return buildWith(RestClient.builder());
+    }
+
+    /// 테스트 전용: MockRestServiceServer 바인딩이 적용된 Builder를 받아 RestClient를 조립합니다.
+    /// MockRestServiceServer.bindTo(builder)로 먼저 목 서버를 바인딩한 뒤 이 메서드에 전달하세요.
+    RestClient buildWith(RestClient.Builder builder) {
         return builder
                 // Security Context 전파 헤더 주입 Interceptor 등록
                 .requestInterceptor(securityContextPropagationInterceptor())
