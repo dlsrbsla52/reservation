@@ -1,6 +1,7 @@
 package com.media.bus.common.web.advisor;
 
 import com.media.bus.common.exceptions.BaseException;
+import com.media.bus.common.exceptions.BusinessException;
 import com.media.bus.common.exceptions.NoAuthenticationException;
 import com.media.bus.common.exceptions.NoAuthorizationException;
 import com.media.bus.common.exceptions.StorageException;
@@ -80,6 +81,14 @@ public class ExceptionAdvisor {
 	public ResponseEntity<ErrorView> noAuthorizationHandler(HttpServletRequest request, NoAuthorizationException error) {
 		log.error("noAuthorizationHandler.error : ", error);
 		return buildErrorResponse(HttpStatus.FORBIDDEN, error.getResult(), error.getMessage(), request);
+	}
+
+	/// 예상된 비즈니스 실패(4xx) 처리.
+	/// `log.warn`으로 기록하여 모니터링에서 기술적 오류(log.error)와 명확히 구분된다.
+	@ExceptionHandler(BusinessException.class)
+	public ResponseEntity<ErrorView> businessExceptionHandler(HttpServletRequest request, BusinessException error) {
+		log.warn("businessExceptionHandler: result={}, message={}, uri={}", error.getResult().getCode(), error.getMessage(), request.getRequestURI());
+		return buildErrorResponse(error.getHttpStatus(), error.getResult(), error.getMessage(), request);
 	}
 
 	@ExceptionHandler(BaseException.class)

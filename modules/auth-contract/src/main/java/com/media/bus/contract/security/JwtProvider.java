@@ -14,6 +14,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Date;
+import java.util.Optional;
 import java.util.Set;
 
 /// JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트.
@@ -27,8 +28,14 @@ public class JwtProvider implements TokenProvider {
     private static final long ACCESS_TOKEN_EXPIRE_MS = 1000L * 60 * 60; // 60분
     private static final long REFRESH_TOKEN_EXPIRE_MS = 1000L * 60 * 60 * 24 * 7; // 7일
     private static final long S2S_TOKEN_EXPIRE_MS = 1000L * 60 * 60; // 1시간
+    // 만료 5분 전 갱신하여 경계 시점에서 만료된 토큰이 하위 서비스에 전달되는 것을 방지
+    private static final long S2S_CACHE_BUFFER_MS = 5 * 60 * 1000L;
 
     private static final String REFRESH_TOKEN_KEY_PREFIX = "refresh:";
+
+    // S2S 토큰 캐시 — 매 요청마다 HMAC 서명 연산을 방지한다
+    private volatile String cachedS2SToken = null;
+    private volatile long s2sTokenExpireAt = 0L;
 
     private final SecretKey secretKey;
     private final StringRedisTemplate redisTemplate;
@@ -86,12 +93,25 @@ public class JwtProvider implements TokenProvider {
         return refreshToken;
     }
 
-    /// 시스템 간 내부 호출(S2S)에 사용되는 전용 토큰을 생성합니다.
-    /// 'system:true' 클레임으로 일반 유저 토큰과 구분하며, 하위 서비스는
-    /// 이 클레임을 확인하여 S2S 요청에 대한 별도 처리를 적용할 수 있습니다.
+    /// 시스템 간 내부 호출(S2S)에 사용되는 전용 토큰을 반환합니다.
+    /// TTL 1시간 토큰을 double-checked locking으로 캐싱하여 매 요청마다
+    /// HMAC 서명 연산이 발생하는 것을 방지합니다.
+    /// 만료 5분 전에 미리 갱신하여 경계 시점 만료를 방지합니다.
     @Override
     public String generateS2SToken() {
         long now = System.currentTimeMillis();
+        if (cachedS2SToken == null || now >= s2sTokenExpireAt - S2S_CACHE_BUFFER_MS) {
+            synchronized (this) {
+                if (cachedS2SToken == null || now >= s2sTokenExpireAt - S2S_CACHE_BUFFER_MS) {
+                    cachedS2SToken = buildS2SToken(now);
+                    s2sTokenExpireAt = now + S2S_TOKEN_EXPIRE_MS;
+                }
+            }
+        }
+        return cachedS2SToken;
+    }
+
+    private String buildS2SToken(long now) {
         return Jwts.builder()
                 .subject("SYSTEM")
                 .claim("type", "s2s")
@@ -112,15 +132,24 @@ public class JwtProvider implements TokenProvider {
                 .getPayload();
     }
 
-    /// 토큰 유효성 검사 (서명 + 만료 시간).
-    /// Gateway Filter에서 빠른 검증을 위해 boolean 반환으로 제공합니다.
-    public boolean isInvalidToken(String token) {
+    /// JWT 토큰을 파싱하여 Claims를 반환한다.
+    /// 서명 오류 또는 만료 시 빈 Optional 반환 (예외 미전파).
+    /// Gateway Filter에서 isInvalidToken() + parseClaimsFromToken() 이중 파싱을 단일 호출로 대체한다.
+    ///
+    /// @param token JWT 토큰 문자열
+    /// @return 파싱된 Claims, 실패 시 Optional.empty()
+    public Optional<Claims> tryParseClaims(String token) {
         try {
-            parseClaimsFromToken(token);
-            return false;
+            return Optional.of(parseClaimsFromToken(token));
         } catch (JwtException | IllegalArgumentException e) {
-            return true;
+            return Optional.empty();
         }
+    }
+
+    /// 토큰 유효성 검사 (서명 + 만료 시간).
+    /// tryParseClaims()를 재사용하여 이중 파싱을 제거합니다.
+    public boolean isInvalidToken(String token) {
+        return tryParseClaims(token).isEmpty();
     }
 
     /// jwt 토큰을 기반으로 Claims 반환

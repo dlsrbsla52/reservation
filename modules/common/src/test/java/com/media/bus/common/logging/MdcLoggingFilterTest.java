@@ -136,12 +136,14 @@ class MdcLoggingFilterTest {
     class memberIdTest {
 
         @Test
-        @DisplayName("인증된 사용자가 있으면 Principal name을 MDC에 주입한다")
+        @DisplayName("X-User-Id 헤더가 있으면 memberId를 MDC에 주입한다")
         void shouldInjectmemberIdForAuthenticatedUser() throws Exception {
-            authenticateAs("user-123");
+            // SecurityContextHolder 대신 Gateway가 주입한 X-User-Id 헤더로 memberId 결정
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.addHeader("X-User-Id", "user-123");
             AtomicReference<String> captured = captureFromMdc("memberId");
 
-            filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
+            filter.doFilter(request, new MockHttpServletResponse(), filterChain);
 
             assertThat(captured.get()).isEqualTo("user-123");
         }
@@ -196,9 +198,10 @@ class MdcLoggingFilterTest {
         @Test
         @DisplayName("필터 체인 실행 중 requestId와 memberId가 MDC에 존재한다")
         void shouldHaveMdcFieldsDuringFilterChainExecution() throws Exception {
-            authenticateAs("user-abc");
+            // SecurityContextHolder 대신 X-User-Id 헤더로 memberId 주입
             MockHttpServletRequest request = new MockHttpServletRequest();
             request.addHeader("X-Request-ID", "trace-001");
+            request.addHeader("X-User-Id", "user-abc");
             AtomicReference<String> capturedRequestId = new AtomicReference<>();
             AtomicReference<String> capturedmemberId = new AtomicReference<>();
             doAnswer(inv -> {
