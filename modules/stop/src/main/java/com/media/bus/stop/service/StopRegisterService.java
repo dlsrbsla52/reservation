@@ -7,11 +7,9 @@ import com.media.bus.stop.entity.Stop;
 import com.media.bus.stop.entity.StopUpdateHistory;
 import com.media.bus.stop.entity.enums.ChangeSource;
 import com.media.bus.stop.repository.StopRepository;
-import com.media.bus.stop.repository.StopUpdateHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,14 +23,15 @@ public class StopRegisterService {
 
     private final SeoulBusApiClient seoulBusApiClient;
     private final StopRepository stopRepository;
-    private final StopUpdateHistoryRepository stopUpdateHistoryRepository;
+    private final StopBulkPersistService stopBulkPersistService;
 
     /// 서울 열린데이터광장 공공 API에서 전체 버스 정류소를 가져와 DB에 저장한다.
     /// - 신규 stopId → insert
     /// - 기존 stopId + 필드 변경 → Stop 업데이트 + StopUpdateHistory 기록
     /// - 기존 stopId + 변경 없음 → 건너뜀
     /// 인가 처리는 @Authorize + AuthorizeHandlerInterceptor가 Controller 진입 전에 완료합니다.
-    @Transactional
+    /// @Transactional 제거 — StopBulkPersistService가 REQUIRES_NEW로 페이지별 독립 트랜잭션을 생성한다.
+    /// 전체 루프를 단일 트랜잭션으로 묶으면 장시간 DB 커넥션 점유 및 중간 실패 시 전체 롤백이 발생한다.
     public StopBulkRegisterResult registerAllFromPublicApi() {
 
         int totalCount = seoulBusApiClient.fetchTotalCount();
@@ -66,8 +65,8 @@ public class StopRegisterService {
                 }
             }
 
-            stopRepository.saveAll(toSave);
-            stopUpdateHistoryRepository.saveAll(histories);
+            // 페이지 단위 독립 트랜잭션 커밋 — 중간 실패 시 해당 페이지만 롤백
+            stopBulkPersistService.persistPage(toSave, histories);
 
             savedCount += toSave.size();
             updatedCount += histories.size();

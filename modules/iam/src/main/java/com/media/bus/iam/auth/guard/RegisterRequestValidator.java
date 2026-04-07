@@ -1,6 +1,6 @@
 package com.media.bus.iam.auth.guard;
 
-import com.media.bus.common.exceptions.NoAuthenticationException;
+import com.media.bus.common.exceptions.BusinessException;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.entity.member.MemberType;
 import com.media.bus.iam.auth.dto.RegisterRequest;
@@ -29,25 +29,25 @@ public class RegisterRequestValidator {
     private final MemberRepository memberRepository;
 
     public void validate(RegisterRequest request) {
-        // 1. allowlist 외 타입은 자가 가입 차단
+        // 1. allowlist 외 타입은 자가 가입 차단 (403 FORBIDDEN — 비즈니스 규칙)
         if (!REGISTRABLE_TYPES.contains(request.memberType())) {
-            throw new NoAuthenticationException(CommonResult.USER_NOT_DENY_ADMIN);
+            throw new BusinessException(CommonResult.USER_NOT_DENY_ADMIN);
         }
 
-        // 2. 비즈니스 회원은 사업자번호 필수
+        // 2. 비즈니스 회원은 사업자번호 필수 (400 — 비즈니스 검증 실패)
         if (MemberType.BUSINESS.equals(request.memberType())
                 && (request.businessNumber() == null || request.businessNumber().isBlank())) {
-            throw new NoAuthenticationException(CommonResult.BUSINESS_NUMBER_REQUIRED_FAIL);
+            throw new BusinessException(CommonResult.BUSINESS_NUMBER_REQUIRED_FAIL);
         }
 
-        // 3. loginId 중복 검사
+        // 3. loginId 중복 검사 (409 CONFLICT — 비즈니스 검증 실패)
         if (memberRepository.existsByLoginId(request.loginId())) {
-            throw new NoAuthenticationException(CommonResult.DUPLICATE_USERNAME_FAIL);
+            throw new BusinessException(CommonResult.DUPLICATE_USERNAME_FAIL);
         }
 
-        // 4. email 중복 검사
+        // 4. email 중복 검사 (409 CONFLICT — 비즈니스 검증 실패)
         if (memberRepository.existsByEmail(request.email())) {
-            throw new NoAuthenticationException(CommonResult.DUPLICATE_EMAIL_FAIL);
+            throw new BusinessException(CommonResult.DUPLICATE_EMAIL_FAIL);
         }
     }
 }

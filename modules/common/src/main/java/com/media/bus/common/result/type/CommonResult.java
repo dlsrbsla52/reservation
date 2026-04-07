@@ -43,7 +43,7 @@ public enum CommonResult implements Result {
 	
 	// Fail
 	AUTHENTICATION_FAIL("00220", "authentication.fail.msg", "인증에 실패하였습니다."),
-	BAD_CREDENTIAL_FAIL("00221", "authentication,bad-credential.fail.msg", "아이디 또는 비밀번호가 잘못되었습니다."),
+	BAD_CREDENTIAL_FAIL("00221", "authentication.bad-credential.fail.msg", "아이디 또는 비밀번호가 잘못되었습니다."),
 	USERNAME_NOT_FOUND_FAIL("00222", "authentication.username-not-found.fail.msg", "유효한 사용자 또는 토큰 정보가 존재하지 않습니다."),
 	ACCESS_TOKEN_EXPIRED_FAIL("00223", "authentication.access-token-expired.fail.msg", "토큰 유효기간이 만료되었습니다."),
 	ACCESS_TOKEN_VERIFICATION_FAIL("00224", "authentication.access-token-verification.fail.msg", "토큰이 유효하지 않습니다."),

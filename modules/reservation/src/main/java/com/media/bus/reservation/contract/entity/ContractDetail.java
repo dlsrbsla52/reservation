@@ -2,25 +2,31 @@ package com.media.bus.reservation.contract.entity;
 
 import com.media.bus.common.entity.common.DateBaseEntity;
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest;
+import com.media.bus.reservation.contract.entity.enums.PaymentCycle;
+import com.media.bus.reservation.contract.entity.enums.PaymentMethod;
 import com.media.bus.reservation.contract.entity.enums.PaymentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Getter
-@Setter
+@SuperBuilder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
     name = "contract_detail",
@@ -43,21 +49,21 @@ public class ContractDetail extends DateBaseEntity {
     @Column(name = "pay_amount", precision = 15, scale = 2)
     private BigDecimal payAmount;
 
-    @Size(max = 20)
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_cycle", nullable = false, length = 20)
-    private String paymentCycle;
+    private PaymentCycle paymentCycle;
 
-    @Size(max = 30)
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 30)
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
 
-    @Size(max = 20)
     @NotNull
+    @Enumerated(EnumType.STRING)
     @ColumnDefault("'UNPAID'")
     @Column(name = "payment_status", nullable = false, length = 20)
-    private String paymentStatus;
+    private PaymentStatus paymentStatus;
 
     @Column(name = "paid_amount", precision = 15, scale = 2)
     private BigDecimal paidAmount;
@@ -72,15 +78,14 @@ public class ContractDetail extends DateBaseEntity {
     /// @param request  계약 생성 요청 DTO
     /// @return 저장 전 ContractDetail 인스턴스
     public static ContractDetail create(Contract contract, CreateContractRequest request) {
-        ContractDetail detail = new ContractDetail();
-        detail.setContract(contract);
-        detail.setTotalAmount(request.totalAmount());
-        detail.setPayAmount(request.payAmount());
-        // paymentCycle, paymentMethod는 Enum.getName()으로 문자열 변환하여 저장
-        detail.setPaymentCycle(request.paymentCycle().getName());
-        detail.setPaymentMethod(request.paymentMethod().getName());
         // 계약 생성 시 납부 상태는 항상 미납(UNPAID)
-        detail.setPaymentStatus(PaymentStatus.UNPAID.getName());
-        return detail;
+        return ContractDetail.builder()
+                .contract(contract)
+                .totalAmount(request.totalAmount())
+                .payAmount(request.payAmount())
+                .paymentCycle(request.paymentCycle())
+                .paymentMethod(request.paymentMethod())
+                .paymentStatus(PaymentStatus.UNPAID)
+                .build();
     }
 }

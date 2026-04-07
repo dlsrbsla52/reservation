@@ -31,7 +31,7 @@ public class StopService {
     /// @param request   등록 요청 DTO
     @Transactional
     public void createOneStop(MemberPrincipal principal, @Valid SimpleStopCreateRequest request) {
-        stopCommandGuard.isStopRegistered(request.stopId());
+        stopCommandGuard.validateNotDuplicate(request.stopId());
         stopRepository.save(Stop.requestOf(request, principal.id()));
     }
 
