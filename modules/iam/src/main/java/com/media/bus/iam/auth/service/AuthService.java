@@ -117,16 +117,7 @@ public class AuthService {
         }
 
         // JOIN FETCH로 역할 조회 — N+1 방지
-        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
-        if (memberRoles.isEmpty()) {
-            throw new BaseException(AuthResult.ROLE_NOT_FOUND);
-        }
-        if (memberRoles.size() > 1) {
-            // 단일 역할 정책 위반 — 데이터 이상 감지
-            log.warn("[AuthService.login] 회원 [{}]에게 복수 역할이 존재합니다. 첫 번째 역할을 사용합니다.", member.getId());
-        }
-        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
-                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
+        MemberType memberType = resolveMemberType(member.getId());
 
         MemberPrincipal principal = MemberPrincipal.builder()
                 .id(member.getId())
@@ -170,11 +161,9 @@ public class AuthService {
     /// Redis에 저장된 토큰과 요청 토큰을 비교하여 탈취 여부를 검증합니다.
     @Transactional(readOnly = true)
     public AuthTokenResult refreshAccessToken(String refreshToken) {
-        // 서명/만료 검증
-        if (jwtProvider.isInvalidToken(refreshToken)) {
-            throw new NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL);
-        }
-        Claims claims = jwtProvider.parseClaimsFromToken(refreshToken);
+        // 서명/만료 검증 + 파싱을 tryParseClaims() 단일 호출로 통합
+        Claims claims = jwtProvider.tryParseClaims(refreshToken)
+                .orElseThrow(() -> new NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL));
         String memberId = claims.getSubject();
 
         // Redis에 저장된 토큰과 비교 (Refresh Token Rotation 지원)
@@ -186,15 +175,7 @@ public class AuthService {
                 .orElseThrow(() -> new NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL));
 
         // JOIN FETCH로 역할 조회 — 최신 역할 정보 반영
-        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
-        if (memberRoles.isEmpty()) {
-            throw new BaseException(AuthResult.ROLE_NOT_FOUND);
-        }
-        if (memberRoles.size() > 1) {
-            log.warn("[AuthService.refreshAccessToken] 회원 [{}]에게 복수 역할이 존재합니다. 첫 번째 역할을 사용합니다.", member.getId());
-        }
-        MemberType memberType = MemberType.fromName(memberRoles.get(0).getRole().getName())
-                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
+        MemberType memberType = resolveMemberType(member.getId());
 
         MemberPrincipal principal = MemberPrincipal.builder()
                 .id(member.getId())
@@ -212,6 +193,20 @@ public class AuthService {
         String newRefreshToken = jwtProvider.generateRefreshToken(memberId); // Token Rotation
 
         return new AuthTokenResult(newAccessToken, newRefreshToken);
+    }
+
+    /// 회원 ID로 역할을 조회하여 MemberType을 반환한다.
+    /// login(), refreshAccessToken()에서 반복되는 역할 조회 패턴을 통합한다.
+    private MemberType resolveMemberType(UUID memberId) {
+        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(memberId);
+        if (memberRoles.isEmpty()) {
+            throw new BaseException(AuthResult.ROLE_NOT_FOUND);
+        }
+        if (memberRoles.size() > 1) {
+            log.warn("[AuthService] 회원 [{}]에게 복수 역할이 존재합니다. 첫 번째 역할을 사용합니다.", memberId);
+        }
+        return MemberType.fromName(memberRoles.get(0).getRole().getName())
+                .orElseThrow(() -> new BaseException(AuthResult.ROLE_NOT_FOUND));
     }
 
     /// 로그아웃 처리.

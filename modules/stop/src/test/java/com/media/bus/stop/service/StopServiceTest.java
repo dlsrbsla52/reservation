@@ -67,7 +67,7 @@ class StopServiceTest {
 
         stopService.createOneStop(principal, request);
 
-        verify(stopCommandGuard).isStopRegistered("999");
+        verify(stopCommandGuard).validateNotDuplicate("999");
         verify(stopRepository).save(org.mockito.ArgumentMatchers.any(Stop.class));
     }
 }

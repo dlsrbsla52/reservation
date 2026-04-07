@@ -83,19 +83,23 @@ public class MemberService {
         return toResponse(member);
     }
 
+    /// 회원 ID로 역할을 조회하여 MemberType을 반환한다.
+    private MemberType resolveMemberType(UUID memberId) {
+        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(memberId);
+        if (memberRoles.isEmpty()) {
+            throw new BaseException(CommonResult.USERNAME_NOT_FOUND_FAIL);
+        }
+        return MemberType.fromName(memberRoles.getFirst().getRole().getName())
+            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+    }
+
     /// Member 엔티티를 MemberResponse로 변환한다.
     /// 역할 조회, MemberType 결정, 응답 생성을 통합 처리.
     ///
     /// @param member 변환할 Member 엔티티
     /// @return MemberResponse
     private MemberResponse toResponse(Member member) {
-        // JOIN FETCH로 역할 조회 (member.member_type 컬럼 제거에 따른 변경)
-        List<MemberRole> memberRoles = memberRoleRepository.findWithRoleByMemberId(member.getId());
-        if (memberRoles.isEmpty()) {
-            throw new BaseException(CommonResult.USERNAME_NOT_FOUND_FAIL);
-        }
-        MemberType memberType = MemberType.fromName(memberRoles.getFirst().getRole().getName())
-            .orElseThrow(() -> new BaseException(CommonResult.INTERNAL_ERROR));
+        MemberType memberType = resolveMemberType(member.getId());
 
         return new MemberResponse(
             member.getId(),

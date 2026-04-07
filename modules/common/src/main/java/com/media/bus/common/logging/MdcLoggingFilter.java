@@ -5,8 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -42,7 +40,7 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
             MDC.put(MDC_REQUEST_ID, requestId);
             response.setHeader(REQUEST_ID_HEADER, requestId);
 
-            resolvememberId().ifPresent(uid -> MDC.put(MDC_USER_ID, uid));
+            resolveMemberId(request).ifPresent(uid -> MDC.put(MDC_USER_ID, uid));
 
             filterChain.doFilter(request, response);
         } finally {
@@ -57,10 +55,13 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
         return (requestId != null && !requestId.isBlank()) ? requestId : UUID.randomUUID().toString();
     }
 
-    private java.util.Optional<String> resolvememberId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            return java.util.Optional.ofNullable(auth.getName());
+    // Gateway가 주입한 X-User-Id 헤더에서 memberId를 읽는다.
+    // SecurityContextHolder(ThreadLocal 기반) 대신 request 객체를 직접 사용하여
+    // Virtual Thread 환경에서도 안전하게 동작한다.
+    private java.util.Optional<String> resolveMemberId(HttpServletRequest request) {
+        String userId = request.getHeader("X-User-Id");
+        if (userId != null && !userId.isBlank()) {
+            return java.util.Optional.of(userId);
         }
         return java.util.Optional.empty();
     }

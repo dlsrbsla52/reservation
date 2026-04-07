@@ -3,6 +3,7 @@ package com.media.bus.common.configuration;
 import com.media.bus.common.client.S2SRestClientFactory;
 import com.media.bus.common.security.TokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,17 +11,17 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class RestClientConfig {
 
     private final TokenProvider tokenProvider;
+    private final ObjectProvider<HttpServletRequest> requestProvider;
 
-    public RestClientConfig(TokenProvider tokenProvider) {
+    public RestClientConfig(TokenProvider tokenProvider, ObjectProvider<HttpServletRequest> requestProvider) {
         this.tokenProvider = tokenProvider;
+        this.requestProvider = requestProvider;
     }
 
     /// S2S 전용 RestClient 팩토리 Bean.
@@ -81,12 +82,13 @@ public class RestClientConfig {
                 host.startsWith("10."); // 내부망 IP 대역 예시
     }
 
-    /// RequestContextHolder를 참조하여 현재 유저의 토큰을 안전하게 추출합니다.
-    /// 주의: 비동기(@Async) 스레드 또는 스케줄러 환경에서는 값을 가져오지 못하므로 대체 전략이 필요합니다.
+    /// ObjectProvider를 통해 현재 요청의 Authorization 헤더에서 Bearer 토큰을 추출합니다.
+    /// RequestContextHolder(ThreadLocal 기반) 대신 ObjectProvider를 사용하여
+    /// Virtual Thread 환경에서 ThreadLocal 규약 위반 없이 안전하게 동작합니다.
+    /// 비동기/스케줄러 컨텍스트(요청 없음)에서는 null을 반환합니다.
     private String extractBearerToken() {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
-            HttpServletRequest request = attributes.getRequest();
+        HttpServletRequest request = requestProvider.getIfAvailable();
+        if (request != null) {
             String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
             if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
                 return bearerToken.substring(7);
