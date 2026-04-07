@@ -6,16 +6,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
@@ -25,29 +23,13 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-/// RestClientTest는 비서블릿(non-servlet) 슬라이스 컨텍스트를 생성한다.
-/// RestClientConfig에 @ConditionalOnWebApplication(type = SERVLET)이 적용되어 있으므로
-/// Import(RestClientConfig.class)로는 조건이 false가 되어 빈이 등록되지 않는다.
-/// 해결책: @TestConfiguration으로 RestClientConfig를 직접 인스턴스화하여 빈을 수동 등록한다.
-/// C-02 수정으로 ObjectProvider<HttpServletRequest> 기반으로 변경되었으므로
-/// MockRequestHolder를 통해 테스트별로 요청 컨텍스트를 직접 제어한다.
-@RestClientTest
+/// Spring Boot 4에서 `@RestClientTest`가 제거됨에 따라 `MockitoExtension` 기반 순수 단위 테스트로 전환.
+/// `RestClient.Builder`에 `MockRestServiceServer`를 직접 바인딩하여
+/// HTTP 인터셉터(토큰 전파) 동작을 Spring 컨텍스트 없이 검증한다.
+@ExtendWith(MockitoExtension.class)
 class RestClientConfigTest {
 
-    @TestConfiguration
-    static class TestRestClientConfig {
-
-        // 테스트에서 요청 컨텍스트를 주입/해제하는 간단한 홀더 (RequestContextHolder 대체)
-        static final MockRequestHolder requestHolder = new MockRequestHolder();
-
-        @Bean
-        @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") // 이상없지만 IDE 정적 분석으로 추적이 안되어 예외 처리
-        public RestClient internalRestClient(RestClient.Builder builder, TokenProvider tokenProvider) {
-            return new RestClientConfig(tokenProvider, requestHolder).internalRestClient(builder);
-        }
-    }
-
-    /// ObjectProvider<HttpServletRequest>의 테스트 전용 구현체.
+    /// `ObjectProvider<HttpServletRequest>`의 테스트 전용 구현체.
     /// 스레드 로컬로 요청을 저장하여 테스트가 독립적으로 컨텍스트를 제어할 수 있다.
     static class MockRequestHolder implements ObjectProvider<HttpServletRequest> {
 
@@ -67,26 +49,27 @@ class RestClientConfigTest {
         }
     }
 
-    /// @RestClientTest는 슬라이스 테스트이므로 Redis, JPA 등의 인프라 Bean을 로드하지 않는다.
-    /// TokenProvider(JwtProvider)는 StringRedisTemplate과 ${jwt.secret}에 의존하므로
-    /// 슬라이스 컨텍스트에서 직접 생성이 불가하여 @MockitoBean으로 대체한다.
-    @MockitoBean
+    private final MockRequestHolder requestHolder = new MockRequestHolder();
+
+    @Mock
     private TokenProvider tokenProvider;
 
-    @Autowired
     private RestClient internalRestClient;
-
-    @Autowired
     private MockRestServiceServer mockServer;
 
     @BeforeEach
     void setUp() {
-        TestRestClientConfig.requestHolder.clear();
+        // MockRestServiceServer.bindTo(builder)로 목 서버를 바인딩한 뒤
+        // 같은 builder를 RestClientConfig.buildWith()에 전달하여 인터셉터까지 적용된 RestClient를 조립한다.
+        RestClient.Builder builder = RestClient.builder();
+        mockServer = MockRestServiceServer.bindTo(builder).build();
+        internalRestClient = new RestClientConfig(tokenProvider, requestHolder).buildWith(builder);
+        requestHolder.clear();
     }
 
     @AfterEach
     void tearDown() {
-        TestRestClientConfig.requestHolder.clear();
+        requestHolder.clear();
     }
 
     @Test
@@ -96,7 +79,7 @@ class RestClientConfigTest {
         String validUserToken = "VALID_USER_JWT_TOKEN";
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + validUserToken);
-        TestRestClientConfig.requestHolder.set(request);
+        requestHolder.set(request);
 
         String targetUri = "http://internal-service/api/v1/resource";
 
@@ -149,16 +132,17 @@ class RestClientConfigTest {
         String validUserToken = "SECRET_USER_TOKEN";
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + validUserToken);
-        TestRestClientConfig.requestHolder.set(request);
+        requestHolder.set(request);
 
         // 대상이 신뢰할 수 없는 외부 도메인 (예: google.com)
         String externalUri = "https://www.google.com/api/v1/search";
 
         // Mock Server: Authorization 헤더가 '없어야' 함을 기대
+        // Spring Framework 7에서 HttpHeaders.containsKey(String) → containsHeader(String)로 변경됨
         mockServer.expect(requestTo(externalUri))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(mockRequest -> {
-                    if (mockRequest.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                    if (mockRequest.getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
                         throw new AssertionError("Authorization header should not be present for external services");
                     }
                 })

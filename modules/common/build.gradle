@@ -36,7 +36,8 @@ dependencies {
     // 수정 사유: springdoc 3.0.0 버전은 Spring Boot 4.0 및 Spring Framework 7.0 아키텍처를 타겟으로 동작합니다.
     // 현재 운용 중인 Spring Boot 3.4.13 환경과 메이저 버전이 불일치하여 의존성 전이(Transitive Dependency) 과정에서 4.0.0 모듈을 강제로 주입합니다.
     // 조치 사항: Spring Boot 3.x 생태계와 안정적으로 호환되는 2.x 버전의 최신 릴리스인 2.8.4 버전으로 변경하여 의존성 트리를 정렬합니다.
-    api 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
+    // springdoc 3.x — Spring Boot 4 / Spring Framework 7 지원 (2.x는 Spring Boot 3 전용)
+    api 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
 
     // queryDSL
     api "com.querydsl:querydsl-jpa:5.1.0:jakarta"
@@ -52,7 +53,8 @@ dependencies {
     api 'software.amazon.awssdk:lambda'
     api 'software.amazon.awssdk:ses'
 
-    api 'io.github.resilience4j:resilience4j-spring-boot3:2.3.0'
+    // resilience4j-spring-boot4: Spring Boot 4 전용 artifact (spring-boot3는 Spring Boot 4에서 명시적으로 예외 throw)
+    api 'io.github.resilience4j:resilience4j-spring-boot4:2.4.0'
 
     runtimeOnly 'com.h2database:h2'
     runtimeOnly 'org.postgresql:postgresql'

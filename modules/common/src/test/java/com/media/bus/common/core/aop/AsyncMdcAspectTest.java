@@ -5,16 +5,17 @@ import com.media.bus.common.security.TokenProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/// Spring Boot 4에서 @Nested 클래스 컨텍스트가 외부 클래스의 @TestConfiguration을 로드하지 않는
+/// Breaking Change로 인해 @Nested 구조를 제거하고 평탄화함.
 @SpringBootTest
 @TestPropertySource(properties = {
     "hig.bulkhead.database-name=orderDatabase",
@@ -39,9 +42,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AsyncMdcAspectTest {
 
     // TokenProvider(JwtProvider)는 StringRedisTemplate과 jwt.secret에 의존합니다.
-    // @MockitoBean으로 등록하여 Redis/JWT 인프라 없이 ApplicationContext가 올라오도록 합니다.
     @MockitoBean
     private TokenProvider tokenProvider;
+
+    // RestClientConfig.internalRestClient(RestClient.Builder) 팩토리 메서드 호출을 건너뛰기 위해 선점 Mock 등록
+    @MockitoBean
+    private RestClient internalRestClient;
 
     @Autowired
     private AsyncTestService asyncTestService;
@@ -49,48 +55,44 @@ public class AsyncMdcAspectTest {
     @BeforeEach void setUp()    { MDC.clear(); }
     @AfterEach  void tearDown() { MDC.clear(); }
 
-    @Nested
-    @DisplayName("@Async MDC 전파")
-    class AsyncMdcPropagationTest {
+    @Test
+    @DisplayName("@Async MDC 전파 — 호출 스레드의 MDC가 비동기 실행 스레드로 전파된다")
+    void shouldPropagateMdcToAsyncThread() throws Exception {
+        MDC.put("requestId", "async-test-req-001");
+        MDC.put("memberId", "async-test-user");
 
-        @Test
-        @DisplayName("호출 스레드의 MDC가 비동기 실행 스레드로 전파된다")
-        void shouldPropagateMdcToAsyncThread() throws Exception {
-            MDC.put("requestId", "async-test-req-001");
-            MDC.put("memberId", "async-test-user");
+        Map<String, String> asyncMdc = asyncTestService.captureMdc()
+            .get(5, TimeUnit.SECONDS);
 
-            Map<String, String> asyncMdc = asyncTestService.captureMdc()
-                .get(5, TimeUnit.SECONDS);
+        assertThat(asyncMdc).containsEntry("requestId", "async-test-req-001")
+                            .containsEntry("memberId",    "async-test-user");
+    }
 
-            assertThat(asyncMdc).containsEntry("requestId", "async-test-req-001")
-                                .containsEntry("memberId",    "async-test-user");
-        }
+    @Test
+    @DisplayName("@Async MDC 전파 — MDC가 없는 환경(@Scheduled, 이벤트 리스너 등)에서도 안전하게 실행된다")
+    void shouldHandleEmptyMdcSafely() throws Exception {
+        // MDC 비어있는 상태 — HTTP 컨텍스트 없는 배치/스케줄러 시뮬레이션
+        Map<String, String> asyncMdc = asyncTestService.captureMdc()
+            .get(5, TimeUnit.SECONDS);
 
-        @Test
-        @DisplayName("MDC가 없는 환경(@Scheduled, 이벤트 리스너 등)에서도 안전하게 실행된다")
-        void shouldHandleEmptyMdcSafely() throws Exception {
-            // MDC 비어있는 상태 — HTTP 컨텍스트 없는 배치/스케줄러 시뮬레이션
-            Map<String, String> asyncMdc = asyncTestService.captureMdc()
-                .get(5, TimeUnit.SECONDS);
+        assertThat(asyncMdc).isNotNull().isEmpty();
+    }
 
-            assertThat(asyncMdc).isNotNull().isEmpty();
-        }
+    @Test
+    @DisplayName("@Async MDC 전파 — @Async 완료 후 호출 스레드의 MDC가 원래 상태로 복원된다")
+    void shouldRestoreCallerThreadMdcAfterAsyncCall() throws Exception {
+        MDC.put("requestId", "caller-req-restore-test");
+        MDC.put("memberId",    "caller-user");
 
-        @Test
-        @DisplayName("@Async 완료 후 호출 스레드의 MDC가 원래 상태로 복원된다")
-        void shouldRestoreCallerThreadMdcAfterAsyncCall() throws Exception {
-            MDC.put("requestId", "caller-req-restore-test");
-            MDC.put("memberId",    "caller-user");
+        asyncTestService.captureMdc().get(5, TimeUnit.SECONDS);
 
-            asyncTestService.captureMdc().get(5, TimeUnit.SECONDS);
-
-            // Aspect finally 블록이 호출 스레드 MDC를 복원해야 한다
-            assertThat(MDC.get("requestId")).isEqualTo("caller-req-restore-test");
-            assertThat(MDC.get("memberId")).isEqualTo("caller-user");
-        }
+        // Aspect finally 블록이 호출 스레드 MDC를 복원해야 한다
+        assertThat(MDC.get("requestId")).isEqualTo("caller-req-restore-test");
+        assertThat(MDC.get("memberId")).isEqualTo("caller-user");
     }
 
     @TestConfiguration
+    @EnableAspectJAutoProxy
     static class TestConfig {
         @Bean
         public AsyncTestService asyncTestService() {
