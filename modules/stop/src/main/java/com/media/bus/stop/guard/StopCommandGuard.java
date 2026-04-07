@@ -1,6 +1,7 @@
 package com.media.bus.stop.guard;
 
-import com.media.bus.common.exceptions.ServiceException;
+import com.media.bus.common.exceptions.BusinessException;
+import org.springframework.http.HttpStatus;
 import com.media.bus.stop.repository.StopRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,6 @@ public class StopCommandGuard {
 
     public void isStopRegistered(String stopId) {
         stopRepository.findByStopId(stopId)
-                .orElseThrow(() -> new ServiceException("등록된 정류장을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "등록된 정류장을 찾을 수 없습니다."));
     }
 }
