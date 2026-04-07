@@ -16,6 +16,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -133,6 +134,13 @@ public class TransactionalBulkheadAspectTest {
     @TestConfiguration
     @EnableAspectJAutoProxy
     static class TestConfig {
+        // Spring Boot 4에서 RestClient.Builder 자동 구성이 변경되어 테스트 컨텍스트에서 누락됨.
+        // RestClientConfig.internalRestClient() 빈이 이 Builder를 필요로 하므로 수동 등록.
+        @Bean
+        public RestClient.Builder restClientBuilder() {
+            return RestClient.builder();
+        }
+
         @Bean
         public TestService testService() {
             return new TestService();
