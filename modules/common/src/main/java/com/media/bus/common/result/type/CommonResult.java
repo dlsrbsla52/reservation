@@ -3,6 +3,7 @@ package com.media.bus.common.result.type;
 import com.media.bus.common.result.Result;
 import lombok.Getter;
 import lombok.ToString;
+import org.springframework.http.HttpStatus;
 
 import java.util.function.UnaryOperator;
 
@@ -51,14 +52,14 @@ public enum CommonResult implements Result {
 	TOKEN_GENERATE_FAIL("00240", "token.generate.fail.msg", "토큰 생성에 실패하였습니다."),
 	TOKEN_VERIFICATION_FAIL("00241", "token.verification.fail.msg", "검증 토큰이 유효하지 않거나 기간이 만료되었습니다."),
 	TOKEN_NOEXIST_REVOKE_FAIL("00242", "token.no-exist.revoke.fail.msg", "제거 대상 토큰이 저장소에 존재하지 않습니다."),
-    DUPLICATE_USERNAME_FAIL("00250", "authentication.duplicate-username.fail.msg", "이미 사용 중인 아이디입니다."), // 중복 아이디 체크 실패
-    DUPLICATE_EMAIL_FAIL("00251", "authentication.duplicate-email.fail.msg", "이미 사용 중인 이메일입니다."), // 중복 이메일 체크 실패
+    DUPLICATE_USERNAME_FAIL("00250", "authentication.duplicate-username.fail.msg", "이미 사용 중인 아이디입니다.", HttpStatus.CONFLICT), // 중복 아이디 체크 실패
+    DUPLICATE_EMAIL_FAIL("00251", "authentication.duplicate-email.fail.msg", "이미 사용 중인 이메일입니다.", HttpStatus.CONFLICT), // 중복 이메일 체크 실패
     BUSINESS_NUMBER_REQUIRED_FAIL("00252", "registration.business-number.required.fail.msg", "비즈니스 회원 가입 시 사업자 번호는 필수입니다."), // 필수 파라미터 누락
-    ACCOUNT_SUSPENDED_FAIL("00253", "account.suspended.fail.msg", "이용이 정지된 계정입니다. 고객센터에 문의해주세요."), // 계정 비활성화 상태
-    ACCOUNT_WITHDRAWN_FAIL("00254", "account.withdrawn.fail.msg", "탈퇴된 계정입니다."), // 탈퇴 계정 접근
+    ACCOUNT_SUSPENDED_FAIL("00253", "account.suspended.fail.msg", "이용이 정지된 계정입니다. 고객센터에 문의해주세요.", HttpStatus.FORBIDDEN), // 계정 비활성화 상태
+    ACCOUNT_WITHDRAWN_FAIL("00254", "account.withdrawn.fail.msg", "탈퇴된 계정입니다.", HttpStatus.FORBIDDEN), // 탈퇴 계정 접근
     EMAIL_TOKEN_INVALID_FAIL("00255", "authentication.email-token.invalid.fail.msg", "유효하지 않거나 만료된 이메일 인증 토큰입니다."), // 이메일 인증 실패
-    USER_NOT_FOUND_FAIL("00256", "user.not-found.fail.msg", "회원 정보를 찾을 수 없습니다."), // 조회 결과 부재
-    USER_NOT_DENY_ADMIN("00257", "user.not-found.fail.msg", "어드민 회원은 신청할 수 없습니다."), // 조회 결과 부재
+    USER_NOT_FOUND_FAIL("00256", "user.not-found.fail.msg", "회원 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND), // 조회 결과 부재
+    USER_NOT_DENY_ADMIN("00257", "user.not-found.fail.msg", "어드민 회원은 신청할 수 없습니다.", HttpStatus.FORBIDDEN), // 조회 결과 부재
     VALIDATION_FAIL("00260", "validation.fail.msg", "입력 값 검증에 실패하였습니다."), // @Valid 검증 실패
     BULKHEAD_FULL("00270", "bulkhead.full.msg", "서버가 처리할 수 있는 최대 동시 요청 수를 초과하였습니다. 잠시 후 다시 시도해 주세요.") // Resilience4j Bulkhead 동시 요청 초과
     ;
@@ -69,15 +70,27 @@ public enum CommonResult implements Result {
 
 	@Getter
 	private final String messageId;
-	
+
 	@Getter
 	private final String message;
-	
-	
+
+	@Getter
+	private final HttpStatus httpStatus;
+
 	CommonResult(String code, String messageId, String message) {
+		this(code, messageId, message, HttpStatus.BAD_REQUEST);
+	}
+
+	CommonResult(String code, String messageId, String message, HttpStatus httpStatus) {
 		this.code = code;
 		this.messageId = messageId;
 		this.message = message;
+		this.httpStatus = httpStatus;
+	}
+
+	@Override
+	public HttpStatus httpStatus() {
+		return httpStatus;
 	}
 
 	/// operator의 실행결과로 받은 메시지가 존재할 경우 그 메시지를 리턴하며 존재하지 않을 경우 message의 값을 리턴함

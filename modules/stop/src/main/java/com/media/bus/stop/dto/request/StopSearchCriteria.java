@@ -1,6 +1,6 @@
 package com.media.bus.stop.dto.request;
 
-import com.media.bus.common.exceptions.ServiceException;
+import com.media.bus.common.exceptions.BusinessException;
 import com.media.bus.common.result.type.CommonResult;
 
 import java.util.UUID;
@@ -25,6 +25,6 @@ public sealed interface StopSearchCriteria
         if (pk != null)       return new ByPk(pk);
         if (stopId != null)   return new ByStopId(stopId);
         if (stopName != null) return new ByStopName(stopName);
-        throw new ServiceException(CommonResult.REQUEST_FAIL, "유효한 값을 전달해주세요.");
+        throw new BusinessException(CommonResult.REQUEST_FAIL, "유효한 값을 전달해주세요.");
     }
 }

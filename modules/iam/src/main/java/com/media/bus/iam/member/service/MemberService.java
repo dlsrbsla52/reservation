@@ -1,7 +1,7 @@
 package com.media.bus.iam.member.service;
 
 import com.media.bus.common.exceptions.BaseException;
-import com.media.bus.common.exceptions.ServiceException;
+import com.media.bus.common.exceptions.BusinessException;
 import com.media.bus.common.result.type.CommonResult;
 import com.media.bus.contract.entity.member.MemberType;
 import com.media.bus.contract.security.JwtProvider;
@@ -41,7 +41,7 @@ public class MemberService {
         );
 
         Member member = memberRepository.findById(principal.id())
-            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+            .orElseThrow(() -> new BusinessException(CommonResult.USER_NOT_FOUND_FAIL));
 
         return toResponse(member);
     }
@@ -54,7 +54,7 @@ public class MemberService {
     public MemberResponse findByMemberId(@NotBlank @NotEmpty String memberId) {
 
         Member member = memberRepository.findById(UUID.fromString(memberId))
-            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+            .orElseThrow(() -> new BusinessException(CommonResult.USER_NOT_FOUND_FAIL));
 
         return toResponse(member);
     }
@@ -66,7 +66,7 @@ public class MemberService {
     public MemberResponse findByLoginId(@NotBlank @NotEmpty String loginId) {
 
         Member member = memberRepository.findByLoginId(loginId)
-            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+            .orElseThrow(() -> new BusinessException(CommonResult.USER_NOT_FOUND_FAIL));
 
         return toResponse(member);
     }
@@ -78,7 +78,7 @@ public class MemberService {
     public MemberResponse findByEmail(@NotBlank @NotEmpty String email) {
 
         Member member = memberRepository.findByEmail(email)
-            .orElseThrow(() -> new ServiceException(CommonResult.USER_NOT_FOUND_FAIL));
+            .orElseThrow(() -> new BusinessException(CommonResult.USER_NOT_FOUND_FAIL));
 
         return toResponse(member);
     }
