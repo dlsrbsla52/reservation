@@ -1,19 +1,22 @@
 # 테스트 환경 전용 설정
-# @DataJpaTest는 기본적으로 DataSource를 자동 교체(AutoConfigureTestDatabase)하므로
-# replace: none 으로 비활성화하여 아래에서 직접 설정한 H2 PostgreSQL 호환 모드 URL을 사용하게 합니다.
-# TIMESTAMPTZ, CREATE SCHEMA 등 PostgreSQL 전용 문법을 H2에서 처리하기 위함입니다.
+# spring.test.database.replace: none — @DataJpaTest의 datasource 자동 교체를 비활성화하여
+# 아래에서 직접 설정한 H2 PostgreSQL 호환 모드 URL을 사용합니다.
+#
+# Spring Boot 4에서 @DataJpaTest는 Liquibase를 슬라이스에 포함하지 않으므로
+# ddl-auto: create-drop 으로 전환하고, INIT 파라미터로 스키마를 사전 생성합니다.
 spring:
   test:
     database:
       replace: none
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    # INIT: auth 스키마를 H2 연결 시점에 생성하여 Hibernate DDL이 올바른 스키마에 테이블을 만들 수 있게 함
+    url: "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE SCHEMA IF NOT EXISTS auth\\;CREATE SCHEMA IF NOT EXISTS member"
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: none
+      # Spring Boot 4에서 Liquibase가 @DataJpaTest 슬라이스에 포함되지 않아 ddl-auto로 테이블 생성
+      ddl-auto: create-drop
   liquibase:
-    enabled: true
-    change-log: classpath:/db/changelog/db.changelog-master.xml
+    enabled: false

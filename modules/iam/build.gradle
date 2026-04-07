@@ -10,4 +10,7 @@ test {
 dependencies {
     implementation project(':modules:common')
     implementation project(':modules:auth-contract')
+
+    // Spring Boot 4에서 @DataJpaTest가 spring-boot-data-jpa-test 모듈로 분리됨
+    testImplementation 'org.springframework.boot:spring-boot-data-jpa-test'
 }
