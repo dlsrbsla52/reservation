@@ -7,8 +7,10 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -16,7 +18,8 @@ import java.util.List;
 import java.util.UUID;
 
 @Getter
-@Setter
+@SuperBuilder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "reservation", schema = "reservation")
 public class Reservation extends DateBaseEntity {
@@ -40,4 +43,25 @@ public class Reservation extends DateBaseEntity {
     @OneToMany(mappedBy = "reservation", fetch = FetchType.LAZY)
     private List<ReservationConsultation> reservationConsultations;
 
+    /// 예약 생성 팩토리 메서드.
+    /// CLAUDE.md "정적 팩토리 메서드로 생성 강제" 규약 적용.
+    ///
+    /// @param memberId                  예약 회원 ID
+    /// @param stopId                    예약 정류소 ID
+    /// @param consultationRequestedAt   상담 요청 일시
+    /// @param desiredContractStartDate  희망 계약 시작일
+    /// @return 저장 전 Reservation 인스턴스
+    public static Reservation create(
+            UUID memberId,
+            UUID stopId,
+            OffsetDateTime consultationRequestedAt,
+            LocalDate desiredContractStartDate
+    ) {
+        return Reservation.builder()
+                .memberId(memberId)
+                .stopId(stopId)
+                .consultationRequestedAt(consultationRequestedAt)
+                .desiredContractStartDate(desiredContractStartDate)
+                .build();
+    }
 }

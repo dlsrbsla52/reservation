@@ -1,6 +1,7 @@
 package com.media.bus.reservation.contract.dto.response;
 
 import com.media.bus.reservation.contract.entity.Contract;
+import com.media.bus.reservation.contract.entity.enums.ContractStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;
@@ -23,7 +24,7 @@ public record ContractResponse(
     String contractName,
 
     @Schema(description = "계약 상태")
-    String status,
+    ContractStatus status,
 
     @Schema(description = "계약 시작일")
     OffsetDateTime contractStartDate,

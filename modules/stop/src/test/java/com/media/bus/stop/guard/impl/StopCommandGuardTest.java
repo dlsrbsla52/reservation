@@ -1,6 +1,7 @@
 package com.media.bus.stop.guard.impl;
 
-import com.media.bus.common.exceptions.ServiceException;
+import com.media.bus.common.exceptions.BusinessException;
+import com.media.bus.stop.entity.Stop;
 import com.media.bus.stop.guard.StopCommandGuard;
 import com.media.bus.stop.repository.StopRepository;
 import org.junit.jupiter.api.Test;
@@ -15,9 +16,10 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-/// StopCommandGuardImpl 단위 테스트.
-/// JwtProvider 의존성은 인가 인터셉터로 이전되어 제거되었습니다.
-/// Repository 기반 비즈니스 규칙 검증만 테스트합니다.
+/// StopCommandGuard 단위 테스트.
+/// H-01 수정 후 validateNotDuplicate() 동작 검증:
+/// - stopId가 이미 존재하면 → 409 CONFLICT (중복 방지)
+/// - stopId가 존재하지 않으면 → 예외 없음 (신규 등록 허용)
 @ExtendWith(MockitoExtension.class)
 class StopCommandGuardTest {
 
@@ -28,16 +30,16 @@ class StopCommandGuardTest {
     StopCommandGuard stopCommandGuard;
 
     @Test
-    void isStopRegistered_등록된_정류소_예외없음() {
-        when(stopRepository.findByStopId("123")).thenReturn(Optional.of(new com.media.bus.stop.entity.Stop()));
-        assertThatCode(() -> stopCommandGuard.isStopRegistered("123")).doesNotThrowAnyException();
+    void validateNotDuplicate_미등록_정류소_예외없음() {
+        when(stopRepository.findByStopId("999")).thenReturn(Optional.empty());
+        assertThatCode(() -> stopCommandGuard.validateNotDuplicate("999")).doesNotThrowAnyException();
     }
 
     @Test
-    void isStopRegistered_미등록_정류소_ServiceException_발생() {
-        when(stopRepository.findByStopId("999")).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> stopCommandGuard.isStopRegistered("999"))
-                .isInstanceOf(ServiceException.class)
-                .hasMessageContaining("등록된 정류장을 찾을 수 없습니다.");
+    void validateNotDuplicate_이미등록된_정류소_BusinessException_발생() {
+        when(stopRepository.findByStopId("123")).thenReturn(Optional.of(new Stop()));
+        assertThatThrownBy(() -> stopCommandGuard.validateNotDuplicate("123"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("이미 등록된 정류장입니다.");
     }
 }

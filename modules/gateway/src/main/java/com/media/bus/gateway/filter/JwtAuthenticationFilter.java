@@ -70,15 +70,15 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String token = authHeader.substring(7);
 
-        // JWT 토큰 검증 (서명 + 만료)
-        if (jwtProvider.isInvalidToken(token)) {
+        // JWT 토큰 검증 + 클레임 파싱을 단일 호출로 통합하여 HMAC 연산 이중 수행 방지
+        Claims claims = jwtProvider.tryParseClaims(token).orElse(null);
+        if (claims == null) {
             log.warn("[JwtAuthenticationFilter] 유효하지 않은 토큰. path={}", path);
             return unauthorized(exchange);
         }
 
         // 클레임 추출 및 하위 서비스로 전달할 헤더 주입
         try {
-            Claims claims = jwtProvider.parseClaimsFromToken(token);
             MemberPrincipal principal = jwtProvider.getPrincipalFromClaims(claims);
 
             // 하위 서비스는 이 헤더를 신뢰하여 별도 JWT 파싱 없이 사용자 정보를 활용합니다.

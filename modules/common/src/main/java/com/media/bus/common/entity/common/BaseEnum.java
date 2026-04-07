@@ -24,7 +24,7 @@ public interface BaseEnum {
     /// @return 일치하는 Enum 상수가 존재하면 Optional로 래핑하여 반환
     @NullMarked
     static <T extends Enum<T> & BaseEnum> Optional<T> fromName(Class<T> enumClass, String name) {
-        if (name.isBlank()) {
+        if (name == null || name.isBlank()) {
             return Optional.empty();
         }
         return Arrays.stream(enumClass.getEnumConstants())

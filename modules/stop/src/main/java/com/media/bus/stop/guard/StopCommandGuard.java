@@ -1,6 +1,7 @@
 package com.media.bus.stop.guard;
 
-import com.media.bus.common.exceptions.ServiceException;
+import com.media.bus.common.exceptions.BusinessException;
+import org.springframework.http.HttpStatus;
 import com.media.bus.stop.repository.StopRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +18,11 @@ public class StopCommandGuard {
 
     private final StopRepository stopRepository;
 
-    public void isStopRegistered(String stopId) {
-        stopRepository.findByStopId(stopId)
-                .orElseThrow(() -> new ServiceException("등록된 정류장을 찾을 수 없습니다."));
+    /// 동일 stopId가 이미 등록되어 있으면 예외를 던진다 (중복 등록 방지).
+    /// 신규 등록 시 호출하며, 존재하지 않는 경우가 정상이다.
+    public void validateNotDuplicate(String stopId) {
+        stopRepository.findByStopId(stopId).ifPresent(s -> {
+            throw new BusinessException(HttpStatus.CONFLICT, "이미 등록된 정류장입니다.");
+        });
     }
 }
