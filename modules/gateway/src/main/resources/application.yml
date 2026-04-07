@@ -12,35 +12,39 @@ spring:
       port: ${REDIS_PORT:6379}
   cloud:
     gateway:
-      # CORS 설정 — withCredentials: true 사용 시 allowedOrigins에 * 와일드카드 불가
-      # 운영 도메인은 CORS_ALLOWED_ORIGIN 환경변수로 주입합니다.
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins:
-              - "${CORS_ALLOWED_ORIGIN}"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
-      routes:
-        - id: iam-service
-          uri: http://iam-service:8181
-          predicates:
-            - Path=/api/v1/auth/**, /api/v1/member/**, /api/v1/admin/**
-        - id: stop-service
-          uri: http://stop-service:8182
-          predicates:
-            - Path=/api/v1/stop/**
-        - id: reservation-service
-          uri: http://reservation-service:8183
-          predicates:
-            - Path=/api/v1/reservation/**, /api/v1/contract/**
+      # Spring Cloud Gateway 5.x (spring-cloud-starter-gateway-server-webflux)
+      # GatewayProperties prefix 변경: spring.cloud.gateway → spring.cloud.gateway.server.webflux
+      server:
+        webflux:
+          # CORS 설정 — withCredentials: true 사용 시 allowedOrigins에 * 와일드카드 불가
+          # 운영 도메인은 CORS_ALLOWED_ORIGIN 환경변수로 주입합니다.
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "${CORS_ALLOWED_ORIGIN}"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
+          routes:
+            - id: iam-service
+              uri: http://iam-service:8181
+              predicates:
+                - Path=/api/v1/auth/**, /api/v1/member/**, /api/v1/admin/**
+            - id: stop-service
+              uri: http://stop-service:8182
+              predicates:
+                - Path=/api/v1/stop/**
+            - id: reservation-service
+              uri: http://reservation-service:8183
+              predicates:
+                - Path=/api/v1/reservation/**, /api/v1/contract/**
 
 hig:
   bulkhead:
