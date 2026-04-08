@@ -1,7 +1,6 @@
 package com.media.bus.gateway.healthcheck;
 
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.NoDataView;
+import com.media.bus.common.web.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,9 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthCheck {
 
     @GetMapping("/health-check")
-    public NoDataView healthCheck() {
-        return NoDataView.builder()
-                .result(CommonResult.REQUEST_SUCCESS)
-                .build();
+    public ApiResponse<Void> healthCheck() {
+        return ApiResponse.success();
     }
 }

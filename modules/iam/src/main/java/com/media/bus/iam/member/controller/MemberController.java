@@ -1,7 +1,6 @@
 package com.media.bus.iam.member.controller;
 
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.DataView;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.iam.member.dto.FindMemberByEmailRequest;
 import com.media.bus.iam.member.dto.FindMemberByJwtRequest;
 import com.media.bus.iam.member.dto.FindMemberByLoginIdRequest;
@@ -28,41 +27,29 @@ public class MemberController {
     /// 로그인시 사용된 jwt 토큰으로 회원 조회.
     @Operation(summary = "회원조회", description = "jtw를 기준으로 회원을 조회합니다.")
     @PostMapping("/jwt")
-    public DataView<MemberResponse> findByJwtMember(@RequestBody @Valid FindMemberByJwtRequest request) {
-        return DataView.<MemberResponse>builder()
-            .result(CommonResult.SUCCESS)
-            .data(memberService.findByJwtMember(request.jwt()))
-            .build();
+    public ApiResponse<MemberResponse> findByJwtMember(@RequestBody @Valid FindMemberByJwtRequest request) {
+        return ApiResponse.success(memberService.findByJwtMember(request.jwt()));
     }
 
     /// 유저 아이디를 통한 회원 조회.
     @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
     @PostMapping("/id")
-    public DataView<MemberResponse> findByMemberId(@RequestBody @Valid FindMemberByMemberIdRequest request) {
-        return DataView.<MemberResponse>builder()
-            .result(CommonResult.SUCCESS)
-            .data(memberService.findByMemberId(request.memberId()))
-            .build();
+    public ApiResponse<MemberResponse> findByMemberId(@RequestBody @Valid FindMemberByMemberIdRequest request) {
+        return ApiResponse.success(memberService.findByMemberId(request.memberId()));
     }
 
     /// 유저 아이디를 통한 회원 조회.
     @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
     @PostMapping("/login-id")
-    public DataView<MemberResponse> findByLoginId(@RequestBody @Valid FindMemberByLoginIdRequest request) {
-        return DataView.<MemberResponse>builder()
-            .result(CommonResult.SUCCESS)
-            .data(memberService.findByLoginId(request.loginId()))
-            .build();
+    public ApiResponse<MemberResponse> findByLoginId(@RequestBody @Valid FindMemberByLoginIdRequest request) {
+        return ApiResponse.success(memberService.findByLoginId(request.loginId()));
     }
 
     /// 유저 이메일을 통한 회원 조회.
     @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
     @PostMapping("/email")
-    public DataView<MemberResponse> findByEmail(@RequestBody @Valid FindMemberByEmailRequest request) {
-        return DataView.<MemberResponse>builder()
-            .result(CommonResult.SUCCESS)
-            .data(memberService.findByEmail(request.email()))
-            .build();
+    public ApiResponse<MemberResponse> findByEmail(@RequestBody @Valid FindMemberByEmailRequest request) {
+        return ApiResponse.success(memberService.findByEmail(request.email()));
     }
 
 }

@@ -1,7 +1,6 @@
 package com.media.bus.stop.controller;
 
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.DataView;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.contract.entity.member.MemberCategory;
 import com.media.bus.contract.entity.member.Permission;
 import com.media.bus.contract.security.annotation.Authorize;
@@ -29,10 +28,7 @@ public class StopRegisterController {
     )
     @Authorize(categories = {MemberCategory.ADMIN}, permissions = {Permission.MANAGE})
     @PostMapping("/bulk")
-    public DataView<StopBulkRegisterResult> registerAllFromPublicApi() {
-        return DataView.<StopBulkRegisterResult>builder()
-                .result(CommonResult.SUCCESS)
-                .data(stopRegisterService.registerAllFromPublicApi())
-                .build();
+    public ApiResponse<StopBulkRegisterResult> registerAllFromPublicApi() {
+        return ApiResponse.success(stopRegisterService.registerAllFromPublicApi());
     }
 }

@@ -32,25 +32,18 @@ Base package: `com.media.bus.common`
 hig:
   bulkhead:
     database-name: <name>   # resilience4j.bulkhead.instances 키와 일치해야 함
-
-rest:
-  service:
-    apply-patterns:
-      - /api/**             # ResponseAdvisor가 응답을 래핑할 경로 패턴
 ```
 
-## 응답 래핑 (ResponseBodyWrapper)
+## 응답 구조
 
-`ResponseAdvisor`가 `@Order` 순으로 `ResponseBodyWrapper` 빈을 순회하여 응답 래핑.
+컨트롤러는 `ApiResponse<T>`를 직접 반환한다. 래핑 인프라(ResponseBodyAdvice) 없음.
 
-| 순서 | 래퍼 | 조건 → 결과 |
-|------|------|-------------|
-| 1 | `PassthroughBodyWrapper` | `AbstractView` or `String` → 그대로 통과 |
-| 2 | `NullBodyWrapper` | `null` → `NoDataView` |
-| 3 | `PageResultBodyWrapper` | `PageResult` → `PageView` |
-| 4 | `DefaultObjectBodyWrapper` | 나머지 → `DataView` |
-
-새 래퍼 추가: `ResponseBodyWrapper` 구현 후 `@Bean` 등록.
+| 팩토리 메서드 | 용도 |
+|---|---|
+| `ApiResponse.success(T data)` | 데이터 있는 성공 응답 |
+| `ApiResponse.success()` | 데이터 없는 성공 응답 |
+| `ApiResponse.successWithMessage(String)` | 커스텀 메시지 성공 응답 |
+| `ApiResponse.page(List<E>)` | 목록 응답 (`ListData<E>` 로 감쌈) |
 
 ## 예외 처리 (ExceptionAdvisor)
 

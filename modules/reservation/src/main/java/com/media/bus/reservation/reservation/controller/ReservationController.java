@@ -1,8 +1,6 @@
 package com.media.bus.reservation.reservation.controller;
 
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.DataView;
-import com.media.bus.common.web.response.NoDataView;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.contract.security.MemberPrincipal;
 import com.media.bus.contract.security.annotation.Authorize;
 import com.media.bus.contract.security.annotation.CurrentMember;
@@ -12,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,30 +30,22 @@ public class ReservationController {
     @Authorize
     @Operation(summary = "예약 생성", description = "새로운 예약을 생성합니다.")
     @PostMapping
-    public NoDataView createReservation(
+    public ApiResponse<Void> createReservation(
         @CurrentMember MemberPrincipal principal,
         @RequestBody @Valid CreateStopReservationRequest request
     ) {
-
         facade.createReservation(principal, request);
-
-        return NoDataView.builder()
-                .result(CommonResult.SUCCESS)
-                .build();
+        return ApiResponse.success();
     }
 
     /// 내 예약 목록 조회.
     @Operation(summary = "내 예약 목록 조회", description = "로그인한 사용자의 예약 목록을 조회합니다.")
-    @org.springframework.web.bind.annotation.GetMapping("/me")
-    public DataView<List<Object>> getMyReservations(
+    @GetMapping("/me")
+    public ApiResponse<List<Object>> getMyReservations(
         @CurrentMember MemberPrincipal principal
     ) {
         // TODO: 예약 목록 조회 로직 구현
-        return DataView.<List<Object>>builder()
-                .result(CommonResult.SUCCESS)
-                .data(List.of())
-                .build();
+        return ApiResponse.success(List.of());
     }
-
 
 }
