@@ -1,17 +1,4 @@
 package com.media.bus.common.web.response;
 
-import lombok.Builder;
-import lombok.Data;
-
-/// Page에 대한 메타 정보
-@Data
-@Builder
-public class PageData {
-	
-	private long totalCnt;
-	
-	private int pageRows;
-	
-	private int pageNum;
-
-}
+/// 페이지 메타 정보
+public record PageData(long totalCnt, int pageRows, int pageNum) {}

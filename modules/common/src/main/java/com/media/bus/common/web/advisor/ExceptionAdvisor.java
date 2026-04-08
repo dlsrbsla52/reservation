@@ -124,14 +124,14 @@ public class ExceptionAdvisor {
 		HttpServletRequest request,
 		List<ErrorView.FieldErrorDetail> errors
 	) {
-		return ErrorView.builder()
-				.code(result.getCode())
-				.message(message != null ? message : result.getMessage())
-				.status(status.value())
-				.error(status.getReasonPhrase())
-				.timestamp(Instant.now())
-				.path(request.getServletPath())
-				.errors(errors)
-				.build();
+		return new ErrorView(
+				result.getCode(),
+				message != null ? message : result.getMessage(),
+				status.value(),
+				status.getReasonPhrase(),
+				Instant.now(),
+				request.getServletPath(),
+				errors
+		);
 	}
 }

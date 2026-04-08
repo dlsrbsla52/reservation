@@ -36,6 +36,6 @@ public record ApiResponse<T>(String code, String message, T data) {
 	/// 목록 성공 응답 — `List<E>`를 `ListData<E>`로 감싸 반환
 	public static <E> ApiResponse<ListData<E>> page(List<E> list) {
 		return new ApiResponse<>(CommonResult.SUCCESS.getCode(), CommonResult.SUCCESS.getMessage(),
-				ListData.<E>builder().list(list).build());
+				new ListData<>(null, list));
 	}
 }
