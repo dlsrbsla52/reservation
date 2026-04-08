@@ -1,8 +1,7 @@
 package com.media.bus.stop.controller;
 
-import com.media.bus.common.result.type.CommonResult;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.common.web.response.ListData;
-import com.media.bus.common.web.response.PageView;
 import com.media.bus.stop.dto.request.StopSearchCriteria;
 import com.media.bus.stop.dto.response.BusStopResponse;
 import com.media.bus.stop.service.StopService;
@@ -37,16 +36,11 @@ public class InternalStopController {
                       "우선순위: pk > stopId > stopName. stopName은 동명 정류소 시 다건 반환"
     )
     @GetMapping
-    public PageView<BusStopResponse> getBusStop(
+    public ApiResponse<ListData<BusStopResponse>> getBusStop(
         @RequestParam(required = false) UUID pk,
         @RequestParam(required = false) String stopId,
         @RequestParam(required = false) String stopName
     ) {
-        return PageView.<BusStopResponse>builder()
-            .result(CommonResult.SUCCESS)
-            .data(ListData.<BusStopResponse>builder()
-                .list(stopService.getBusStop(StopSearchCriteria.of(pk, stopId, stopName)))
-                .build())
-            .build();
+        return ApiResponse.page(stopService.getBusStop(StopSearchCriteria.of(pk, stopId, stopName)));
     }
 }

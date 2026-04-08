@@ -2,8 +2,7 @@ package com.media.bus.iam.auth.controller;
 
 import com.media.bus.common.exceptions.NoAuthenticationException;
 import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.DataView;
-import com.media.bus.common.web.response.NoDataView;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.iam.auth.dto.AuthTokenResult;
 import com.media.bus.iam.auth.dto.LoginRequest;
 import com.media.bus.iam.auth.dto.RegisterRequest;
@@ -58,27 +57,21 @@ public class AuthController {
     /// 이메일 인증 토큰은 보안상 응답에 포함하지 않으며 이메일로만 발송됩니다.
     @Operation(summary = "회원가입", description = "새로운 회원을 가입시킵니다. 이메일 인증 안내 메일이 발송됩니다.")
     @PostMapping("/register")
-    public NoDataView register(@RequestBody @Valid RegisterRequest request) {
+    public ApiResponse<Void> register(@RequestBody @Valid RegisterRequest request) {
         authService.register(request);
-        return NoDataView.builder()
-                .result(CommonResult.SUCCESS)
-                .message("회원가입이 완료되었습니다. 이메일 인증을 진행해주세요.")
-                .build();
+        return ApiResponse.successWithMessage("회원가입이 완료되었습니다. 이메일 인증을 진행해주세요.");
     }
 
     /// 로그인.
     /// Access Token은 Response Body로, Refresh Token은 HttpOnly Cookie(`refresh_token`)로 반환합니다.
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인합니다. Access Token은 응답 바디, Refresh Token은 HttpOnly Cookie로 전달됩니다.")
     @PostMapping("/login")
-    public DataView<TokenResponse> login(
+    public ApiResponse<TokenResponse> login(
             @RequestBody @Valid LoginRequest request,
             HttpServletResponse response) {
         AuthTokenResult result = authService.login(request);
         setRefreshTokenCookie(response, result.refreshToken());
-        return DataView.<TokenResponse>builder()
-                .result(CommonResult.SUCCESS)
-                .data(TokenResponse.of(result.accessToken()))
-                .build();
+        return ApiResponse.success(TokenResponse.of(result.accessToken()));
     }
 
     /// 이메일 인증.
@@ -86,12 +79,9 @@ public class AuthController {
     /// 예: GET /api/v1/auth/verify-email?token={uuid}
     @Operation(summary = "이메일 인증", description = "가입 시 제공받은 인증 토큰으로 이메일을 인증합니다.")
     @GetMapping("/verify-email")
-    public NoDataView verifyEmail(@RequestParam String token) {
+    public ApiResponse<Void> verifyEmail(@RequestParam String token) {
         authService.verifyEmail(token);
-        return NoDataView.builder()
-                .result(CommonResult.SUCCESS)
-                .message("이메일 인증이 완료되었습니다.")
-                .build();
+        return ApiResponse.successWithMessage("이메일 인증이 완료되었습니다.");
     }
 
     /// Access Token 재발급.
@@ -99,7 +89,7 @@ public class AuthController {
     /// 쿠키가 없거나 만료된 경우 401을 반환합니다.
     @Operation(summary = "토큰 재발급(Refresh)", description = "HttpOnly Cookie의 Refresh Token으로 새로운 Access Token과 Refresh Token을 발급받습니다.")
     @PostMapping("/token/refresh")
-    public DataView<TokenResponse> refreshToken(
+    public ApiResponse<TokenResponse> refreshToken(
             @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshToken,
             HttpServletResponse response) {
         if (refreshToken == null) {
@@ -107,10 +97,7 @@ public class AuthController {
         }
         AuthTokenResult result = authService.refreshAccessToken(refreshToken);
         setRefreshTokenCookie(response, result.refreshToken());
-        return DataView.<TokenResponse>builder()
-                .result(CommonResult.SUCCESS)
-                .data(TokenResponse.of(result.accessToken()))
-                .build();
+        return ApiResponse.success(TokenResponse.of(result.accessToken()));
     }
 
     /// 로그아웃.
@@ -118,14 +105,12 @@ public class AuthController {
     /// 이 엔드포인트는 JWT 인증이 필요한 Protected Endpoint입니다.
     @Operation(summary = "로그아웃", description = "서버에서 사용자의 Refresh Token을 삭제하고 Cookie를 만료시켜 로그아웃 처리합니다.")
     @PostMapping("/logout")
-    public NoDataView logout(
+    public ApiResponse<Void> logout(
             @RequestHeader("X-User-Id") String memberId,
             HttpServletResponse response) {
         authService.logout(memberId);
         expireRefreshTokenCookie(response);
-        return NoDataView.builder()
-                .result(CommonResult.SUCCESS)
-                .build();
+        return ApiResponse.success();
     }
 
     /// Refresh Token을 HttpOnly Cookie로 설정합니다.

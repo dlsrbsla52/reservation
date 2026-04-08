@@ -1,7 +1,6 @@
 package com.media.bus.iam.admin.controller;
 
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.DataView;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.contract.entity.member.MemberType;
 import com.media.bus.contract.entity.member.Permission;
 import com.media.bus.contract.security.annotation.Authorize;
@@ -44,12 +43,9 @@ public class AdminMemberController {
     )
     @PostMapping("/members")
     @ResponseStatus(HttpStatus.CREATED)
-    public DataView<AdminMemberResponse> createAdminMember(
+    public ApiResponse<AdminMemberResponse> createAdminMember(
             @RequestBody @Valid CreateAdminMemberRequest request
     ) {
-        return DataView.<AdminMemberResponse>builder()
-                .result(CommonResult.SUCCESS)
-                .data(adminMemberService.createAdminMember(request))
-                .build();
+        return ApiResponse.success(adminMemberService.createAdminMember(request));
     }
 }

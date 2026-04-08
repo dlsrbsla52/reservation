@@ -1,9 +1,7 @@
 package com.media.bus.stop.controller;
 
-import com.media.bus.common.result.type.CommonResult;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.common.web.response.ListData;
-import com.media.bus.common.web.response.NoDataView;
-import com.media.bus.common.web.response.PageView;
 import com.media.bus.contract.entity.member.MemberCategory;
 import com.media.bus.contract.entity.member.Permission;
 import com.media.bus.contract.security.MemberPrincipal;
@@ -40,30 +38,22 @@ public class StopController {
     )
     @Authorize(categories = {MemberCategory.ADMIN})
     @GetMapping
-    public PageView<BusStopResponse> getBusStop(
+    public ApiResponse<ListData<BusStopResponse>> getBusStop(
         @RequestParam(required = false) UUID pk,
         @RequestParam(required = false) String stopId,
         @RequestParam(required = false) String stopName
     ) {
-        return PageView.<BusStopResponse>builder()
-            .result(CommonResult.SUCCESS)
-            .data(ListData.<BusStopResponse>builder()
-                .list(stopService.getBusStop(StopSearchCriteria.of(pk, stopId, stopName)))
-                .build())
-            .build();
+        return ApiResponse.page(stopService.getBusStop(StopSearchCriteria.of(pk, stopId, stopName)));
     }
 
     @Operation(summary = "정류소 단건 등록", description = "버스 정류소의 단건 수기 등록 (ADMIN 권한 필요)")
     @Authorize(categories = {MemberCategory.ADMIN}, permissions = {Permission.WRITE})
     @PostMapping("/simple")
-    public NoDataView saveSimpleBusStop(
+    public ApiResponse<Void> saveSimpleBusStop(
         @CurrentMember MemberPrincipal principal,
         @RequestBody @Valid SimpleStopCreateRequest request
     ) {
         stopService.createOneStop(principal, request);
-
-        return NoDataView.builder()
-                .result(CommonResult.SUCCESS)
-                .build();
+        return ApiResponse.success();
     }
 }

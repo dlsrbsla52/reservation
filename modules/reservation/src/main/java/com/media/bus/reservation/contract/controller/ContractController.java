@@ -1,7 +1,6 @@
 package com.media.bus.reservation.contract.controller;
 
-import com.media.bus.common.result.type.CommonResult;
-import com.media.bus.common.web.response.DataView;
+import com.media.bus.common.web.response.ApiResponse;
 import com.media.bus.contract.entity.member.MemberCategory;
 import com.media.bus.contract.entity.member.Permission;
 import com.media.bus.contract.security.MemberPrincipal;
@@ -37,18 +36,14 @@ public class ContractController {
     @Authorize(categories = {MemberCategory.ADMIN}, permissions = {Permission.WRITE})
     @Operation(summary = "계약 생성", description = "정류소 광고 계약을 생성합니다. IAM DB 회원 재검증 후 계약을 저장합니다.")
     @PostMapping
-    public DataView<ContractResponse> createContract(
+    public ApiResponse<ContractResponse> createContract(
             @CurrentMember MemberPrincipal principal,
             @RequestBody @Valid CreateContractRequest request,
             HttpServletRequest httpRequest
     ) {
-
-        return DataView.<ContractResponse>builder()
-                .result(CommonResult.SUCCESS)
-                .data(facade.createContract(
-                    principal,
-                    MemberPrincipal.extractBearerToken(httpRequest),
-                    request))
-                .build();
+        return ApiResponse.success(facade.createContract(
+            principal,
+            MemberPrincipal.extractBearerToken(httpRequest),
+            request));
     }
 }

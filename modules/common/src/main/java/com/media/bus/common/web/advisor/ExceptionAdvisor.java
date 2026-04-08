@@ -41,14 +41,7 @@ public class ExceptionAdvisor {
 		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
 				.headers(headers)
 				.contentType(MediaType.APPLICATION_JSON)
-				.body(ErrorView.builder()
-						.result(CommonResult.BULKHEAD_FULL)
-						.message(CommonResult.BULKHEAD_FULL.getMessage())
-						.status(HttpStatus.TOO_MANY_REQUESTS.value())
-						.error(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase())
-						.timestamp(Instant.now())
-						.path(request.getServletPath())
-						.build());
+				.body(buildErrorView(HttpStatus.TOO_MANY_REQUESTS, CommonResult.BULKHEAD_FULL, null, request, null));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
@@ -121,14 +114,24 @@ public class ExceptionAdvisor {
 	) {
 		return ResponseEntity.status(status)
 				.contentType(MediaType.APPLICATION_JSON)
-				.body(ErrorView.builder()
-						.result(result)
-						.message(message)
-						.status(status.value())
-						.error(status.getReasonPhrase())
-						.timestamp(Instant.now())
-						.path(request.getServletPath())
-						.errors(errors)
-						.build());
+				.body(buildErrorView(status, result, message, request, errors));
+	}
+
+	private ErrorView buildErrorView(
+		HttpStatus status,
+		Result result,
+		String message,
+		HttpServletRequest request,
+		List<ErrorView.FieldErrorDetail> errors
+	) {
+		return ErrorView.builder()
+				.code(result.getCode())
+				.message(message != null ? message : result.getMessage())
+				.status(status.value())
+				.error(status.getReasonPhrase())
+				.timestamp(Instant.now())
+				.path(request.getServletPath())
+				.errors(errors)
+				.build();
 	}
 }
