@@ -4,7 +4,7 @@
   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
 >
   <!-- V001: 회원(Member) 테이블 생성 -->
   <include file="/db/changelog/V001__create_member_table.xml"/>
