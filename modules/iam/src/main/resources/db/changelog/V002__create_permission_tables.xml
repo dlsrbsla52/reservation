@@ -4,7 +4,7 @@
   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd"
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
 >
 
   <!-- V002-1: 권한 마스터 테이블 생성 -->

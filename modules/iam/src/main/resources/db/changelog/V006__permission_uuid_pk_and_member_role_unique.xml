@@ -3,7 +3,7 @@
     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
   <!--
     V006: permission UUID PK 도입 + member_role 단일 역할 제약 추가
