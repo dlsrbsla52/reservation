@@ -27,7 +27,7 @@ WORKDIR /workspace
 # 의존성 정의 파일 우선 복사
 # 소스코드 복사 이전에 환경 설정 파일만 복사하여 의존성 다운로드 레이어를 별도로 캐싱합니다.
 COPY gradle gradle
-COPY gradlew build.gradle settings.gradle ./
+COPY gradlew build.gradle.kts settings.gradle.kts ./
 
 RUN chmod +x ./gradlew
 
@@ -40,7 +40,7 @@ ARG MODULE_NAME
 # 1. --mount=type=cache,target=/root/.gradle: 컨테이너 간 Gradle 의존성 저장소를 공유하여 중복 다운로드를 방지합니다.
 # 2. 기존 코드의 clean 태스크를 제거하고 --build-cache 옵션을 활용하여 재컴파일 시간을 단축합니다.
 # 3. --parallel 옵션으로 가용한 시스템 리소스를 활용해 태스크를 병렬로 실행합니다.
-RUN --mount=type=cache,target=/root/.gradle \
+RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
     ./gradlew :modules:${MODULE_NAME}:bootJar --parallel --build-cache --no-daemon
 
 # === Runtime Stage ===

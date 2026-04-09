@@ -1,0 +1,12 @@
+package com.media.bus.iam.member.dto
+
+import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.constraints.NotBlank
+
+@Schema(description = "로그인 id를 통한 회원 조회 요청 객체")
+data class FindMemberByLoginIdRequest(
+
+    @field:NotBlank
+    @Schema(name = "loginId", description = "로그인 id", example = "vhkdrb52")
+    val loginId: String,
+)
