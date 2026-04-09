@@ -9,7 +9,7 @@
 
 ## Overview
 
-Spring Boot 3.4.13 MSA (root: `bus`), Java 25, 6개 Gradle 모듈. 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
+Spring Boot 4.0.5 MSA (root: `bus`), Kotlin 2.3.20, 6개 Gradle 모듈. ORM: Exposed 1.0.0. 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
 
 ## Build & Run
 
@@ -18,7 +18,6 @@ Spring Boot 3.4.13 MSA (root: `bus`), Java 25, 6개 Gradle 모듈. 공통 인프
 ./gradlew :modules:<module>:bootJar                           # 단일 모듈 JAR
 ./gradlew :modules:<module>:test                              # 단일 모듈 테스트
 ./gradlew :modules:<module>:test --tests "패키지.클래스.메서드"
-# Java 25 Byte Buddy: -Dnet.bytebuddy.experimental=true (각 build.gradle에 이미 설정됨)
 
 # Docker (운영)
 docker-compose up --build -d
@@ -36,7 +35,7 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 | Module          | Port  | Purpose                                                     |
 |-----------------|-------|-------------------------------------------------------------|
 | `gateway`       | 8080  | Spring Cloud Gateway (WebFlux) — `modules/gateway/CLAUDE.md` |
-| `auth`          | 8181  | JWT 발급·갱신·S2S 토큰 — `modules/auth/CLAUDE.md`           |
+| `iam`           | 8181  | JWT 발급·갱신·회원 관리 — `modules/iam/CLAUDE.md`           |
 | `auth-contract` | —     | JWT/인증 계약 공유 라이브러리 — `modules/auth-contract/CLAUDE.md` |
 | `stop`          | 8182  | 버스 정류소 CRUD — `modules/stop/CLAUDE.md`                 |
 | `reservation`   | 8183  | 예약 핵심 비즈니스 — `modules/reservation/CLAUDE.md`        |
@@ -48,13 +47,14 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 
 ## Code Conventions (MUST FOLLOW)
 
-- **Virtual Threads 활성화** — `ThreadLocal` 금지, `ScopedValue` (Java 25) 사용
-- **Enum** — 모든 코드성 Enum은 `BaseEnum` 구현 (`name`, `displayName` 필드). 미구현 시 빌드 실패
-- **Entity** — `@Builder` 단독 금지. `BaseEntity` 또는 `DateBaseEntity` 상속, 정적 팩토리 메서드로 생성 강제
+- **Kotlin** — 순수 Kotlin 프로젝트. `@JvmStatic`, `@JvmField`, `java.util.Optional` 사용 금지. nullable 타입(`T?`) 사용
+- **Virtual Threads 활성화** — `ThreadLocal` 금지, `ScopedValue` 사용. `synchronized` 대신 `ReentrantLock`
+- **Enum** — 모든 코드성 Enum은 `BaseEnum` 구현 (`displayName` 필드). companion object에 `fromName()` 정의
+- **Entity** — Exposed DAO 패턴. Table object + Entity class 분리. 정적 팩토리 메서드(`companion object`)로 생성 강제
 - **모듈 경계** — 타 모듈 Repository 직접 참조 금지. 해당 모듈 Service 또는 API 경유
 - **응답** — `common`의 `ApiResponse<T>` 래퍼 필수
-- **예외** — Controller 내 try-catch 금지. `common` 글로벌 핸들러(`ExceptionAdvisor`)에 위임
-- **javadoc** - 모든 javadoc은 마크다운 스타일로 작성
+- **예외** — Controller 내 try-catch 금지. `common` 글로벌 핸들러(`ExceptionAdvisor`)에 위임. 예외 클래스는 Kotlin 기본 인수 주생성자 사용
+- **KDoc** — 모든 KDoc은 마크다운 스타일로 작성
 - **DB 마이그레이션** — Liquibase changelog만 사용, 수동 DDL 금지
-- **테스트** — Repository: `@Mock`, Guard/Validator: 익명 Stub. ByteBuddy 플래그 필수
+- **테스트** — Repository: `@Mock`, Guard/Validator: 익명 Stub. MockK 사용 권장
 - **스키마 격리** — DB는 모듈별 schema (`?schema=auth|stop|member|reservation`)
