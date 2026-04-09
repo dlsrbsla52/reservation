@@ -2,7 +2,6 @@ com.media.bus.common.autoconfigure.CommonWebMvcAutoConfiguration
 com.media.bus.common.autoconfigure.CommonSecurityAutoConfiguration
 com.media.bus.common.autoconfigure.CommonCoreAutoConfiguration
 com.media.bus.common.autoconfigure.CommonLoggingAutoConfiguration
-com.media.bus.common.configuration.QueryDslConfig
 com.media.bus.common.configuration.RestClientConfig
 com.media.bus.common.configuration.SwaggerConfig
 com.media.bus.common.configuration.ThreadPoolConfig
