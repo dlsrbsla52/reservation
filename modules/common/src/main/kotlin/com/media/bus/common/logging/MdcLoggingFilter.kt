@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.MDC
 import org.springframework.web.filter.OncePerRequestFilter
-import java.util.*
+import java.util.UUID
 
 /**
  * ## HTTP 요청 단위로 MDC(Mapped Diagnostic Context) 필드를 주입하는 필터
@@ -41,7 +41,7 @@ class MdcLoggingFilter : OncePerRequestFilter() {
             MDC.put(MDC_REQUEST_ID, requestId)
             response.setHeader(REQUEST_ID_HEADER, requestId)
 
-            resolveMemberId(request).ifPresent { uid -> MDC.put(MDC_USER_ID, uid) }
+            resolveMemberId(request)?.let { uid -> MDC.put(MDC_USER_ID, uid) }
 
             filterChain.doFilter(request, response)
         } finally {
@@ -59,8 +59,8 @@ class MdcLoggingFilter : OncePerRequestFilter() {
     // Gateway가 주입한 X-User-Id 헤더에서 memberId를 읽는다.
     // SecurityContextHolder(ThreadLocal 기반) 대신 request 객체를 직접 사용하여
     // Virtual Thread 환경에서도 안전하게 동작한다.
-    private fun resolveMemberId(request: HttpServletRequest): Optional<String> {
+    private fun resolveMemberId(request: HttpServletRequest): String? {
         val userId = request.getHeader("X-User-Id")
-        return if (!userId.isNullOrBlank()) Optional.of(userId) else Optional.empty()
+        return if (!userId.isNullOrBlank()) userId else null
     }
 }

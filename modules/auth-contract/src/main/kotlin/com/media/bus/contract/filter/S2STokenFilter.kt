@@ -48,19 +48,11 @@ class S2STokenFilter(
         filterChain.doFilter(request, response)
     }
 
-    /** JWT 서명 검증 및 type 클레임 확인. */
+    /** JWT 서명 검증 및 type 클레임 확인. tryParseClaims() 단일 호출로 이중 파싱 제거. */
     private fun isValidS2SToken(token: String): Boolean =
-        try {
-            if (jwtProvider.isInvalidToken(token)) {
-                false
-            } else {
-                val claims = jwtProvider.parseClaimsFromToken(token)
-                S2S_TOKEN_TYPE == claims.get("type", String::class.java)
-            }
-        } catch (e: Exception) {
-            log.debug("[S2STokenFilter] S2S 토큰 파싱 실패: {}", e.message)
-            false
-        }
+        jwtProvider.tryParseClaims(token)
+            ?.let { claims -> S2S_TOKEN_TYPE == claims.get("type", String::class.java) }
+            ?: false
 
     /** 401 Unauthorized 응답을 JSON 형식으로 반환합니다. */
     private fun sendUnauthorized(response: HttpServletResponse) {

@@ -17,14 +17,14 @@ object MessageUtil {
         setDefaultEncoding("UTF-8")
     }
 
-    @JvmStatic
+
     fun getMessage(messageId: String): String = getMessage(messageId, null)
 
-    @JvmStatic
+
     fun getMessage(messageId: String, objects: Array<Any>?): String =
         getMessage(messageId, objects, Locale.getDefault())
 
-    @JvmStatic
+
     fun getMessage(messageId: String, objects: Array<Any>?, locale: Locale): String =
         try {
             messageSource.getMessage(messageId, objects, locale)

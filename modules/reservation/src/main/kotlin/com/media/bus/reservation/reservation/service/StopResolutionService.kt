@@ -32,6 +32,6 @@ class StopResolutionService(
         stopServiceClient.getStopByPk(stopId).firstOrNull()
             ?: run {
                 log.warn("[StopResolutionService] 존재하지 않는 정류소: stopId={}", stopId)
-                throw StorageException("요청한 정류소를 찾을 수 없습니다. stopId=$stopId")
+                throw StorageException(message = "요청한 정류소를 찾을 수 없습니다. stopId=$stopId")
             }
 }

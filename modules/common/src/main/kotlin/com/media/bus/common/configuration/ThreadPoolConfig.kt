@@ -64,7 +64,7 @@ class ThreadPoolConfig {
      */
     @Suppress("resource") // ExecutorService(AutoCloseable)의 생명주기는 Spring 컨텍스트가 관리
     @Bean("IoBoundExecutor")
-    fun getCpuBoundExecutor(mdcTaskDecorator: TaskDecorator): Executor {
+    fun getIoBoundExecutor(mdcTaskDecorator: TaskDecorator): Executor {
         val vtExecutor = Executors.newVirtualThreadPerTaskExecutor()
         return Executor { runnable -> vtExecutor.execute(mdcTaskDecorator.decorate(runnable)) }
     }

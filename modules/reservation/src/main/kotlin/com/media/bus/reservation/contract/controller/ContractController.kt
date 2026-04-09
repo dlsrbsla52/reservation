@@ -1,5 +1,6 @@
 package com.media.bus.reservation.contract.controller
 
+import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.Permission
@@ -41,7 +42,8 @@ class ContractController(
         ApiResponse.success(
             facade.createContract(
                 principal,
-                MemberPrincipal.extractBearerToken(httpRequest)!!,
+                MemberPrincipal.extractBearerToken(httpRequest)
+                    ?: throw NoAuthenticationException(message = "Authorization 헤더가 누락되었습니다."),
                 request,
             ),
         )

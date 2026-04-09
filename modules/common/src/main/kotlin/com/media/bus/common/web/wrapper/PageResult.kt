@@ -19,7 +19,6 @@ data class PageResult<E>(
         private const val serialVersionUID: Long = -4202447654651104371L
 
         /** 빌더 패턴 호환을 위한 팩토리 */
-        @JvmStatic
         fun <E> builder(): Builder<E> = Builder()
     }
 

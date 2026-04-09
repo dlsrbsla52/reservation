@@ -34,7 +34,7 @@ class MemberVerificationService(
         val member = iamServiceClient.findMemberByJwt(jwt)
             ?: run {
                 log.warn("[MemberVerificationService] IAM DB에서 회원을 찾을 수 없음")
-                throw StorageException("요청한 회원을 찾을 수 없습니다.")
+                throw StorageException(message = "요청한 회원을 찾을 수 없습니다.")
             }
         log.debug("[MemberVerificationService] IAM 회원 재검증 완료: memberId={}", member.id)
         return member

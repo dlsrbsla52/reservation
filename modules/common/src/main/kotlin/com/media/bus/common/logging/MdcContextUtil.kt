@@ -24,7 +24,7 @@ object MdcContextUtil {
      *
      * @return 현재 MDC 컨텍스트의 복사본 (null인 경우 빈 Map 반환)
      */
-    @JvmStatic
+
     fun capture(): Map<String, String> =
         MDC.getCopyOfContextMap() ?: HashMap()
 
@@ -35,7 +35,7 @@ object MdcContextUtil {
      * @param runnable 감쌀 Runnable
      * @return MDC 전파가 적용된 Runnable
      */
-    @JvmStatic
+
     fun wrap(runnable: Runnable): Runnable {
         val capturedContext = capture()
         return Runnable {
@@ -61,7 +61,7 @@ object MdcContextUtil {
      * @param callable 감쌀 Callable
      * @return MDC 전파가 적용된 Callable
      */
-    @JvmStatic
+
     fun <T> wrap(callable: Callable<T>): Callable<T> {
         val capturedContext = capture()
         return Callable {

@@ -3,7 +3,6 @@ package com.media.bus.stop.client
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.test.util.ReflectionTestUtils
 
 /**
  * 서울 공공 API 실제 연결 통합 테스트
@@ -16,10 +15,10 @@ class SeoulBusApiClientTest {
 
     @BeforeEach
     fun setUp() {
-        client = SeoulBusApiClient()
-        ReflectionTestUtils.setField(client, "apiKey", "REDACTED_SEOUL_API_KEY")
-        ReflectionTestUtils.setField(client, "baseUrl", "http://openapi.seoul.go.kr:8088")
-        ReflectionTestUtils.invokeMethod<Unit>(client, "init")
+        client = SeoulBusApiClient(
+            apiKey = "REDACTED_SEOUL_API_KEY",
+            baseUrl = "http://openapi.seoul.go.kr:8088",
+        )
     }
 
     @Test

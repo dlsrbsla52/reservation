@@ -43,24 +43,24 @@ data class MemberPrincipal(
         // Gateway <-> 하위 서비스 간 헤더 계약 (중앙 관리)
         // JwtAuthenticationFilter와 MemberPrincipalExtractFilter가 동일 상수 참조
         // ──────────────────────────────────────────────────────────────
-        @JvmField val HEADER_USER_ID = "X-User-Id"
-        @JvmField val HEADER_USER_LOGIN_ID = "X-User-Login-Id"
-        @JvmField val HEADER_USER_EMAIL = "X-User-Email"
-        @JvmField val HEADER_USER_ROLE = "X-User-Role"
-        @JvmField val HEADER_EMAIL_VERIFIED = "X-Email-Verified"
+        const val HEADER_USER_ID = "X-User-Id"
+        const val HEADER_USER_LOGIN_ID = "X-User-Login-Id"
+        const val HEADER_USER_EMAIL = "X-User-Email"
+        const val HEADER_USER_ROLE = "X-User-Role"
+        const val HEADER_EMAIL_VERIFIED = "X-Email-Verified"
         /** Gateway -> 하위 서비스 권한 전달 헤더. 쉼표 구분 예: "READ,WRITE" */
-        @JvmField val HEADER_USER_PERMISSIONS = "X-User-Permissions"
+        const val HEADER_USER_PERMISSIONS = "X-User-Permissions"
 
         /** HttpServletRequest attribute 키 — Filter/Interceptor/Resolver가 공유합니다. */
-        @JvmField val REQUEST_ATTRIBUTE_KEY = "authenticatedMember"
+        const val REQUEST_ATTRIBUTE_KEY = "authenticatedMember"
 
         // JWT 클레임 키 (JwtProvider와의 계약)
-        @JvmField val CLAIM_LOGIN_ID = "loginId"
-        @JvmField val CLAIM_EMAIL = "email"
-        @JvmField val CLAIM_MEMBER_TYPE = "memberType"
-        @JvmField val CLAIM_EMAIL_VERIFIED = "emailVerified"
+        const val CLAIM_LOGIN_ID = "loginId"
+        const val CLAIM_EMAIL = "email"
+        const val CLAIM_MEMBER_TYPE = "memberType"
+        const val CLAIM_EMAIL_VERIFIED = "emailVerified"
         /** JWT claim 키 — 권한 목록. 쉼표 구분 예: "READ,WRITE" */
-        @JvmField val CLAIM_PERMISSIONS = "permissions"
+        const val CLAIM_PERMISSIONS = "permissions"
 
         // ──────────────────────────────────────────────────────────────
         // 정적 팩토리 메서드
@@ -73,7 +73,6 @@ data class MemberPrincipal(
          * @param permissionsHeader "READ,WRITE" 형태의 권한 헤더 (null 허용 -> 빈 Set)
          * @throws IllegalArgumentException memberId 또는 role 파싱 실패 시
          */
-        @JvmStatic
         fun fromHeaders(
             memberId: String,
             loginId: String?,
@@ -93,7 +92,9 @@ data class MemberPrincipal(
                 id = UUID.fromString(memberId),
                 loginId = loginId,
                 email = email,
-                memberType = MemberType.valueOf(memberTypeName!!),
+                memberType = MemberType.valueOf(
+                    memberTypeName ?: throw IllegalArgumentException("X-User-Role 헤더가 누락되었습니다."),
+                ),
                 emailVerified = emailVerified.toBoolean(),
                 permissions = parsePermissions(permissionsHeader),
             )
@@ -106,7 +107,6 @@ data class MemberPrincipal(
          * @param request 현재 HTTP 요청
          * @return Bearer 접두사를 제거한 JWT 문자열, 없으면 null
          */
-        @JvmStatic
         fun extractBearerToken(request: HttpServletRequest): String? {
             val authHeader = request.getHeader("Authorization")
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -119,13 +119,12 @@ data class MemberPrincipal(
          * JWT Claims에서 MemberPrincipal을 복원합니다.
          * JwtProvider 내부 전용 팩토리입니다.
          */
-        @JvmStatic
         fun fromClaims(claims: Claims): MemberPrincipal = MemberPrincipal(
             id = UUID.fromString(claims.subject),
             loginId = claims.get(CLAIM_LOGIN_ID, String::class.java),
             email = claims.get(CLAIM_EMAIL, String::class.java),
             memberType = MemberType.valueOf(claims.get(CLAIM_MEMBER_TYPE, String::class.java)),
-            emailVerified = java.lang.Boolean.TRUE == claims.get(CLAIM_EMAIL_VERIFIED, java.lang.Boolean::class.java),
+            emailVerified = claims.get(CLAIM_EMAIL_VERIFIED, java.lang.Boolean::class.java)?.booleanValue() ?: false,
             permissions = parsePermissions(claims.get(CLAIM_PERMISSIONS, String::class.java)),
         )
 
@@ -138,7 +137,6 @@ data class MemberPrincipal(
          * null 또는 빈 문자열이면 빈 Set을 반환합니다.
          * 알 수 없는 권한 이름은 warn 로그 후 무시합니다.
          */
-        @JvmStatic
         private fun parsePermissions(permissionsStr: String?): Set<Permission> {
             if (permissionsStr.isNullOrBlank()) {
                 return Collections.emptySet()

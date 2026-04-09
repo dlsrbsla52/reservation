@@ -3,7 +3,6 @@ package com.media.bus.stop.client
 import com.media.bus.common.exceptions.ServiceException
 import com.media.bus.stop.dto.external.SeoulBusStopApiResponse
 import com.media.bus.stop.dto.external.SeoulBusStopRow
-import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -17,27 +16,18 @@ import org.springframework.web.client.RestClient
  * API 키 발급: https://data.seoul.go.kr
  */
 @Component
-class SeoulBusApiClient {
-
+class SeoulBusApiClient(
+    @Value("\${seoul.api.key}") private val apiKey: String,
+    @Value("\${seoul.api.base-url:http://openapi.seoul.go.kr:8088}") baseUrl: String,
+) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     val pageSize: Int = PAGE_SIZE
 
-    @Value("\${seoul.api.key}")
-    private lateinit var apiKey: String
-
-    @Value("\${seoul.api.base-url:http://openapi.seoul.go.kr:8088}")
-    private lateinit var baseUrl: String
-
     // 외부 공공 API 호출용 — 인증 헤더 불필요, internalRestClient 사용하지 않음
-    private lateinit var restClient: RestClient
-
-    @PostConstruct
-    private fun init() {
-        restClient = RestClient.builder()
-            .baseUrl(baseUrl)
-            .build()
-    }
+    private val restClient: RestClient = RestClient.builder()
+        .baseUrl(baseUrl)
+        .build()
 
     /** 전체 정류소 수를 조회한다 (1건만 요청해 totalCount 추출) */
     fun fetchTotalCount(): Int = callBody(1, 1).totalCount
@@ -53,14 +43,14 @@ class SeoulBusApiClient {
             .uri("/{apiKey}/json/busStopLocationXyInfo/{start}/{end}/", apiKey, start, end)
             .retrieve()
             .body(SeoulBusStopApiResponse::class.java)
-            ?: throw ServiceException("서울 공공 API 응답을 파싱할 수 없습니다.")
+            ?: throw ServiceException(message = "서울 공공 API 응답을 파싱할 수 없습니다.")
 
         val body = response.busStopInfo
-            ?: throw ServiceException("서울 공공 API 응답을 파싱할 수 없습니다.")
+            ?: throw ServiceException(message = "서울 공공 API 응답을 파싱할 수 없습니다.")
 
         body.result?.let { result ->
             if (!result.isSuccess()) {
-                throw ServiceException("서울 공공 API 오류: [${result.code}] ${result.message}")
+                throw ServiceException(message = "서울 공공 API 오류: [${result.code}] ${result.message}")
             }
         }
 

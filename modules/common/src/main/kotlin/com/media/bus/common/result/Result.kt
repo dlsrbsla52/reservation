@@ -2,7 +2,6 @@ package com.media.bus.common.result
 
 import org.springframework.http.HttpStatus
 import java.io.Serializable
-import java.util.function.UnaryOperator
 
 /**
  * ## 작업 결과 인터페이스
@@ -17,7 +16,7 @@ interface Result : Serializable {
 
     val message: String
 
-    fun getMessage(operator: UnaryOperator<String>, id: String): String
+    fun getMessage(operator: (String) -> String, id: String): String
 
     /**
      * 이 Result 코드에 대응하는 HTTP 상태 코드.

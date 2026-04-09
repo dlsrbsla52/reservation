@@ -10,7 +10,9 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.time.Duration
-import java.util.*
+import java.util.Date
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * ## JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트
@@ -40,6 +42,9 @@ class JwtProvider(
     private val secretKey = Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8))
 
     // S2S 토큰 캐시 — 매 요청마다 HMAC 서명 연산을 방지한다
+    // ReentrantLock: Virtual Thread 환경에서 synchronized 사용 시 캐리어 스레드 핀닝이 발생하므로 Lock으로 대체
+    private val s2sLock = ReentrantLock()
+
     @Volatile
     private var cachedS2SToken: String? = null
 
@@ -104,7 +109,7 @@ class JwtProvider(
     override fun generateS2SToken(): String {
         val now = System.currentTimeMillis()
         if (cachedS2SToken == null || now >= s2sTokenExpireAt - S2S_CACHE_BUFFER_MS) {
-            synchronized(this) {
+            s2sLock.withLock {
                 if (cachedS2SToken == null || now >= s2sTokenExpireAt - S2S_CACHE_BUFFER_MS) {
                     cachedS2SToken = buildS2SToken(now)
                     s2sTokenExpireAt = now + S2S_TOKEN_EXPIRE_MS
@@ -137,26 +142,26 @@ class JwtProvider(
 
     /**
      * JWT 토큰을 파싱하여 Claims를 반환한다.
-     * 서명 오류 또는 만료 시 빈 Optional 반환 (예외 미전파).
-     * Gateway Filter에서 isInvalidToken() + parseClaimsFromToken() 이중 파싱을 단일 호출로 대체한다.
+     * 서명 오류 또는 만료 시 null 반환 (예외 미전파).
+     * Gateway Filter에서 이중 파싱을 단일 호출로 대체한다.
      *
      * @param token JWT 토큰 문자열
-     * @return 파싱된 Claims, 실패 시 Optional.empty()
+     * @return 파싱된 Claims, 실패 시 null
      */
-    fun tryParseClaims(token: String): Optional<Claims> =
+    fun tryParseClaims(token: String): Claims? =
         try {
-            Optional.of(parseClaimsFromToken(token))
+            parseClaimsFromToken(token)
         } catch (e: JwtException) {
-            Optional.empty()
+            null
         } catch (e: IllegalArgumentException) {
-            Optional.empty()
+            null
         }
 
     /**
      * 토큰 유효성 검사 (서명 + 만료 시간).
      * tryParseClaims()를 재사용하여 이중 파싱을 제거합니다.
      */
-    fun isInvalidToken(token: String): Boolean = tryParseClaims(token).isEmpty
+    fun isInvalidToken(token: String): Boolean = tryParseClaims(token) == null
 
     /**
      * jwt 토큰을 기반으로 Claims 반환

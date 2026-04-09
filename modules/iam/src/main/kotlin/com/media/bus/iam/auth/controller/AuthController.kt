@@ -31,6 +31,8 @@ import java.time.Duration
 @RequestMapping("/api/v1/auth")
 class AuthController(
     private val authService: AuthService,
+    /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
+    @Value("\${cookie.secure:false}") private val cookieSecure: Boolean = false,
 ) {
     companion object {
         private const val REFRESH_TOKEN_COOKIE = "refresh_token"
@@ -38,10 +40,6 @@ class AuthController(
         /** Refresh Token TTL — JwtProvider의 Refresh Token TTL과 반드시 동일해야 한다. */
         private val REFRESH_TOKEN_TTL = Duration.ofDays(7)
     }
-
-    /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
-    @Value("\${cookie.secure:false}")
-    private var cookieSecure: Boolean = false
 
     /** 회원가입. 이메일 인증 토큰은 보안상 응답에 포함하지 않으며 이메일로만 발송된다. */
     @Operation(summary = "회원가입", description = "새로운 회원을 가입시킵니다. 이메일 인증 안내 메일이 발송됩니다.")

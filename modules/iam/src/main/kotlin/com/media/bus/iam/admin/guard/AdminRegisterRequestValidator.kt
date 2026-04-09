@@ -1,7 +1,7 @@
 package com.media.bus.iam.admin.guard
 
 import com.media.bus.common.exceptions.BaseException
-import com.media.bus.common.exceptions.NoAuthenticationException
+import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.iam.admin.dto.CreateAdminMemberRequest
 import com.media.bus.iam.auth.result.AuthResult
@@ -28,14 +28,14 @@ class AdminRegisterRequestValidator(
             throw BaseException(AuthResult.ADMIN_TYPE_REQUIRED)
         }
 
-        // 2. loginId 중복 검사
+        // 2. loginId 중복 검사 — 비즈니스 검증 실패이므로 BusinessException 사용
         if (memberRepository.existsByLoginId(request.loginId)) {
-            throw NoAuthenticationException(CommonResult.DUPLICATE_USERNAME_FAIL)
+            throw BusinessException(CommonResult.DUPLICATE_USERNAME_FAIL)
         }
 
         // 3. email 중복 검사
         if (memberRepository.existsByEmail(request.email)) {
-            throw NoAuthenticationException(CommonResult.DUPLICATE_EMAIL_FAIL)
+            throw BusinessException(CommonResult.DUPLICATE_EMAIL_FAIL)
         }
     }
 }

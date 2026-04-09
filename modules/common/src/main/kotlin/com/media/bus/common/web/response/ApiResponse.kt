@@ -23,22 +23,22 @@ data class ApiResponse<T>(
 ) {
     companion object {
         /** 데이터가 있는 성공 응답 */
-        @JvmStatic
+
         fun <T> success(data: T): ApiResponse<T> =
             ApiResponse(CommonResult.SUCCESS.code, CommonResult.SUCCESS.message, data)
 
         /** 데이터 없는 성공 응답 */
-        @JvmStatic
+
         fun success(): ApiResponse<Unit?> =
             ApiResponse(CommonResult.SUCCESS.code, CommonResult.SUCCESS.message, null)
 
         /** 커스텀 메시지가 포함된 데이터 없는 성공 응답 */
-        @JvmStatic
+
         fun successWithMessage(message: String): ApiResponse<Unit?> =
             ApiResponse(CommonResult.SUCCESS.code, message, null)
 
         /** 목록 성공 응답 -- `List<E>`를 `ListData<E>`로 감싸 반환 */
-        @JvmStatic
+
         fun <E> page(list: List<E>): ApiResponse<ListData<E>> =
             ApiResponse(CommonResult.SUCCESS.code, CommonResult.SUCCESS.message, ListData(null, list))
     }

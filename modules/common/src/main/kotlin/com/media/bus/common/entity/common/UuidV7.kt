@@ -13,7 +13,7 @@ object UuidV7 {
     private val random = SecureRandom()
 
     /** UUID v7 생성 -- 타임스탬프 기반 monotonically increasing, B-tree 친화적 */
-    @JvmStatic
+
     fun generate(): UUID {
         val timestamp = Instant.now().toEpochMilli()
         val msb = (timestamp shl 16) or (7L shl 12) or (random.nextLong() and 0xFFFL)
