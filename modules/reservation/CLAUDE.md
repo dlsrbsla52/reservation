@@ -16,29 +16,35 @@ Base package: `com.media.bus.reservation`
 - `modules/common` — 공통 인프라
 - `modules/auth-contract` — `JwtProvider`, `MemberPrincipal`, `MemberType`
 
-## 현재 상태
-
-초기 구조. `ReservationController`, `ReservationServiceHealthCheck`만 존재.
-
-## 확장 시 준수 사항
-
-신규 기능 추가 시 아래 구조를 따른다:
+## 패키지 구조
 
 ```
-modules/reservation/
-  controller/
-  service/           # 서비스
-  entity/            # DateBaseEntity 상속, 정적 팩토리 메서드
-    enums/           # BaseEnum 구현
-  repository/        # JpaRepository 직접 주입
-  guard/
-  dto/
-    request/
-    response/
+modules/reservation/src/main/kotlin/com/media/bus/reservation/
+  contract/              # 계약 도메인
+    controller/ContractController   # @Authorize(ADMIN, WRITE) 보호
+    service/ContractFacade          # S2S 호출(트랜잭션 외부) + DB 저장(트랜잭션 내부) 분리
+    service/ContractService         # @Transactional DB 저장
+    service/MemberVerificationService  # IAM S2S 회원 재검증
+    client/IamServiceClient         # IAM 서비스 HTTP 클라이언트
+    entity/                         # ContractEntity, ContractDetailEntity (Exposed DAO)
+    dto/
+  reservation/           # 예약 도메인
+    controller/ReservationController
+    service/ReservationFacade
+    service/StopResolutionService   # stop 서비스 S2S 정류소 검증
+    client/StopServiceClient        # stop 서비스 HTTP 클라이언트
+    entity/                         # ReservationEntity (Exposed DAO)
+    dto/
 ```
+
+## 설계 패턴
+
+- **Facade 패턴** — S2S 호출(트랜잭션 외부)과 DB 저장(트랜잭션 내부)을 명시적으로 분리
+- **IAM 재검증** — Gateway 헤더만 신뢰하지 않고, 원본 JWT로 IAM DB에서 회원 재검증
+- **모듈 경계** — stop 서비스 데이터는 Repository 직접 참조 금지 → `StopServiceClient` API 경유
 
 ## Database
 
 - Schema: `reservation`
+- ORM: Exposed DAO 패턴
 - Migration: Liquibase (`src/main/resources/db/changelog/`)
-- stop 서비스의 정류소 데이터가 필요하면 Repository 직접 참조 금지 → stop-service API 경유

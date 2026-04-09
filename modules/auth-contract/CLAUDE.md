@@ -1,22 +1,31 @@
 # CLAUDE.md — auth-contract
 
 `modules/auth-contract`는 JWT/인증 계약을 정의하는 공유 라이브러리 모듈이다.
-다른 모듈(gateway, auth, stop, reservation)이 이 모듈에 의존하여 토큰 검증과 인증 컨텍스트를 공유한다.
+다른 모듈(gateway, iam, stop, reservation)이 이 모듈에 의존하여 토큰 검증과 인증 컨텍스트를 공유한다.
 
 ## 주요 클래스
 
-- **`JwtProvider`** — JWT 발급, 파싱, 검증 구현체 (`common`의 `TokenProvider` 구현)
-- **`MemberPrincipal`** — 인증된 사용자 정보를 담는 record (`id`, `loginId`, `email`, `memberType`, `emailVerified`)
+- **`JwtProvider`** — JWT 발급, 파싱, 검증 구현체 (`common`의 `TokenProvider` 구현). S2S 토큰 캐싱에 `ReentrantLock` 사용 (Virtual Thread 핀닝 방지)
+- **`MemberPrincipal`** — 인증된 사용자 정보를 담는 data class (`id`, `loginId`, `email`, `memberType`, `emailVerified`, `permissions`)
 - **`MemberType`** — 회원 유형 enum (`MEMBER`, `BUSINESS`, `ADMIN_USER`, `ADMIN_MASTER`, `ADMIN_DEVELOPER`)
-- **`S2STokenFilter`** — 서비스 간 통신(S2S) 토큰 검증 필터
+- **`S2STokenFilter`** — 서비스 간 통신(S2S) 토큰 검증 필터. `tryParseClaims()` 단일 호출로 이중 파싱 방지
+- **`MemberPrincipalExtractFilter`** — X-User-* 헤더에서 `MemberPrincipal`을 복원하여 request attribute에 저장
+- **`AuthorizeHandlerInterceptor`** — `@Authorize` 어노테이션 기반 카테고리/권한 검증
+- **`CurrentMemberArgumentResolver`** — `@CurrentMember` 어노테이션으로 컨트롤러 파라미터에 `MemberPrincipal` 주입
 
 ## 토큰 설계
 
 | 토큰 종류 | TTL | 저장소 | 비고 |
 |-----------|-----|--------|------|
 | Access | 60분 | 없음(Stateless) | 서명 검증만 수행 |
-| Refresh | 7일 | Redis | 취소 가능 |
-| S2S | 1시간 | 없음(Stateless) | `type: "s2s"` 클레임으로 구분 |
+| Refresh | 7일 | Redis | 취소 가능, Token Rotation 지원 |
+| S2S | 1시간 | 메모리 캐시 | `type: "s2s"` 클레임으로 구분, 만료 5분 전 자동 갱신 |
+
+## 핵심 API
+
+- `tryParseClaims(token): Claims?` — JWT 파싱 단일 진입점. 실패 시 null 반환 (예외 미전파)
+- `isInvalidToken(token): Boolean` — `tryParseClaims()` 재사용
+- `generateS2SToken(): String` — double-checked locking + `ReentrantLock`으로 캐싱
 
 ## ⚠️ 알려진 제약사항 — 액세스 토큰 권한 갱신 지연
 
