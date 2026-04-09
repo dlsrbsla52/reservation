@@ -14,36 +14,19 @@ import org.springframework.http.HttpStatus
  * `Result` 구현체(enum)가 `httpStatus()`를 통해 HTTP 상태를 선언하므로,
  * 호출부에서 `HttpStatus`를 직접 지정할 필요가 없다.
  */
-@Suppress("unused")
-class BusinessException : BaseException {
+class BusinessException(
+    result: Result = CommonResult.FAIL,
+    message: String? = null,
+    cause: Throwable? = null,
+    val httpStatus: HttpStatus = result.httpStatus(),
+) : BaseException(result, message, cause) {
 
-    val httpStatus: HttpStatus
-
-    // --- Result 기반 생성자 (권장) ---
-
-    constructor(result: Result) : super(result) {
-        this.httpStatus = result.httpStatus()
-    }
-
-    constructor(result: Result, message: String) : super(result, message) {
-        this.httpStatus = result.httpStatus()
-    }
-
-    constructor(result: Result, cause: Throwable) : super(result, cause) {
-        this.httpStatus = result.httpStatus()
-    }
-
-    // --- Result 없이 메시지만 전달하는 경우 (특정 Result 코드가 없을 때) ---
-
-    /** HTTP 상태를 400 Bad Request로 기본 지정하는 편의 생성자. */
-    constructor(message: String) : super(CommonResult.FAIL, message) {
-        this.httpStatus = HttpStatus.BAD_REQUEST
-    }
-
-    /** Result 없이 HTTP 상태와 메시지만으로 생성하는 편의 생성자. */
-    constructor(httpStatus: HttpStatus, message: String) : super(CommonResult.FAIL, message) {
-        this.httpStatus = httpStatus
-    }
+    /** HTTP 상태를 직접 지정하는 편의 생성자. */
+    constructor(httpStatus: HttpStatus, message: String) : this(
+        result = CommonResult.FAIL,
+        message = message,
+        httpStatus = httpStatus,
+    )
 
     companion object {
         private const val serialVersionUID: Long = 7381893246823945120L

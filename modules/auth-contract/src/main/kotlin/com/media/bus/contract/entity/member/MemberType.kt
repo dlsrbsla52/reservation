@@ -39,7 +39,7 @@ enum class MemberType(
 
     companion object {
         /** Enum name으로 검색 */
-        @JvmStatic
+
         fun fromName(name: String): MemberType? = BaseEnum.fromName<MemberType>(name)
     }
 }

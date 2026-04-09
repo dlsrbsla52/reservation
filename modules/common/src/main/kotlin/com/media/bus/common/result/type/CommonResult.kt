@@ -2,7 +2,7 @@ package com.media.bus.common.result.type
 
 import com.media.bus.common.result.Result
 import org.springframework.http.HttpStatus
-import java.util.function.UnaryOperator
+
 
 /**
  * ## 작업 결과에 대한 Enum
@@ -73,8 +73,8 @@ enum class CommonResult(
      * @param id 메시지의 고유 식별자
      * @return message
      */
-    override fun getMessage(operator: UnaryOperator<String>, id: String): String {
-        val bundleMessage = operator.apply(id)
+    override fun getMessage(operator: (String) -> String, id: String): String {
+        val bundleMessage = operator(id)
         return if (bundleMessage.isNullOrEmpty()) message else bundleMessage
     }
 }

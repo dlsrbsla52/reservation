@@ -12,8 +12,7 @@ import org.springframework.validation.annotation.Validated
  */
 @Validated
 @ConfigurationProperties(prefix = "hig.bulkhead")
-class BulkheadProperties {
-
+data class BulkheadProperties(
     @field:NotBlank(message = "hig.bulkhead.database-name 은 반드시 설정해야 합니다. (resilience4j.bulkhead.instances 이름과 일치해야 함)")
-    var databaseName: String = ""
-}
+    val databaseName: String = "",
+)

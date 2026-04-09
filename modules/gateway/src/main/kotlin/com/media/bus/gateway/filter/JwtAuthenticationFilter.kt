@@ -62,7 +62,7 @@ class JwtAuthenticationFilter(
         val token = authHeader.substring(7)
 
         // JWT 토큰 검증 + 클레임 파싱을 단일 호출로 통합하여 HMAC 연산 이중 수행 방지
-        val claims = jwtProvider.tryParseClaims(token).orElse(null)
+        val claims = jwtProvider.tryParseClaims(token)
         if (claims == null) {
             log.warn("[JwtAuthenticationFilter] 유효하지 않은 토큰. path={}", path)
             return unauthorized(exchange)

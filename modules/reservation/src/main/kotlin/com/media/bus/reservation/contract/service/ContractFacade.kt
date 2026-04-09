@@ -3,6 +3,7 @@ package com.media.bus.reservation.contract.service
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.dto.response.ContractResponse
+import com.media.bus.reservation.reservation.service.StopResolutionService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Service
 @Service
 class ContractFacade(
     private val memberVerificationService: MemberVerificationService,
-    private val stopResolutionService: com.media.bus.reservation.reservation.service.StopResolutionService,
+    private val stopResolutionService: StopResolutionService,
     private val contractService: ContractService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)

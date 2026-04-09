@@ -3,7 +3,6 @@ package com.media.bus.iam.auth.service
 import com.media.bus.common.exceptions.BaseException
 import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
-import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.security.JwtProvider
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.iam.auth.dto.AuthTokenResult
@@ -11,7 +10,6 @@ import com.media.bus.iam.auth.dto.LoginRequest
 import com.media.bus.iam.auth.dto.RegisterRequest
 import com.media.bus.iam.auth.entity.MemberRoleEntity
 import com.media.bus.iam.auth.guard.RegisterRequestValidator
-import com.media.bus.iam.auth.repository.MemberRoleRepository
 import com.media.bus.iam.auth.repository.RolePermissionRepository
 import com.media.bus.iam.auth.repository.RoleRepository
 import com.media.bus.iam.auth.result.AuthResult
@@ -43,9 +41,9 @@ class AuthService(
     private val jwtProvider: JwtProvider,
     private val redisTemplate: StringRedisTemplate,
     private val rolePermissionRepository: RolePermissionRepository,
-    private val memberRoleRepository: MemberRoleRepository,
     private val roleRepository: RoleRepository,
     private val registerRequestValidator: RegisterRequestValidator,
+    private val roleResolutionService: RoleResolutionService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -119,7 +117,7 @@ class AuthService(
             MemberStatus.ACTIVE -> { /* 정상 처리 */ }
         }
 
-        val memberType = resolveMemberType(member.id.value)
+        val memberType = roleResolutionService.resolveMemberType(member.id.value)
 
         val principal = MemberPrincipal(
             id = member.id.value,
@@ -167,7 +165,7 @@ class AuthService(
     fun refreshAccessToken(refreshToken: String): AuthTokenResult {
         // 서명/만료 검증 + 파싱을 tryParseClaims() 단일 호출로 통합
         val claims = jwtProvider.tryParseClaims(refreshToken)
-            .orElseThrow { NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL) }
+            ?: throw NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL)
         val memberId = claims.subject
 
         // Redis에 저장된 토큰과 비교 (Refresh Token Rotation 지원)
@@ -179,7 +177,7 @@ class AuthService(
             ?: throw NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL)
 
         // 최신 역할 정보 반영
-        val memberType = resolveMemberType(member.id.value)
+        val memberType = roleResolutionService.resolveMemberType(member.id.value)
 
         val principal = MemberPrincipal(
             id = member.id.value,
@@ -205,19 +203,4 @@ class AuthService(
         log.info("[AuthService.logout] 로그아웃 처리. memberId={}", memberId)
     }
 
-    /**
-     * 회원 ID로 역할을 조회하여 MemberType을 반환한다.
-     * `login()`, `refreshAccessToken()`에서 반복되는 역할 조회 패턴을 통합한다.
-     */
-    private fun resolveMemberType(memberId: UUID): MemberType {
-        val memberRoles = memberRoleRepository.findWithRoleByMemberId(memberId)
-        if (memberRoles.isEmpty()) {
-            throw BaseException(AuthResult.ROLE_NOT_FOUND)
-        }
-        if (memberRoles.size > 1) {
-            log.warn("[AuthService] 회원 [{}]에게 복수 역할이 존재합니다. 첫 번째 역할을 사용합니다.", memberId)
-        }
-        return MemberType.fromName(memberRoles.first().role.name)
-            ?: throw BaseException(AuthResult.ROLE_NOT_FOUND)
-    }
 }
