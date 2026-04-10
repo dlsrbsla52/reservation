@@ -16,6 +16,7 @@ object MemberTable : DateBaseTable("auth.member") {
     val phoneNumber = varchar("phone_number", 20)
     val emailVerified = bool("email_verified").default(false)
     val status = enumerationByName<MemberStatus>("status", 20).default(MemberStatus.ACTIVE)
+    val memberName = varchar("member_name", 10)
 
     /** 비즈니스 회원 전용. 일반 회원(MEMBER)의 경우 null. */
     val businessNumber = varchar("business_number", 20).nullable()
