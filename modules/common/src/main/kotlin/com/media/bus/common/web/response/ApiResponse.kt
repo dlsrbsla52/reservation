@@ -38,7 +38,6 @@ data class ApiResponse<T>(
             ApiResponse(CommonResult.SUCCESS.code, message, null)
 
         /** 목록 성공 응답 -- `List<E>`를 `ListData<E>`로 감싸 반환 */
-
         fun <E> page(list: List<E>): ApiResponse<ListData<E>> =
             ApiResponse(CommonResult.SUCCESS.code, CommonResult.SUCCESS.message, ListData(null, list))
     }

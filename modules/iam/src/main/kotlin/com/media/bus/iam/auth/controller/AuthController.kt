@@ -6,6 +6,7 @@ import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.iam.auth.dto.LoginRequest
 import com.media.bus.iam.auth.dto.RegisterRequest
 import com.media.bus.iam.auth.dto.TokenResponse
+import com.media.bus.iam.auth.dto.VerifyMemberRequest
 import com.media.bus.iam.auth.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -93,6 +94,17 @@ class AuthController(
         val result = authService.refreshAccessToken(refreshToken)
         setRefreshTokenCookie(response, result.refreshToken)
         return ApiResponse.success(TokenResponse.of(result.accessToken))
+    }
+
+
+    @Operation(summary = "2차 본인 인증", description = "회원정보 수정, 비밀번호 변경, 탈퇴 등 민감한 작업 전 비밀번호로 본인을 재확인한다.")
+    @PostMapping("/verify")
+    fun verifyMember(
+        @RequestHeader("X-User-Id") memberId: String,
+        @RequestBody @Valid request: VerifyMemberRequest,
+    ): ApiResponse<Unit?> {
+        authService.verifyMember(memberId, request)
+        return ApiResponse.success()
     }
 
     /**
