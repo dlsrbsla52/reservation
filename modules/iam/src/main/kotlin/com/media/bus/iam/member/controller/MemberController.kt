@@ -19,10 +19,11 @@ class MemberController(
     private val memberService: MemberService
 ) {
 
-    /// 이름으로 아이디 찾기
+    /**
+     * 이름으로 아이디 찾기
+     */
     @Operation(summary = "아이디 찾기", description = "회원 이름, 전화번호, email로 아이디를 검색합니다.")
     @GetMapping("/find/me")
     fun findMe(@RequestBody @Valid request: FindMeRequest): ApiResponse<MemberResponse> =
         ApiResponse.success(memberService.findMe(request))
-
 }

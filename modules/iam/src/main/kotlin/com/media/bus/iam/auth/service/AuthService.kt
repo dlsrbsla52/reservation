@@ -8,6 +8,7 @@ import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.iam.auth.dto.AuthTokenResult
 import com.media.bus.iam.auth.dto.LoginRequest
 import com.media.bus.iam.auth.dto.RegisterRequest
+import com.media.bus.iam.auth.dto.VerifyMemberRequest
 import com.media.bus.iam.auth.entity.MemberRoleEntity
 import com.media.bus.iam.auth.guard.RegisterRequestValidator
 import com.media.bus.iam.auth.repository.RolePermissionRepository
@@ -71,6 +72,7 @@ class AuthService(
             email = request.email,
             phoneNumber = request.phoneNumber,
             businessNumber = request.businessNumber,
+            memberName = request.memberName,
         )
 
         // 3. role 마스터 테이블에서 MemberType에 해당하는 Role 조회 및 역할 부여
@@ -195,6 +197,21 @@ class AuthService(
         val newRefreshToken = jwtProvider.generateRefreshToken(memberId) // Token Rotation
 
         return AuthTokenResult(newAccessToken, newRefreshToken)
+    }
+
+    /**
+     * 2차 본인 인증.
+     * 현재 로그인한 사용자의 비밀번호를 재확인하여 본인 여부를 검증한다.
+     * 회원정보 수정, 비밀번호 변경, 탈퇴 등 민감한 작업 전에 호출한다.
+     */
+    @Transactional(readOnly = true)
+    fun verifyMember(memberId: String, request: VerifyMemberRequest) {
+        val member = memberRepository.findById(UUID.fromString(memberId))
+            ?: throw NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL)
+
+        if (!passwordEncoder.matches(request.password, member.password)) {
+            throw NoAuthenticationException(CommonResult.AUTHENTICATION_FAIL)
+        }
     }
 
     /** 로그아웃 처리. Redis에서 Refresh Token을 삭제하여 서버 측 무효화한다. */
