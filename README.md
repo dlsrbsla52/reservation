@@ -1,12 +1,13 @@
 # 예약 시스템 개발 프로젝트
->`java25`, `Spring Boot 3.4.13`을 위한 MSA(Microservices Architecture) 기반 보일러플레이트
+ㄴ ㄲㅏㄹ>`java25`, `Spring Boot 4.0.5`, `Kotlin 2.3.20`을 위한 MSA(Microservices Architecture) 기반 보일러플레이트
 
 ## 시스템 아키텍처 (MSA Multi-Module 구조)
 본 프로젝트는 **MSA(Microservices Architecture)** 구조를 지향하며, 단일 프로젝트(Monorepo) 내에서 멀티 모듈 기반으로 구성됩니다. 각 서브 모듈은 도메인 특성에 맞게 독립적인 웹 애플리케이션으로 동작합니다.
 
-- **common**: 전체 프로젝트에서 공유하는 공통 도메인/DTO, 유틸리티, 글로벌 예외 처리, JPA 엔티티, QueryDSL Q-Class 빈, AWS SDK, DB 설정 및 Security 기본 설정이 응집된 핵심 라이브러리 모듈입니다.
+- **common**: 전체 프로젝트에서 공유하는 공통 도메인/DTO, 유틸리티, 글로벌 예외 처리, Exposed ORM 엔티티, AWS SDK, DB 설정 및 Security 기본 설정이 응집된 핵심 라이브러리 모듈입니다.
+- **auth-contract**: JWT 토큰 구조 및 인증 계약을 정의하는 공유 라이브러리 모듈입니다. `iam`과 타 서비스 간의 인증 인터페이스 계약을 담당합니다.
 - **gateway**: 클라이언트의 모든 요청을 단일 진입점으로 받아 각 마이크로서비스로 라우팅하는 Spring Cloud Gateway 모듈입니다. (Expected Port: 8080)
-- **iam**: JWT 토큰 발급 프로세스와 사용자의 인증(Authentication)/인가(Authorization) 및 회원의 라이프사이클(가입, 조회, 수정, 제재, 탈퇴 등) 및 회원 관련 비즈니스 도메인을 관리하는 모듈 전담하여 처리하는 인증 인가 모듈입니다. (Expected Port: 8181)
+- **iam**: JWT 토큰 발급·갱신 프로세스와 사용자의 인증(Authentication)/인가(Authorization) 및 회원의 라이프사이클(가입, 조회, 수정, 제재, 탈퇴 등) 및 회원 관련 비즈니스 도메인을 관리하는 모듈입니다. (Expected Port: 8181)
 - **stop**: 정류소의 관리 매니저를 담당하는 서비스 모듈입니다. 각 정류소의 매칭 상태와 가격(유동인구, 판매가격, 결제 시기, 재계약 시기) 등 비즈니스 도메인을 책임지는 메인 워커 모듈입니다. (Expected Port: 8182)
 - **reservation**: 시스템의 Core 비즈니스인 실제 예약 생성, 변경, 취소 등의 트랜잭션 로직을 책임지는 메인 워커 모듈입니다. (Expected Port: 8183)
 
@@ -16,7 +17,7 @@
 > 로컬 실행 후 아래 URL로 접근할 수 있습니다.
 
 | 서비스 | Swagger UI | OpenAPI JSON |
-|--------|-----------|--------------|
+|--------|------------|--------------|
 | `iam` (인증/회원) | http://localhost:8181/swagger-ui.html | http://localhost:8181/api-docs |
 | `stop` (정류소) | http://localhost:8182/swagger-ui.html | http://localhost:8182/api-docs |
 | `reservation` (예약) | http://localhost:8183/swagger-ui.html | http://localhost:8183/api-docs |
@@ -28,7 +29,7 @@
 ## DB 및 통합 테스트(MSA) 구동 환경
 > 본 프로젝트는 Docker Compose를 이용해 모든 MSA 모듈을 로컬 컨테이너 환경에서 통합 테스트할 수 있도록 최적화되어 있습니다.
 > 
-> 다음과 같은 명령어로 DB(PostgreSQL) 및 API Gateway를 포함한 3개의 마이크로서비스(`gateway`, `iam`, `reservation`)를 띄울 수 있습니다.
+> 다음과 같은 명령어로 DB(PostgreSQL) 및 API Gateway를 포함한 서비스를 띄울 수 있습니다.
 >
 > ```bash
 > docker-compose up --build -d
@@ -56,6 +57,13 @@
 > 개발환경에선 `docker-compose-local.yml` 내에 `postgres_data`라는 Docker Name Volume이 매핑되어 있습니다.
 > 이로 인해 `docker-compose down`이나 컨테이너(rm)를 강제로 삭제하더라도, **매핑된 볼륨(`-v`)을 함께 삭제하지 않는 이상 DB 내의 데이터는 영구적으로 유지**되므로 안전하게 테스트를 껐다 켤 수 있습니다.
 
+### 인프라 구성
+
+| 컴포넌트 | 버전 | 포트 | 용도 |
+|----------|------|------|------|
+| PostgreSQL | 18.3 | 15433 | 주 데이터베이스 (모듈별 schema 격리) |
+| Valkey (Redis 호환) | 8.1.6 | 6379 | 캐시 / 세션 / 분산 락 |
+
 
 ## MSA 내부 통신 (RestClient)
 > 본 프로젝트는 마이크로서비스 간의 동기 통신을 위해 Spring Boot 3.2+ 표준인 **`RestClient`**를 사용합니다.
@@ -70,17 +78,16 @@
 >    - **허용 도메인**: `*.local`, `*.internal`, `*service*`, `localhost`, `10.* (Internal IP)`
 >
 > 💡 **사용 방법**
-> ```java
+> ```kotlin
 > @Service
-> @RequiredArgsConstructor
-> public class MyService {
->     private final RestClient internalRestClient;
->
->     public void callOtherModule() {
+> class MyService(
+>     private val internalRestClient: RestClient
+> ) {
+>     fun callOtherModule() {
 >         internalRestClient.get()
->             .uri("http://member-service/api/v1/profile")
+>             .uri("http://iam-service/api/v1/member/profile")
 >             .retrieve()
->             .body(MemberDto.class);
+>             .body(MemberDto::class.java)
 >     }
 > }
 > ```
@@ -94,7 +101,7 @@
    - **적용 대상**: 외부 사용자가 아닌 시스템(Gateway, 백그라운드 워커, 스케줄러, 내부 타 모듈 등)
    - **목적**: 해당 API가 인터넷을 통한 접속이 아니라, **신뢰할 수 있는 내부 망(Service-to-Service)에서 넘어온 호출인지 1차로 확인**하여 외부로부터의 접근을 원천 차단합니다.
    - **구현**: `X-Service-Token` 헤더를 검증합니다. (예: `iam` 서비스의 `/api/v1/member/**` 등 서비스 간 정보 조회 API에 주로 적용)
-   - **설정**: 각 서비스의 `SecurityConfig`에서 이 필터를 Bean으로 등록할 때 적용할 경로 리스트(`List.of(...)`)를 주입하여 유연하게 적용 범위를 제어합니다.
+   - **설정**: 각 서비스의 `SecurityConfig`에서 이 필터를 Bean으로 등록할 때 적용할 경로 리스트(`listOf(...)`)를 주입하여 유연하게 적용 범위를 제어합니다.
 
 2. **@Authorize (사용자 인가)**:
    - **적용 대상**: 모바일/웹 등의 클라이언트를 통해 접근하는 실제 **사용자(Member/User)**
@@ -120,14 +127,17 @@
 
 ### 실제 사용법
 
-```java
-// 1. 각 클래스에 Logger 선언 (평소와 동일)
-private static final Logger log = LoggerFactory.getLogger(MyService.class);
-// 혹은 @Slf4j 어노테이션 사용
+```kotlin
+// 1. 각 클래스에 Logger 선언
+private val log = LoggerFactory.getLogger(MyService::class.java)
+// 혹은 companion object에서 선언
+companion object {
+    private val log = LoggerFactory.getLogger(MyService::class.java)
+}
 
 // 2. 로그 호출만 하면 requestId, traceId, memberId가 자동으로 붙는다
-log.info("처리 시작 — itemId={}", itemId);
-log.error("처리 실패", exception);
+log.info("처리 시작 — itemId={}", itemId)
+log.error("처리 실패", exception)
 ```
 
 ### `@Async` 비동기 MDC 자동 전파
@@ -139,12 +149,12 @@ log.error("처리 실패", exception);
 2. **`ThreadPoolConfig.mdcTaskDecorator`** — Executor 제출 시점 MDC를 실행 스레드에 주입
 3. **`AsyncConfigurer.getAsyncExecutor()`** — executor 미지정 `@Async`도 위 두 레이어가 적용된 `IoBoundExecutor`를 기본으로 사용
 
-```java
+```kotlin
 // executor 지정하거나 생략하거나 — 모두 requestId, traceId 등이 자동 전파된다
 @Async("IoBoundExecutor")
-public CompletableFuture<Void> sendNotification(String memberId) {
-    log.info("알림 전송 — memberId={}", memberId);  // requestId, traceId 자동 포함
-    return CompletableFuture.completedFuture(null);
+fun sendNotification(memberId: String): CompletableFuture<Void> {
+    log.info("알림 전송 — memberId={}", memberId)  // requestId, traceId 자동 포함
+    return CompletableFuture.completedFuture(null)
 }
 ```
 
@@ -152,19 +162,19 @@ public CompletableFuture<Void> sendNotification(String memberId) {
 
 Spring `@Async` 외부에서 직접 스레드를 생성하는 경우 `MdcContextUtil.wrap()`을 사용합니다.
 
-```java
-import com.media.bus.common.logging.MdcContextUtil;
+```kotlin
+import com.media.bus.common.logging.MdcContextUtil
 
 // Runnable 래핑
-CompletableFuture.runAsync(MdcContextUtil.wrap(() -> {
-    log.info("비동기 작업 — MDC 자동 전파됨");
-}));
+CompletableFuture.runAsync(MdcContextUtil.wrap {
+    log.info("비동기 작업 — MDC 자동 전파됨")
+})
 
 // Callable 래핑
-CompletableFuture.supplyAsync(MdcContextUtil.wrap(() -> {
-    log.info("결과 반환 작업");
-    return result;
-}));
+CompletableFuture.supplyAsync(MdcContextUtil.wrap {
+    log.info("결과 반환 작업")
+    result
+})
 ```
 
 ### 환경별 로그 포맷
@@ -182,11 +192,11 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap(() -> {
 
 | 파일 | 역할 |
 |------|------|
-| `common/logging/MdcLoggingFilter.java` | requestId, memberId → MDC 주입 필터 |
-| `common/logging/MdcContextUtil.java` | 수동 비동기 MDC 전파 유틸 (`wrap(Runnable)`, `wrap(Callable)`) |
-| `common/core/aop/AsyncMdcAspect.java` | `@Async` 자동 MDC 전파 Aspect |
-| `common/configuration/ThreadPoolConfig.java` | MDC `TaskDecorator` + 기본 Executor (`AsyncConfigurer`) |
-| `common/src/test/.../MdcLoggingFilterDemo.java` | 동작 시각화 데모 (`./gradlew :modules:common:demoLogging`) |
+| `common/logging/MdcLoggingFilter.kt` | requestId, memberId → MDC 주입 필터 |
+| `common/logging/MdcContextUtil.kt` | 수동 비동기 MDC 전파 유틸 (`wrap(Runnable)`, `wrap(Callable)`) |
+| `common/core/aop/AsyncMdcAspect.kt` | `@Async` 자동 MDC 전파 Aspect |
+| `common/configuration/ThreadPoolConfig.kt` | MDC `TaskDecorator` + 기본 Executor (`AsyncConfigurer`) |
+| `common/src/test/.../MdcLoggingFilterDemo.kt` | 동작 시각화 데모 (`./gradlew :modules:common:demoLogging`) |
 
 ## 디버깅 (Remote JVM Debug)
 > 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
@@ -223,9 +233,9 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap(() -> {
 > 이를 해결하기 위해 Bulkhead 처리가 필요합니다. \
 > \
 > 이는 검증된 라이브러리인 Resilience4j 통해 Bulkhead를 구현 했습니다. \
-> AOP를 통해 **`Transactional`** 을 얻는 모든 로직에 대해 세마포어를 적용합니다. \
+> AOP를 통해 **`@Transactional`** 을 얻는 모든 로직에 대해 세마포어를 적용합니다. \
 > \
-> 이는 **`Transactional`** 사용하며 트랜잭션을 얻는 그 순간부터 Server에 존재하는 \
+> 이는 **`@Transactional`** 사용하며 트랜잭션을 얻는 그 순간부터 Server에 존재하는 \
 > `DB Connection Pool`을 사용하기 때문입니다. \
 > \
 > 자세한 내용은 `com.common.boilerplate.core.aop.TransactionalBulkheadAspect` 참조 바랍니다.
