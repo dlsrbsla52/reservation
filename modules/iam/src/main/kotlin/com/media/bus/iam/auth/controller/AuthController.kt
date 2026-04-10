@@ -33,7 +33,7 @@ import java.time.Duration
 class AuthController(
     private val authService: AuthService,
     /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
-    @Value("\${cookie.secure:false}") private val cookieSecure: Boolean = false,
+    @param:Value($$"${cookie.secure:false}") private val cookieSecure: Boolean = false,
 ) {
     companion object {
         private const val REFRESH_TOKEN_COOKIE = "refresh_token"

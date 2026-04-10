@@ -8,7 +8,6 @@ import com.media.bus.iam.auth.entity.MemberRoleEntity
 import com.media.bus.iam.auth.repository.RoleRepository
 import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.member.entity.MemberEntity
-import com.media.bus.iam.member.repository.MemberRepository
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -24,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class AdminMemberService(
-    private val memberRepository: MemberRepository,
     private val roleRepository: RoleRepository,
     private val passwordEncoder: PasswordEncoder,
     private val adminRegisterRequestValidator: AdminRegisterRequestValidator,
