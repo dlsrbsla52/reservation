@@ -19,7 +19,7 @@ class MemberService(
     private val jwtProvider: JwtProvider,
     private val roleResolutionService: RoleResolutionService,
 ) {
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = LoggerFactory.getLogger(MemberService::class.java)
 
     /** 로그인시 사용된 jwt 토큰으로 회원 조회. */
     @Transactional(readOnly = true)
@@ -27,6 +27,8 @@ class MemberService(
         val principal = jwtProvider.getPrincipalFromClaims(
             jwtProvider.parseClaimsFromToken(jwt),
         )
+
+        log.debug("요청 ID : {}", principal.id)
         val member = memberRepository.findById(principal.id)
             ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
         return toResponse(member)
