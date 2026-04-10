@@ -24,6 +24,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             email: String,
             phoneNumber: String,
             businessNumber: String?,
+            memberName: String
         ): MemberEntity = new(UuidV7.generate()) {
             this.loginId = loginId
             this.password = encodedPassword
@@ -32,6 +33,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             this.emailVerified = false
             this.status = MemberStatus.ACTIVE
             this.businessNumber = businessNumber
+            this.memberName = memberName
         }
 
         /** 어드민 회원 생성 팩토리 — 관리자가 직접 생성하므로 이메일 인증 완료 상태 */
@@ -40,6 +42,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             encodedPassword: String,
             email: String,
             phoneNumber: String,
+            memberName: String,
         ): MemberEntity = new(UuidV7.generate()) {
             this.loginId = loginId
             this.password = encodedPassword
@@ -48,6 +51,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             this.emailVerified = true
             this.status = MemberStatus.ACTIVE
             this.businessNumber = null
+            this.memberName = memberName
         }
     }
 
@@ -58,6 +62,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
     var emailVerified by MemberTable.emailVerified
     var status by MemberTable.status
     var businessNumber by MemberTable.businessNumber
+    var memberName by MemberTable.memberName
 
     // ─────────────────────────────────────────────────────────────────
     // 도메인 행위 메서드

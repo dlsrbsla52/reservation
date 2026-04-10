@@ -48,6 +48,7 @@ class AdminMemberService(
             encodedPassword = passwordEncoder.encode(request.password)!!,
             email = request.email,
             phoneNumber = request.phoneNumber,
+            memberName = request.memberName,
         )
 
         // role 마스터 테이블에서 MemberType에 해당하는 Role 조회 및 역할 부여

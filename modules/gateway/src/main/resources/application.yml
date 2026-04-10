@@ -36,7 +36,7 @@ spring:
             - id: iam-service
               uri: http://iam-service:8181
               predicates:
-                - Path=/api/v1/auth/**, /api/v1/member/**, /api/v1/admin/**
+                - Path=/api/v1/auth/**, /api/v1/admin/**
             - id: stop-service
               uri: http://stop-service:8182
               predicates:

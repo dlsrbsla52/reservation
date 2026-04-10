@@ -4,6 +4,7 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.contract.security.JwtProvider
 import com.media.bus.iam.auth.service.RoleResolutionService
+import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.dto.MemberResponse
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.repository.MemberRepository
@@ -52,6 +53,22 @@ class MemberService(
     fun findByEmail(email: String): MemberResponse {
         val member = memberRepository.findByEmail(email)
             ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
+        return toResponse(member)
+    }
+
+    /**
+     * 회원이 아이디를 분실했을 경우 처리.
+     * phoneNumber, email 중 최소 하나는 필수 — 둘 다 없으면 예외.
+     */
+    @Transactional(readOnly = true)
+    fun findMe(request: FindMeRequest): MemberResponse {
+        require(request.phoneNumber != null || request.email != null) {
+            "phoneNumber 또는 email 중 하나는 필수입니다."
+        }
+
+        val member = memberRepository.findMe(request)
+            ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
+
         return toResponse(member)
     }
 
