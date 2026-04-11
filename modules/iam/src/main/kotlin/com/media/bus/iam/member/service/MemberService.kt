@@ -91,13 +91,17 @@ class MemberService(
 
         member.withdraw()
         authService.clearVerification(memberId)
-        log.info("[MemberService.withdraw] 회원 탈퇴 처리 완료. memberId={}", memberId)
+        log.debug("[MemberService.withdraw] 회원 탈퇴 처리 완료. memberId={}", memberId)
     }
 
     fun modify(memberId: String, request: MemberModifyRequest) {
         authService.checkVerified(memberId)
 
+        val member = memberRepository.findById(UUID.fromString(memberId))
+            ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
 
+        member.modify(request)
+        log.debug("[MemberService.modify] 회원 정보 수정 완료. memberId={}", memberId)
     }
 
     /**

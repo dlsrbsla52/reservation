@@ -1,0 +1,41 @@
+### 로그인
+POST {{domain-gateway}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "loginId" : "vhkdrb521",
+  "password" : "ghkddlsrb1!"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 회원가입
+POST {{domain-gateway}}/api/v1/auth/register
+Content-Type: {{json}}
+
+{
+    "loginId" : "vhkdrb521",
+    "password" : "ghkddlsrb1!",
+    "email" : "vhkdrb521@gmail.com",
+    "phoneNumber" : "01049045402",
+    "memberType" : "MEMBER"
+}
+
+### 토큰 재발급
+# Refresh Token은 쿠키에서 자동으로 전송됩니다 — Request Body 불필요
+# IntelliJ HTTP Client가 Set-Cookie로 저장된 refresh_token을 자동으로 함께 전송합니다
+POST {{domain-gateway}}/api/v1/auth/token/refresh
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 이메일 인증
+GET {{domain-gateway}}/api/v1/auth/verify-email?token={이메일로_받은_토큰}
+
+### 로그아웃
+# Redis의 Refresh Token 삭제 + Cookie 즉시 만료
+POST {{domain-gateway}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}

@@ -12,11 +12,7 @@ interface Result : Serializable {
 
     val code: String
 
-    val messageId: String
-
     val message: String
-
-    fun getMessage(operator: (String) -> String, id: String): String
 
     /**
      * 이 Result 코드에 대응하는 HTTP 상태 코드.

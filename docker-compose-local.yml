@@ -119,6 +119,11 @@ services:
       - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080
       - LOGGING_LEVEL_COM_HIG_GATEWAY=DEBUG
+      # 서비스 라우팅 URL — Docker 네트워크 내 기본값
+      # 로컬 개발 시 docker-compose-dev.yml override 파일로 host.docker.internal 전환
+      - IAM_SERVICE_URL=http://iam-service:8181
+      - STOP_SERVICE_URL=http://stop-service:8182
+      - RESERVATION_SERVICE_URL=http://reservation-service:8183
 
 volumes:
   postgres_data:

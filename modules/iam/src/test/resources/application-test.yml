@@ -14,9 +14,5 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
-  jpa:
-    hibernate:
-      # Spring Boot 4에서 Liquibase가 @DataJpaTest 슬라이스에 포함되지 않아 ddl-auto로 테이블 생성
-      ddl-auto: create-drop
   liquibase:
     enabled: false

@@ -20,14 +20,6 @@ spring:
     compose:
       # noinspection SpringBootApplicationYaml
       file: ./compose.yaml
-  jpa:
-    show-sql: true
-    properties:
-      hibernate:
-        show_sql: false
-    open-in-view: false
-    hibernate:
-      ddl-auto: none
   jackson:
     default-property-inclusion: NON_NULL
   threads:
