@@ -1,0 +1,11 @@
+# 로컬 개발용 override — 모든 서비스 URL을 host.docker.internal로 전환
+# 사용법:
+#   docker-compose -f docker-compose-local.yml -f docker-compose-dev.yml up -d
+#   이후 로컬에서 실행할 모듈의 컨테이너만 내리면 됩니다:
+#   docker-compose -f docker-compose-local.yml -f docker-compose-dev.yml stop iam-service
+services:
+  gateway-service:
+    environment:
+      - IAM_SERVICE_URL=http://host.docker.internal:8181
+      - STOP_SERVICE_URL=http://host.docker.internal:8182
+      - RESERVATION_SERVICE_URL=http://host.docker.internal:8183

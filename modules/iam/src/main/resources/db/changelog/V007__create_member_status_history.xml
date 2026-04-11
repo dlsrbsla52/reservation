@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+
+  <!-- ================================================================
+       V007: 회원 상태 변경 이력(member_status_history) 테이블 생성
+       - 계정 정지/해제 시 사유와 처리자를 기록한다.
+       ================================================================ -->
+
+  <changeSet id="V007-1" author="dlsrbsla52" dbms="postgresql">
+    <comment>회원 상태 변경 이력 테이블 생성</comment>
+
+    <createTable schemaName="auth" tableName="member_status_history">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <!-- 대상 회원 -->
+      <column name="member_id" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 변경 전 상태 (ACTIVE, SUSPENDED, WITHDRAWN) -->
+      <column name="previous_status" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 변경 후 상태 -->
+      <column name="new_status" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 변경 사유 -->
+      <column name="reason" type="varchar(500)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 처리자 (관리자 회원 ID) -->
+      <column name="changed_by" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <!-- 특정 회원의 이력을 조회하는 인덱스 -->
+    <createIndex schemaName="auth" tableName="member_status_history" indexName="idx_member_status_history_member_id">
+      <column name="member_id"/>
+    </createIndex>
+
+    <!-- 외래키: member 테이블 참조 -->
+    <addForeignKeyConstraint
+      baseTableSchemaName="auth" baseTableName="member_status_history" baseColumnNames="member_id"
+      referencedTableSchemaName="auth" referencedTableName="member" referencedColumnNames="id"
+      constraintName="fk_member_status_history_member"
+      onDelete="CASCADE"/>
+  </changeSet>
+
+  <!-- H2 호환 changeset -->
+  <changeSet id="V007-1-h2" author="dlsrbsla52" dbms="h2">
+    <comment>회원 상태 변경 이력 테이블 생성 (H2)</comment>
+
+    <createTable schemaName="auth" tableName="member_status_history">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="member_id" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="previous_status" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="new_status" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="reason" type="varchar(500)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="changed_by" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- 테이블/컬럼 코멘트 -->
+  <changeSet id="V007-2" author="dlsrbsla52" dbms="postgresql">
+    <comment>member_status_history 테이블 코멘트 추가</comment>
+    <setTableRemarks schemaName="auth" tableName="member_status_history"
+                     remarks="회원 상태 변경 이력 — 계정 정지/해제 사유 및 처리자 기록"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="id" remarks="이력 PK (UUID)"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="member_id" remarks="대상 회원 ID (FK → member.id)"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="previous_status" remarks="변경 전 상태 (ACTIVE, SUSPENDED, WITHDRAWN)"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="new_status" remarks="변경 후 상태"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="reason" remarks="변경 사유 (관리자 입력)"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="changed_by" remarks="처리자 (관리자 회원 ID, FK → member.id)"/>
+    <setColumnRemarks schemaName="auth" tableName="member_status_history"
+                      columnName="created_at" remarks="이력 생성 시각"/>
+  </changeSet>
+
+</databaseChangeLog>

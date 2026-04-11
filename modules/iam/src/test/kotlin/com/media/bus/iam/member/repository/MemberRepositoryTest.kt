@@ -51,6 +51,7 @@ class MemberRepositoryTest {
                 emailVerified = false
                 status = MemberStatus.ACTIVE
                 businessNumber = null
+                memberName = "테스트"
             }
 
             val found = memberRepository.findById(member.id.value)
@@ -73,6 +74,7 @@ class MemberRepositoryTest {
                 emailVerified = false
                 status = MemberStatus.ACTIVE
                 businessNumber = null
+                memberName = "테스트"
             }
 
             assertThat(member.id.value).isNotNull
@@ -93,6 +95,7 @@ class MemberRepositoryTest {
                 emailVerified = false
                 status = MemberStatus.ACTIVE
                 businessNumber = null
+                memberName = "테스트"
             }
 
             assertThat(memberRepository.existsByLoginId("exists_user_$ts")).isTrue

@@ -7,11 +7,11 @@ import jakarta.validation.constraints.NotBlank
 @Schema(description = "로그인 요청 DTO")
 data class LoginRequest(
 
-    @Schema(description = "로그인 아이디", example = "user123")
+    @param:Schema(description = "로그인 아이디", example = "user123")
     @field:NotBlank(message = "아이디를 입력해주세요.")
     val loginId: String,
 
-    @Schema(description = "비밀번호", example = "Password123!")
+    @param:Schema(description = "비밀번호", example = "Password123!")
     @field:NotBlank(message = "비밀번호를 입력해주세요.")
     val password: String,
 )

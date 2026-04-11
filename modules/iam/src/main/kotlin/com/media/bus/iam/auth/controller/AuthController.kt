@@ -3,9 +3,7 @@ package com.media.bus.iam.auth.controller
 import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
-import com.media.bus.iam.auth.dto.LoginRequest
-import com.media.bus.iam.auth.dto.RegisterRequest
-import com.media.bus.iam.auth.dto.TokenResponse
+import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -32,7 +30,7 @@ import java.time.Duration
 class AuthController(
     private val authService: AuthService,
     /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
-    @Value("\${cookie.secure:false}") private val cookieSecure: Boolean = false,
+    @param:Value($$"${cookie.secure:false}") private val cookieSecure: Boolean = false,
 ) {
     companion object {
         private const val REFRESH_TOKEN_COOKIE = "refresh_token"
@@ -95,6 +93,17 @@ class AuthController(
         return ApiResponse.success(TokenResponse.of(result.accessToken))
     }
 
+
+    @Operation(summary = "2차 본인 인증", description = "회원정보 수정, 비밀번호 변경, 탈퇴 등 민감한 작업 전 비밀번호로 본인을 재확인한다.")
+    @PostMapping("/verify")
+    fun verifyMember(
+        @RequestHeader("X-User-Id") memberId: String,
+        @RequestBody @Valid request: VerifyMemberRequest,
+    ): ApiResponse<Unit?> {
+        authService.verifyMember(memberId, request)
+        return ApiResponse.success()
+    }
+
     /**
      * 로그아웃.
      * Gateway에서 주입한 `X-User-Id` 헤더를 기반으로 Redis의 Refresh Token을 삭제하고 Cookie를 만료시킨다.
@@ -121,6 +130,38 @@ class AuthController(
             .build()
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString())
     }
+
+    // ────────────────────────────────────────��────────────────────────
+    // 비밀번호 초기화
+    // ─────────────────────────────────────────────────────────────────
+
+    /** 비밀번호 초기화 요청. loginId 또는 email로 초기화 토큰을 발급한다. */
+    @Operation(summary = "비밀번호 초기화 요청", description = "로그인 아이디 또는 이메일로 비밀번호 초기화 토큰을 발급합니다.")
+    @PostMapping("/password-reset/request")
+    fun requestPasswordReset(@RequestBody @Valid request: PasswordResetRequest): ApiResponse<Unit?> {
+        authService.requestPasswordReset(request)
+        return ApiResponse.successWithMessage("비밀번호 초기화 안내가 발송되었습니다.")
+    }
+
+    /** 비밀번호 초기화 토큰 유효성 확인. */
+    @Operation(summary = "비밀번호 초기화 토큰 검증", description = "비밀번호 초기화 토큰이 유효한지 확인합니다.")
+    @PostMapping("/password-reset/verify")
+    fun verifyPasswordResetToken(@RequestBody @Valid request: PasswordResetVerifyRequest): ApiResponse<Unit?> {
+        authService.verifyPasswordResetToken(request.token)
+        return ApiResponse.success()
+    }
+
+    /** 비밀번호 초기화 확정. 토큰과 새 비밀번호로 비밀번호를 변경한다. */
+    @Operation(summary = "비밀번호 초기화 확정", description = "유효한 토큰과 새 비밀번호를 제출하여 비밀번호를 변경합니다.")
+    @PostMapping("/password-reset/confirm")
+    fun confirmPasswordReset(@RequestBody @Valid request: PasswordResetConfirmRequest): ApiResponse<Unit?> {
+        authService.confirmPasswordReset(request)
+        return ApiResponse.successWithMessage("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.")
+    }
+
+    // ────────────────────────────────────────────────────��────────────
+    // Cookie 헬퍼
+    // ─────────────────────────────────────────────────────────────────
 
     /** Refresh Token Cookie를 즉시 만료시킨다 (로그아웃 시 사용). */
     private fun expireRefreshTokenCookie(response: HttpServletResponse) {

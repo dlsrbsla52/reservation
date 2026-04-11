@@ -36,4 +36,12 @@ class MemberRoleRepository {
     fun findWithRoleByMemberId(memberId: UUID): List<MemberRoleEntity> =
         MemberRoleEntity.find { MemberRoleTable.memberId eq EntityID(memberId, MemberTable) }
             .toList()
+
+    /**
+     * 회원 ID로 MemberRole 단건을 조회한다.
+     * `member_id` UNIQUE 제약에 의해 최대 1건만 존재한다.
+     */
+    fun findByMemberId(memberId: UUID): MemberRoleEntity? =
+        MemberRoleEntity.find { MemberRoleTable.memberId eq EntityID(memberId, MemberTable) }
+            .firstOrNull()
 }

@@ -7,6 +7,6 @@ import jakarta.validation.constraints.NotBlank
 data class FindMemberByMemberIdRequest(
 
     @field:NotBlank
-    @Schema(name = "memberId", description = "memberId 회원 테이블 pk", example = "ac150006-9ce7-193d-819c-e759d6340000")
+    @param:Schema(name = "memberId", description = "memberId 회원 테이블 pk", example = "ac150006-9ce7-193d-819c-e759d6340000")
     val memberId: String,
 )

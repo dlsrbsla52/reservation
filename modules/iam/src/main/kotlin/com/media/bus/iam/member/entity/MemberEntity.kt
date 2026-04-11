@@ -2,6 +2,7 @@ package com.media.bus.iam.member.entity
 
 import com.media.bus.common.entity.common.DateBaseEntity
 import com.media.bus.common.entity.common.UuidV7
+import com.media.bus.iam.member.dto.MemberModifyRequest
 import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
@@ -24,6 +25,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             email: String,
             phoneNumber: String,
             businessNumber: String?,
+            memberName: String
         ): MemberEntity = new(UuidV7.generate()) {
             this.loginId = loginId
             this.password = encodedPassword
@@ -32,6 +34,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             this.emailVerified = false
             this.status = MemberStatus.ACTIVE
             this.businessNumber = businessNumber
+            this.memberName = memberName
         }
 
         /** 어드민 회원 생성 팩토리 — 관리자가 직접 생성하므로 이메일 인증 완료 상태 */
@@ -40,6 +43,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             encodedPassword: String,
             email: String,
             phoneNumber: String,
+            memberName: String,
         ): MemberEntity = new(UuidV7.generate()) {
             this.loginId = loginId
             this.password = encodedPassword
@@ -48,6 +52,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
             this.emailVerified = true
             this.status = MemberStatus.ACTIVE
             this.businessNumber = null
+            this.memberName = memberName
         }
     }
 
@@ -58,6 +63,7 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
     var emailVerified by MemberTable.emailVerified
     var status by MemberTable.status
     var businessNumber by MemberTable.businessNumber
+    var memberName by MemberTable.memberName
 
     // ─────────────────────────────────────────────────────────────────
     // 도메인 행위 메서드
@@ -73,5 +79,20 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
 
     fun suspend() {
         status = MemberStatus.SUSPENDED
+    }
+
+    fun modify(request: MemberModifyRequest) {
+        phoneNumber = request.phoneNumber
+        email = request.email
+    }
+
+    /** 비밀번호 변경 — 이미 암호화된 비밀번호를 전달받는다 */
+    fun changePassword(encodedPassword: String) {
+        password = encodedPassword
+    }
+
+    /** 계정 정지 해제 — SUSPENDED → ACTIVE */
+    fun unsuspend() {
+        status = MemberStatus.ACTIVE
     }
 }

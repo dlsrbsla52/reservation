@@ -8,10 +8,10 @@ import io.swagger.v3.oas.annotations.media.Schema
  */
 @Schema(description = "인증 토큰 응답 DTO")
 data class TokenResponse(
-    @Schema(description = "Access Token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    @param:Schema(description = "Access Token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     val accessToken: String,
 
-    @Schema(description = "토큰 타입", example = "Bearer")
+    @param:Schema(description = "토큰 타입", example = "Bearer")
     val tokenType: String,
 ) {
     companion object {
