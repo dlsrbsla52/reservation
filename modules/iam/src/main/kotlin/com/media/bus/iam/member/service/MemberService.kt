@@ -3,8 +3,10 @@ package com.media.bus.iam.member.service
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.contract.security.JwtProvider
+import com.media.bus.iam.auth.service.AuthService
 import com.media.bus.iam.auth.service.RoleResolutionService
 import com.media.bus.iam.member.dto.FindMeRequest
+import com.media.bus.iam.member.dto.MemberModifyRequest
 import com.media.bus.iam.member.dto.MemberResponse
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.repository.MemberRepository
@@ -18,6 +20,7 @@ class MemberService(
     private val memberRepository: MemberRepository,
     private val jwtProvider: JwtProvider,
     private val roleResolutionService: RoleResolutionService,
+    private val authService: AuthService,
 ) {
     private val log = LoggerFactory.getLogger(MemberService::class.java)
 
@@ -72,6 +75,29 @@ class MemberService(
             ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
 
         return toResponse(member)
+    }
+
+    /**
+     * 회원 탈퇴 처리.
+     * 2차 본인 인증 완료 여부를 확인한 뒤 회원 상태를 `WITHDRAWN`으로 변경한다.
+     * 처리 완료 후 인증 상태를 삭제하여 1회성으로 사용한다.
+     */
+    @Transactional
+    fun withdraw(memberId: String) {
+        authService.checkVerified(memberId)
+
+        val member = memberRepository.findById(UUID.fromString(memberId))
+            ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
+
+        member.withdraw()
+        authService.clearVerification(memberId)
+        log.info("[MemberService.withdraw] 회원 탈퇴 처리 완료. memberId={}", memberId)
+    }
+
+    fun modify(memberId: String, request: MemberModifyRequest) {
+        authService.checkVerified(memberId)
+
+
     }
 
     /**
