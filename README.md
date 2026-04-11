@@ -50,6 +50,28 @@
 > docker-compose -f docker-compose-local.yml up -d --build --no-deps {{service-name}}
 > docker-compose -f docker-compose-local.yml up -d --build --no-deps gateway-service
 >```
+>
+> ### 특정 모듈만 IntelliJ에서 로컬 실행 (하이브리드 개발)
+> Docker Compose로 전체 서비스를 띄운 상태에서, 개발 중인 모듈 하나만 컨테이너에서 내리고 IntelliJ에서 직접 실행할 수 있습니다.
+> `docker-compose-dev.yml` override 파일이 Gateway의 서비스 라우팅 URL을 `host.docker.internal`로 전환하여,
+> Docker 내 Gateway가 호스트에서 실행 중인 로컬 서비스에 접근할 수 있게 합니다.
+>
+> ```bash
+> # 1. dev override를 포함하여 전체 서비스 기동
+> docker-compose -f docker-compose-local.yml -f docker-compose-dev.yml up -d
+>
+> # 2. 로컬에서 실행할 모듈의 컨테이너만 중지 (예: IAM)
+> docker-compose -f docker-compose-local.yml -f docker-compose-dev.yml stop iam-service
+>
+> # 3. IntelliJ에서 해당 모듈의 Application 실행 (profile: local)
+> ```
+>
+> | 파일 | 용도 |
+> |------|------|
+> | `docker-compose-local.yml` | 전체 Docker 실행 (서비스 간 통신: Docker 네트워크) |
+> | `docker-compose-dev.yml` | override — Gateway 라우팅을 `host.docker.internal`로 전환 |
+>
+> 💡 **dev override 없이** `docker-compose -f docker-compose-local.yml up -d`만 사용하면 모든 서비스가 Docker 네트워크 내에서 통신합니다.
 > 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 각 모듈의 `.jar`가 패키징됩니다. 
 > API Gateway(`8080`)를 단일 진입점으로 하여 뒤단의 개별 서비스(`8181`, `8183`) 포트가 묶여 백그라운드에서 구동됩니다. DB는 `15433` 포트로 바인딩됩니다.
 >

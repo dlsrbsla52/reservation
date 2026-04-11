@@ -2,6 +2,7 @@ package com.media.bus.iam.member.entity
 
 import com.media.bus.common.entity.common.DateBaseEntity
 import com.media.bus.common.entity.common.UuidV7
+import com.media.bus.iam.member.dto.MemberModifyRequest
 import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
@@ -78,5 +79,10 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
 
     fun suspend() {
         status = MemberStatus.SUSPENDED
+    }
+
+    fun modify(request: MemberModifyRequest) {
+        phoneNumber = request.phoneNumber
+        email = request.email
     }
 }
