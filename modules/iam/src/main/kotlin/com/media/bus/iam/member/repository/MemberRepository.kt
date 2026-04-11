@@ -3,8 +3,7 @@ package com.media.bus.iam.member.repository
 import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.entity.MemberTable
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
 import java.util.*
@@ -55,4 +54,25 @@ class MemberRepository {
             }
             .firstOrNull()
             ?.let { MemberEntity.wrapRow(it) }
+
+    /** 전체 회원 수 조회 */
+    fun count(): Long = MemberTable.selectAll().count()
+
+    /** 오프셋 기반 페이지네이션으로 회원 목록 조회 (생성일 내림차순) */
+    fun findAllPaged(page: Int, size: Int): List<MemberEntity> =
+        MemberTable.selectAll()
+            .orderBy(MemberTable.createdAt to SortOrder.DESC)
+            .limit(size)
+            .offset((page * size).toLong())
+            .map { MemberEntity.wrapRow(it) }
+
+    /** loginId, email, memberName 키워드 검색 (LIKE) */
+    fun searchByKeyword(keyword: String): List<MemberEntity> =
+        MemberTable.selectAll()
+            .where {
+                (MemberTable.loginId like "%$keyword%") or
+                    (MemberTable.email like "%$keyword%") or
+                    (MemberTable.memberName like "%$keyword%")
+            }
+            .map { MemberEntity.wrapRow(it) }
 }

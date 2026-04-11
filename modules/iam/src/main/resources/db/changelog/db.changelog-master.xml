@@ -18,5 +18,7 @@
   <include file="/db/changelog/V005__add_table_and_column_comments.xml"/>
   <!-- V006: permission UUID PK 도입 + member_role 단일 역할 제약 -->
   <include file="/db/changelog/V006__permission_uuid_pk_and_member_role_unique.xml"/>
+  <!-- V007: 회원 상태 변경 이력(member_status_history) 테이블 생성 -->
+  <include file="/db/changelog/V007__create_member_status_history.xml"/>
 
 </databaseChangeLog>

@@ -85,4 +85,14 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
         phoneNumber = request.phoneNumber
         email = request.email
     }
+
+    /** 비밀번호 변경 — 이미 암호화된 비밀번호를 전달받는다 */
+    fun changePassword(encodedPassword: String) {
+        password = encodedPassword
+    }
+
+    /** 계정 정지 해제 — SUSPENDED → ACTIVE */
+    fun unsuspend() {
+        status = MemberStatus.ACTIVE
+    }
 }
