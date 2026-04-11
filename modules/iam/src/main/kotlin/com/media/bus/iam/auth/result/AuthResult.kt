@@ -17,6 +17,10 @@ enum class AuthResult(
     ROLE_NOT_FOUND("A0001", "역할 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     ADMIN_TYPE_REQUIRED("A0002", "어드민 계정 유형만 생성 가능합니다."),
     VERIFY_REQUIRED("A0003", "2차 본인 인증이 필요합니다."),
+    PERMISSION_NOT_FOUND("A0004", "권한 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    ROLE_PERMISSION_ALREADY_EXISTS("A0005", "해당 역할에 이미 할당된 권한입니다.", HttpStatus.CONFLICT),
+    ROLE_PERMISSION_NOT_FOUND("A0006", "역할에 해당 권한이 할당되어 있지 않습니다.", HttpStatus.NOT_FOUND),
+    MEMBER_ROLE_NOT_FOUND("A0007", "회원에게 할당된 역할이 없습니다.", HttpStatus.NOT_FOUND),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus
