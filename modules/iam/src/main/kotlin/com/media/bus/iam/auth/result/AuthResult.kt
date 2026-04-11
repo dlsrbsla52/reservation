@@ -14,7 +14,8 @@ enum class AuthResult(
 ) : Result {
 
     ROLE_NOT_FOUND("A0001", "auth.role.not-found.fail.msg", "역할 정보를 찾을 수 없습니다."),
-    ADMIN_TYPE_REQUIRED("A0002", "auth.admin-type.required.fail.msg", "어드민 계정 유형만 생성 가능합니다.");
+    ADMIN_TYPE_REQUIRED("A0002", "auth.admin-type.required.fail.msg", "어드민 계정 유형만 생성 가능합니다."),
+    VERIFY_REQUIRED("A0003", "auth.verify.required.fail.msg", "2차 본인 인증이 필요합니다.");
 
     /** 메시지 번들에 등록된 메시지가 있으면 그것을, 없으면 기본 메시지를 반환한다. */
     override fun getMessage(operator: (String) -> String, id: String): String {

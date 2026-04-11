@@ -51,6 +51,9 @@ class AuthService(
     companion object {
         private const val EMAIL_VERIFY_KEY_PREFIX = "email-verify:"
         private val EMAIL_VERIFY_TTL = Duration.ofHours(24)
+
+        private const val MEMBER_VERIFY_KEY_PREFIX = "member-verify:"
+        private val MEMBER_VERIFY_TTL = Duration.ofMinutes(5)
     }
 
     /**
@@ -203,6 +206,9 @@ class AuthService(
      * 2차 본인 인증.
      * 현재 로그인한 사용자의 비밀번호를 재확인하여 본인 여부를 검증한다.
      * 회원정보 수정, 비밀번호 변경, 탈퇴 등 민감한 작업 전에 호출한다.
+     *
+     * 인증 성공 시 Redis에 `member-verify:{memberId}` 키를 5분 TTL로 저장하여
+     * 후속 민감 API에서 인증 여부를 확인할 수 있도록 한다.
      */
     @Transactional(readOnly = true)
     fun verifyMember(memberId: String, request: VerifyMemberRequest) {
@@ -212,6 +218,34 @@ class AuthService(
         if (!passwordEncoder.matches(request.password, member.password)) {
             throw NoAuthenticationException(CommonResult.AUTHENTICATION_FAIL)
         }
+
+        // 2차 인증 성공 상태를 Redis에 저장 (5분 TTL)
+        redisTemplate.opsForValue().set(
+            MEMBER_VERIFY_KEY_PREFIX + memberId,
+            "verified",
+            MEMBER_VERIFY_TTL,
+        )
+
+        log.info("[AuthService.verifyMember] 2차 본인 인증 성공. memberId={}", memberId)
+    }
+
+    /**
+     * 2차 본인 인증 완료 여부를 확인한다.
+     * Redis에 인증 상태가 존재하지 않으면 예외를 발생시킨다.
+     */
+    fun checkVerified(memberId: String) {
+        val verified = redisTemplate.opsForValue().get(MEMBER_VERIFY_KEY_PREFIX + memberId)
+        if (verified == null) {
+            throw NoAuthenticationException(AuthResult.VERIFY_REQUIRED)
+        }
+    }
+
+    /**
+     * 2차 본인 인증 상태를 Redis에서 삭제한다.
+     * 민감한 작업 완료 후 호출하여 1회성으로 사용할 수 있다.
+     */
+    fun clearVerification(memberId: String) {
+        redisTemplate.delete(MEMBER_VERIFY_KEY_PREFIX + memberId)
     }
 
     /** 로그아웃 처리. Redis에서 Refresh Token을 삭제하여 서버 측 무효화한다. */
