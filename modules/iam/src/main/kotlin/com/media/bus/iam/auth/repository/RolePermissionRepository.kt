@@ -1,11 +1,15 @@
 package com.media.bus.iam.auth.repository
 
 import com.media.bus.iam.auth.entity.PermissionTable
+import com.media.bus.iam.auth.entity.RolePermissionEntity
 import com.media.bus.iam.auth.entity.RolePermissionTable
 import com.media.bus.iam.auth.entity.RoleTable
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.select
 import org.springframework.stereotype.Repository
+import java.util.*
 
 /**
  * ## 역할-권한 매핑 Exposed Repository
@@ -30,4 +34,20 @@ class RolePermissionRepository {
             .where { RoleTable.name eq roleName }
             .map { it[PermissionTable.name] }
             .toSet()
+
+    /** 역할 ID로 역할-권한 매핑 목록을 조회한다. */
+    fun findByRoleId(roleId: UUID): List<RolePermissionEntity> =
+        RolePermissionEntity.find { RolePermissionTable.roleId eq EntityID(roleId, RoleTable) }
+            .toList()
+
+    /** 역할 ID와 권한 이름으로 매핑 단건을 조회한다. 중복 할당 방지 및 해제 시 사용한다. */
+    fun findByRoleIdAndPermissionName(roleId: UUID, permissionName: String): RolePermissionEntity? =
+        RolePermissionEntity.wrapRows(
+            (RolePermissionTable innerJoin PermissionTable)
+                .select(RolePermissionTable.columns)
+                .where {
+                    (RolePermissionTable.roleId eq EntityID(roleId, RoleTable)) and
+                        (PermissionTable.name eq permissionName)
+                }
+        ).firstOrNull()
 }

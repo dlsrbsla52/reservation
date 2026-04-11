@@ -100,5 +100,6 @@ class AdminRegisterRequestValidatorTest {
             email = "admin@example.com",
             phoneNumber = "01012345678",
             memberType = memberType,
+            memberName = "테스트관리자",
         )
 }

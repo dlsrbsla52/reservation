@@ -1,0 +1,61 @@
+# ──────────────── 사전 준비: 로그인 (ADMIN_MASTER 계정) ────────────────
+
+### 로그인 (Access Token 획득)
+POST {{domain-gateway}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "loginId" : "vhkdrb521",
+  "password" : "ghkddlsrb1!"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+
+
+### 전체 역할 목록 조회
+GET {{domain-gateway}}/api/v1/admin/authorization/roles
+Authorization: Bearer {{accessToken}}
+
+### 역할 상세 조회 (연결된 권한 포함)
+GET {{domain-gateway}}/api/v1/admin/authorization/roles/a0000000-0000-0000-0000-000000000004
+Authorization: Bearer {{accessToken}}
+
+
+### 전체 권한 목록 조회
+GET {{domain-gateway}}/api/v1/admin/authorization/permissions
+Authorization: Bearer {{accessToken}}
+
+
+### 역할별 권한 조회
+GET {{domain-gateway}}/api/v1/admin/authorization/roles/{{roleId}}/permissions
+Authorization: Bearer {{accessToken}}
+
+### 역할에 권한 할당
+POST {{domain-gateway}}/api/v1/admin/authorization/roles/{{roleId}}/permissions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "permissionName" : "READ"
+}
+
+### 역할에서 권한 해제
+DELETE {{domain-gateway}}/api/v1/admin/authorization/roles/{{roleId}}/permissions/READ
+Authorization: Bearer {{accessToken}}
+
+
+### 회원 역할/권한 조회
+GET {{domain-gateway}}/api/v1/admin/authorization/members/{{memberId}}/role
+Authorization: Bearer {{accessToken}}
+
+### 회원 역할 변경
+PUT {{domain-gateway}}/api/v1/admin/authorization/members/{{memberId}}/role
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "roleName" : "ADMIN_USER"
+}
