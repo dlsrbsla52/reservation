@@ -1,14 +1,14 @@
 package com.media.bus.iam.auth.service
 
 import com.media.bus.common.exceptions.BaseException
+import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.contract.security.JwtProvider
 import com.media.bus.contract.security.MemberPrincipal
-import com.media.bus.iam.auth.dto.AuthTokenResult
-import com.media.bus.iam.auth.dto.LoginRequest
-import com.media.bus.iam.auth.dto.RegisterRequest
+import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.entity.MemberRoleEntity
+import com.media.bus.iam.auth.guard.PasswordResetValidator
 import com.media.bus.iam.auth.guard.RegisterRequestValidator
 import com.media.bus.iam.auth.repository.RolePermissionRepository
 import com.media.bus.iam.auth.repository.RoleRepository
@@ -43,6 +43,7 @@ class AuthService(
     private val rolePermissionRepository: RolePermissionRepository,
     private val roleRepository: RoleRepository,
     private val registerRequestValidator: RegisterRequestValidator,
+    private val passwordResetValidator: PasswordResetValidator,
     private val roleResolutionService: RoleResolutionService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -50,6 +51,12 @@ class AuthService(
     companion object {
         private const val EMAIL_VERIFY_KEY_PREFIX = "email-verify:"
         private val EMAIL_VERIFY_TTL = Duration.ofHours(24)
+
+        private const val MEMBER_VERIFY_KEY_PREFIX = "member-verify:"
+        private val MEMBER_VERIFY_TTL = Duration.ofMinutes(5)
+
+        private const val PASSWORD_RESET_KEY_PREFIX = "password-reset:"
+        private val PASSWORD_RESET_TTL = Duration.ofHours(1)
     }
 
     /**
@@ -71,6 +78,7 @@ class AuthService(
             email = request.email,
             phoneNumber = request.phoneNumber,
             businessNumber = request.businessNumber,
+            memberName = request.memberName,
         )
 
         // 3. role 마스터 테이블에서 MemberType에 해당하는 Role 조회 및 역할 부여
@@ -197,10 +205,121 @@ class AuthService(
         return AuthTokenResult(newAccessToken, newRefreshToken)
     }
 
+    /**
+     * 2차 본인 인증.
+     * 현재 로그인한 사용자의 비밀번호를 재확인하여 본인 여부를 검증한다.
+     * 회원정보 수정, 비밀번호 변경, 탈퇴 등 민감한 작업 전에 호출한다.
+     *
+     * 인증 성공 시 Redis에 `member-verify:{memberId}` 키를 5분 TTL로 저장하여
+     * 후속 민감 API에서 인증 여부를 확인할 수 있도록 한다.
+     */
+    @Transactional(readOnly = true)
+    fun verifyMember(memberId: String, request: VerifyMemberRequest) {
+        val member = memberRepository.findById(UUID.fromString(memberId))
+            ?: throw NoAuthenticationException(CommonResult.USER_NOT_FOUND_FAIL)
+
+        if (!passwordEncoder.matches(request.password, member.password)) {
+            throw NoAuthenticationException(CommonResult.AUTHENTICATION_FAIL)
+        }
+
+        // 2차 인증 성공 상태를 Redis에 저장 (5분 TTL)
+        redisTemplate.opsForValue().set(
+            MEMBER_VERIFY_KEY_PREFIX + memberId,
+            "verified",
+            MEMBER_VERIFY_TTL,
+        )
+
+        log.info("[AuthService.verifyMember] 2차 본인 인증 성공. memberId={}", memberId)
+    }
+
+    /**
+     * 2차 본인 인증 완료 여부를 확인한다.
+     * Redis에 인증 상태가 존재하지 않으면 예외를 발생시킨다.
+     */
+    fun checkVerified(memberId: String) {
+        val verified = redisTemplate.opsForValue().get(MEMBER_VERIFY_KEY_PREFIX + memberId)
+        if (verified == null) {
+            throw NoAuthenticationException(AuthResult.VERIFY_REQUIRED)
+        }
+    }
+
+    /**
+     * 2차 본인 인증 상태를 Redis에서 삭제한다.
+     * 민감한 작업 완료 후 호출하여 1회성으로 사용할 수 있다.
+     */
+    fun clearVerification(memberId: String) {
+        redisTemplate.delete(MEMBER_VERIFY_KEY_PREFIX + memberId)
+    }
+
     /** 로그아웃 처리. Redis에서 Refresh Token을 삭제하여 서버 측 무효화한다. */
     fun logout(memberId: String) {
         jwtProvider.deleteRefreshToken(memberId)
         log.info("[AuthService.logout] 로그아웃 처리. memberId={}", memberId)
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 비밀번호 초기화
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * 비밀번호 초기화 요청.
+     * loginId 또는 email로 회원을 조회하여 Redis에 1시간 TTL의 초기화 토큰을 저장한다.
+     * 회원이 존재하지 않아도 동일한 응답을 반환하여 이메일 열거 공격을 방지한다.
+     */
+    fun requestPasswordReset(request: PasswordResetRequest) {
+        passwordResetValidator.validate(request)
+
+        // loginId 또는 email로 회원 조회
+        val member = request.loginId?.let { memberRepository.findByLoginId(it) }
+            ?: request.email?.let { memberRepository.findByEmail(it) }
+
+        // 회원이 없거나 ACTIVE가 아니면 조용히 반환 (이메일 열거 공격 방지)
+        if (member == null || member.status != MemberStatus.ACTIVE) {
+            log.debug("[AuthService.requestPasswordReset] 회원 조회 실패 또는 비활성 상태. 조용히 반환.")
+            return
+        }
+
+        val resetToken = UUID.randomUUID().toString()
+        redisTemplate.opsForValue().set(
+            PASSWORD_RESET_KEY_PREFIX + resetToken,
+            member.id.value.toString(),
+            PASSWORD_RESET_TTL,
+        )
+
+        log.info("[AuthService.requestPasswordReset] 비밀번호 초기화 토큰 발급. memberId={}", member.id.value)
+        // TODO: AWS SES 또는 SMTP를 통해 초기화 링크를 이메일로 발송해야 한다.
+        log.debug("[개발용] 비밀번호 초기화 토큰: {}", resetToken)
+    }
+
+    /**
+     * 비밀번호 초기화 토큰 유효성 확인.
+     * 프론트엔드에서 토큰 유효 여부를 사전 확인할 때 사용한다. 토큰을 소비하지 않는다.
+     */
+    fun verifyPasswordResetToken(token: String) {
+        redisTemplate.opsForValue().get(PASSWORD_RESET_KEY_PREFIX + token)
+            ?: throw BusinessException(AuthResult.PASSWORD_RESET_TOKEN_INVALID)
+    }
+
+    /**
+     * 비밀번호 초기화 확정.
+     * 토큰으로 회원을 조회하고 비밀번호를 변경한 뒤, 토큰 삭제 + 기존 세션을 무효화한다.
+     */
+    @Transactional
+    fun confirmPasswordReset(request: PasswordResetConfirmRequest) {
+        val memberId = redisTemplate.opsForValue().get(PASSWORD_RESET_KEY_PREFIX + request.token)
+            ?: throw BusinessException(AuthResult.PASSWORD_RESET_TOKEN_INVALID)
+
+        val member = memberRepository.findById(UUID.fromString(memberId))
+            ?: throw BaseException(AuthResult.MEMBER_NOT_FOUND)
+
+        member.changePassword(passwordEncoder.encode(request.newPassword)!!)
+
+        // 1회성 토큰 삭제
+        redisTemplate.delete(PASSWORD_RESET_KEY_PREFIX + request.token)
+        // 기존 Refresh Token 무효화 — 비밀번호 변경 후 재로그인 유도
+        jwtProvider.deleteRefreshToken(memberId)
+
+        log.info("[AuthService.confirmPasswordReset] 비밀번호 초기화 완료. memberId={}", memberId)
     }
 
 }

@@ -1,8 +1,9 @@
 package com.media.bus.iam.member.repository
 
+import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.entity.MemberTable
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
 import java.util.*
@@ -32,4 +33,46 @@ class MemberRepository {
     /** 이메일 존재 여부 확인. 회원가입 시 중복 이메일 검증에 사용한다. */
     fun existsByEmail(email: String): Boolean =
         MemberTable.selectAll().where { MemberTable.email eq email }.count() > 0
+
+    /**
+     * 회원이 아이디를 분실했을 경우 회원 조회.
+     * memberName은 필수, phoneNumber/email은 존재하는 것만 AND 조건으로 추가.
+     */
+    fun findMe(request: FindMeRequest): MemberEntity? =
+        MemberTable.selectAll()
+            .where {
+                var condition = MemberTable.memberName eq request.memberName
+
+                request.phoneNumber?.let {
+                    condition = condition and (MemberTable.phoneNumber eq it)
+                }
+                request.email?.let {
+                    condition = condition and (MemberTable.email eq it)
+                }
+
+                condition
+            }
+            .firstOrNull()
+            ?.let { MemberEntity.wrapRow(it) }
+
+    /** 전체 회원 수 조회 */
+    fun count(): Long = MemberTable.selectAll().count()
+
+    /** 오프셋 기반 페이지네이션으로 회원 목록 조회 (생성일 내림차순) */
+    fun findAllPaged(page: Int, size: Int): List<MemberEntity> =
+        MemberTable.selectAll()
+            .orderBy(MemberTable.createdAt to SortOrder.DESC)
+            .limit(size)
+            .offset((page * size).toLong())
+            .map { MemberEntity.wrapRow(it) }
+
+    /** loginId, email, memberName 키워드 검색 (LIKE) */
+    fun searchByKeyword(keyword: String): List<MemberEntity> =
+        MemberTable.selectAll()
+            .where {
+                (MemberTable.loginId like "%$keyword%") or
+                    (MemberTable.email like "%$keyword%") or
+                    (MemberTable.memberName like "%$keyword%")
+            }
+            .map { MemberEntity.wrapRow(it) }
 }

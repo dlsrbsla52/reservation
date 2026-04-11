@@ -1,43 +1,52 @@
 package com.media.bus.iam.member.controller
 
 import com.media.bus.common.web.response.ApiResponse
-import com.media.bus.iam.member.dto.*
+import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.iam.member.dto.FindMeRequest
+import com.media.bus.iam.member.dto.MemberModifyRequest
+import com.media.bus.iam.member.dto.MemberResponse
 import com.media.bus.iam.member.service.MemberService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
-@Tag(name = "유저(Member) API", description = "회원조회, 회원 수정 등 회원 관련 API")
+@Tag(name = "유저(Member) API", description = "External 전용 회원조회, 회원 수정 등 회원 관련 API")
 @RestController
 @RequestMapping("/api/v1/member")
 class MemberController(
     private val memberService: MemberService,
 ) {
-    /// 로그인시 사용된 jwt 토큰으로 회원 조회.
-    @Operation(summary = "회원조회", description = "jwt를 기준으로 회원을 조회합니다.")
-    @PostMapping("/jwt")
-    fun findByJwtMember(@RequestBody @Valid request: FindMemberByJwtRequest): ApiResponse<MemberResponse> =
-        ApiResponse.success(memberService.findByJwtMember(request.jwt))
 
-    /// 유저 아이디를 통한 회원 조회.
-    @Operation(summary = "회원조회", description = "memberId를 기준으로 회원을 조회합니다.")
-    @PostMapping("/id")
-    fun findByMemberId(@RequestBody @Valid request: FindMemberByMemberIdRequest): ApiResponse<MemberResponse> =
-        ApiResponse.success(memberService.findByMemberId(request.memberId))
+    /**
+     * 이름으로 아이디 찾기
+     */
+    @Operation(summary = "아이디 찾기", description = "회원 이름, 전화번호, email로 아이디를 검색합니다.")
+    @GetMapping("/find/me")
+    fun findMe(@RequestBody @Valid request: FindMeRequest): ApiResponse<MemberResponse> =
+        ApiResponse.success(memberService.findMe(request))
 
-    /// 로그인 아이디를 통한 회원 조회.
-    @Operation(summary = "회원조회", description = "loginId를 기준으로 회원을 조회합니다.")
-    @PostMapping("/login-id")
-    fun findByLoginId(@RequestBody @Valid request: FindMemberByLoginIdRequest): ApiResponse<MemberResponse> =
-        ApiResponse.success(memberService.findByLoginId(request.loginId))
 
-    /// 유저 이메일을 통한 회원 조회.
-    @Operation(summary = "회원조회", description = "email을 기준으로 회원을 조회합니다.")
-    @PostMapping("/email")
-    fun findByEmail(@RequestBody @Valid request: FindMemberByEmailRequest): ApiResponse<MemberResponse> =
-        ApiResponse.success(memberService.findByEmail(request.email))
+    /**
+     * 회원 정보 수정
+     * 2차 본인 인증 완료 후에만 호출 가능하다.
+     * 회원 정보 수정 후 2차 인증 상태를 삭제하여 1회성으로 사용한다.
+     */
+    @Authorize
+    @Operation(summary = "회원 정보 수정", description = "회원 정보를 수정합니다.")
+    @PostMapping("/modify")
+    fun modify(@RequestHeader("X-User-Id") memberId: String, @RequestBody request: MemberModifyRequest): ApiResponse<Unit?> =
+        ApiResponse.success(memberService.modify(memberId, request))
+
+
+    /**
+     * 회원 탈퇴.
+     * 2차 본인 인증 완료 후에만 호출 가능하다.
+     * 탈퇴 처리 완료 후 2차 인증 상태를 삭제하여 1회성으로 사용한다.
+     */
+    @Authorize
+    @Operation(summary = "회원 탈퇴", description = "2차 본인 인증 완료 후 회원 탈퇴를 처리합니다.")
+    @DeleteMapping("/withdraw")
+    fun withdraw(@RequestHeader("X-User-Id") memberId: String): ApiResponse<Unit?> =
+        ApiResponse.successWith { memberService.withdraw(memberId) }
 }

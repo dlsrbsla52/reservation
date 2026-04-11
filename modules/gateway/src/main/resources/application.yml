@@ -33,16 +33,26 @@ spring:
                 allowCredentials: true
                 maxAge: 3600
           routes:
-            - id: iam-service
-              uri: http://iam-service:8181
+            # internal 경로 차단 — 게이트웨이 외부에서 내부 전용 API 호출 방지
+            - id: block-member-internal
+              uri: no://op
               predicates:
-                - Path=/api/v1/auth/**, /api/v1/member/**, /api/v1/admin/**
+                - Path=/api/v1/member/internal/**
+              filters:
+                - SetStatus=403
+
+            - id: iam-service
+              uri: ${IAM_SERVICE_URL:http://localhost:8181}
+              predicates:
+                - Path=/api/v1/auth/**, /api/v1/admin/**, /api/v1/member/**
+
             - id: stop-service
-              uri: http://stop-service:8182
+              uri: ${STOP_SERVICE_URL:http://localhost:8182}
               predicates:
                 - Path=/api/v1/stop/**
+
             - id: reservation-service
-              uri: http://reservation-service:8183
+              uri: ${RESERVATION_SERVICE_URL:http://localhost:8183}
               predicates:
                 - Path=/api/v1/reservation/**, /api/v1/contract/**
 

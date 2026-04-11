@@ -84,4 +84,12 @@
 
   </changeSet>
 
+  <changeSet id="V_member_001-2" author="hig">
+    <addColumn tableName="member" schemaName="auth">
+      <column name="member_name" type="VARCHAR(10)" remarks="회원 이름">
+        <constraints nullable="false" />
+      </column>
+    </addColumn>
+  </changeSet>
+
 </databaseChangeLog>

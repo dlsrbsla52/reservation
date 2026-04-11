@@ -19,11 +19,8 @@ spring:
     compose:
       # noinspection SpringBootApplicationYaml
       file: ./compose.yaml
-  jpa:
+  exposed:
     show-sql: true
-    properties:
-      hibernate:
-        show_sql: false
   jackson:
     default-property-inclusion: NON_NULL
   security:

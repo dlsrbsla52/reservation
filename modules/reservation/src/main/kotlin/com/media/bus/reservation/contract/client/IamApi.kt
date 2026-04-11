@@ -17,6 +17,6 @@ import org.springframework.web.service.annotation.PostExchange
 interface IamApi {
 
     /** JWT 토큰으로 IAM DB 회원 조회 */
-    @PostExchange(url = "/api/v1/member/jwt")
+    @PostExchange(url = "/api/v1/member/internal/jwt")
     fun findMemberByJwt(@RequestBody body: Map<String, String>): IamMemberResponse?
 }

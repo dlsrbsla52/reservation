@@ -40,6 +40,7 @@ class JwtAuthenticationFilter(
             "GET:/api/v1/member/health-check",
             "GET:/api/v1/reservation/health-check",
             "GET:/api/v1/stop/health-check",
+            "GET:/api/v1/member/find/me"
         )
     }
 

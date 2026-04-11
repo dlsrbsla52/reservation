@@ -1,7 +1,7 @@
 package com.media.bus.iam.admin.guard
 
 import com.media.bus.common.exceptions.BaseException
-import com.media.bus.common.exceptions.NoAuthenticationException
+import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.iam.admin.dto.CreateAdminMemberRequest
 import com.media.bus.iam.auth.result.AuthResult
@@ -71,7 +71,7 @@ class AdminRegisterRequestValidatorTest {
         every { memberRepository.existsByLoginId(request.loginId) } returns true
 
         assertThatThrownBy { validator.validate(request) }
-            .isInstanceOf(NoAuthenticationException::class.java)
+            .isInstanceOf(BusinessException::class.java)
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ class AdminRegisterRequestValidatorTest {
         every { memberRepository.existsByEmail(request.email) } returns true
 
         assertThatThrownBy { validator.validate(request) }
-            .isInstanceOf(NoAuthenticationException::class.java)
+            .isInstanceOf(BusinessException::class.java)
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -100,5 +100,6 @@ class AdminRegisterRequestValidatorTest {
             email = "admin@example.com",
             phoneNumber = "01012345678",
             memberType = memberType,
+            memberName = "테스트관리자",
         )
 }

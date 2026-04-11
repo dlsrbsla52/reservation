@@ -42,8 +42,8 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     runtimeOnly("org.postgresql:postgresql")
 
-    // Liquibase — 각 모듈 DB 마이그레이션 (DDL 변경 없음)
-    api("org.liquibase:liquibase-core")
+    // Liquibase — 각 모듈 DB 마이그레이션 (Spring Boot 4.x는 starter 필수: auto-config이 spring-boot-liquibase 모듈에 분리됨)
+    api("org.springframework.boot:spring-boot-starter-liquibase")
 
     // Logging: Log4j2 + LMAX Disruptor 락프리 비동기 로깅
     // Virtual Thread 핀닝(pinning) 방지

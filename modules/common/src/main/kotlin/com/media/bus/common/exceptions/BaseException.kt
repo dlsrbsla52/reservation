@@ -2,7 +2,6 @@ package com.media.bus.common.exceptions
 
 import com.media.bus.common.result.Result
 import com.media.bus.common.result.type.CommonResult
-import com.media.bus.common.utils.MessageUtil
 
 /**
  * ## Root Exception
@@ -15,13 +14,9 @@ open class BaseException(
     message: String? = null,
     cause: Throwable? = null,
 ) : RuntimeException(
-    message ?: result.getMessage(MessageUtil::getMessage, result.messageId),
+    message ?: result.message,
     cause,
 ) {
     final override val message: String =
-        message ?: result.getMessage(MessageUtil::getMessage, result.messageId)
-
-    companion object {
-        private const val serialVersionUID: Long = 3857013638852527498L
-    }
+        message ?: result.message
 }
