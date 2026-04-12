@@ -2,6 +2,7 @@ package com.media.bus.iam.member.controller
 
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.iam.member.dto.DeactivateRequest
 import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.dto.MemberModifyRequest
 import com.media.bus.iam.member.dto.MemberResponse
@@ -49,4 +50,19 @@ class MemberController(
     @DeleteMapping("/withdraw")
     fun withdraw(@RequestHeader("X-User-Id") memberId: String): ApiResponse<Unit?> =
         ApiResponse.successWith { memberService.withdraw(memberId) }
+
+
+    /**
+     * 계정 일시 비활성화.
+     * 2차 본인 인증 완료 후에만 호출 가능하며, 탈퇴와 달리 추후 재활성화가 가능하다.
+     * 처리 완료 후 2차 인증 상태를 삭제하여 1회성으로 사용한다.
+     */
+    @Authorize
+    @Operation(summary = "계정 비활성화", description = "2차 본인 인증 완료 후 계정을 일시 비활성화 상태(INACTIVE)로 전환합니다.")
+    @PostMapping("/deactivate")
+    fun deactivate(
+        @RequestHeader("X-User-Id") memberId: String,
+        @RequestBody(required = false) @Valid request: DeactivateRequest?,
+    ): ApiResponse<Unit?> =
+        ApiResponse.successWith { memberService.deactivate(memberId, request?.reason ?: "") }
 }

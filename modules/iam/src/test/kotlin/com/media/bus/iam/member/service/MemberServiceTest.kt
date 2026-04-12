@@ -34,6 +34,7 @@ class MemberServiceTest {
     @MockK private lateinit var jwtProvider: JwtProvider
     @MockK private lateinit var roleResolutionService: RoleResolutionService
     @MockK private lateinit var authService: AuthService
+    @MockK(relaxed = true) private lateinit var auditLogService: com.media.bus.iam.audit.service.AuditLogService
 
     @InjectMockKs private lateinit var memberService: MemberService
 

@@ -95,4 +95,14 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
     fun unsuspend() {
         status = MemberStatus.ACTIVE
     }
+
+    /** 사용자 본인에 의한 계정 비활성화 — ACTIVE → INACTIVE */
+    fun deactivate() {
+        status = MemberStatus.INACTIVE
+    }
+
+    /** 비활성 계정 재활성화 — INACTIVE → ACTIVE */
+    fun reactivate() {
+        status = MemberStatus.ACTIVE
+    }
 }

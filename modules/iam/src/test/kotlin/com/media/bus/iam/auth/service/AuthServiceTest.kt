@@ -4,10 +4,7 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.security.JwtProvider
-import com.media.bus.iam.auth.dto.LoginRequest
-import com.media.bus.iam.auth.dto.PasswordResetConfirmRequest
-import com.media.bus.iam.auth.dto.PasswordResetRequest
-import com.media.bus.iam.auth.dto.VerifyMemberRequest
+import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.guard.PasswordResetValidator
 import com.media.bus.iam.auth.guard.RegisterRequestValidator
 import com.media.bus.iam.auth.repository.RolePermissionRepository
@@ -46,6 +43,7 @@ class AuthServiceTest {
     @MockK private lateinit var registerRequestValidator: RegisterRequestValidator
     @MockK private lateinit var passwordResetValidator: PasswordResetValidator
     @MockK private lateinit var roleResolutionService: RoleResolutionService
+    @MockK(relaxed = true) private lateinit var auditLogService: com.media.bus.iam.audit.service.AuditLogService
     @MockK private lateinit var valueOps: ValueOperations<String, String>
 
     @InjectMockKs private lateinit var authService: AuthService
@@ -88,7 +86,14 @@ class AuthServiceTest {
             every { roleResolutionService.resolveMemberType(testMemberId) } returns MemberType.MEMBER
             every { rolePermissionRepository.findPermissionNamesByRoleName("MEMBER") } returns setOf("READ")
             every { jwtProvider.generateAccessToken(any(), any()) } returns "accessToken"
-            every { jwtProvider.generateRefreshToken(testMemberIdStr) } returns "refreshToken"
+            every {
+                jwtProvider.generateRefreshToken(
+                    memberId = eq(testMemberIdStr),
+                    sessionId = any(),
+                    deviceInfo = any(),
+                    ip = any(),
+                )
+            } returns "refreshToken"
 
             val result = authService.login(loginRequest)
 
@@ -184,15 +189,23 @@ class AuthServiceTest {
         fun `정상 갱신`() {
             val claims = mockk<Claims>()
             every { claims.subject } returns testMemberIdStr
+            every { claims[com.media.bus.contract.security.JwtProvider.SESSION_ID_CLAIM] } returns "session-A"
             every { jwtProvider.tryParseClaims("refreshToken") } returns claims
-            every { jwtProvider.validateRefreshToken(testMemberIdStr, "refreshToken") } returns true
+            every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-A", "refreshToken") } returns true
 
             val member = mockMember()
             every { memberRepository.findById(testMemberId) } returns member
             every { roleResolutionService.resolveMemberType(testMemberId) } returns MemberType.MEMBER
             every { rolePermissionRepository.findPermissionNamesByRoleName("MEMBER") } returns setOf("READ")
             every { jwtProvider.generateAccessToken(any(), any()) } returns "newAccess"
-            every { jwtProvider.generateRefreshToken(testMemberIdStr) } returns "newRefresh"
+            every {
+                jwtProvider.generateRefreshToken(
+                    memberId = eq(testMemberIdStr),
+                    sessionId = eq("session-A"),
+                    deviceInfo = any(),
+                    ip = any(),
+                )
+            } returns "newRefresh"
 
             val result = authService.refreshAccessToken("refreshToken")
 
@@ -214,8 +227,9 @@ class AuthServiceTest {
         fun `Redis 불일치`() {
             val claims = mockk<Claims>()
             every { claims.subject } returns testMemberIdStr
+            every { claims[com.media.bus.contract.security.JwtProvider.SESSION_ID_CLAIM] } returns "session-X"
             every { jwtProvider.tryParseClaims("stolenToken") } returns claims
-            every { jwtProvider.validateRefreshToken(testMemberIdStr, "stolenToken") } returns false
+            every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-X", "stolenToken") } returns false
 
             assertThatThrownBy { authService.refreshAccessToken("stolenToken") }
                 .isInstanceOf(NoAuthenticationException::class.java)
@@ -389,6 +403,80 @@ class AuthServiceTest {
                 .satisfies(Consumer { ex ->
                     assertThat((ex as BusinessException).result).isEqualTo(AuthResult.PASSWORD_RESET_TOKEN_INVALID)
                 })
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // changePassword — 로그인 상태에서 비밀번호 직접 변경
+    // ──────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("changePassword")
+    inner class ChangePassword {
+
+        private val request = PasswordChangeRequest(
+            currentPassword = "Current123!",
+            newPassword = "NewPass123!",
+        )
+
+        @Test
+        @DisplayName("정상 변경 시 비밀번호 갱신 + Refresh Token 무효화")
+        fun `changePassword 정상`() {
+            val member = mockMember(password = "encodedCurrent")
+            every { memberRepository.findById(testMemberId) } returns member
+            every { passwordEncoder.matches("Current123!", "encodedCurrent") } returns true
+            every { passwordEncoder.matches("NewPass123!", "encodedCurrent") } returns false
+            every { passwordEncoder.encode("NewPass123!") } returns "encodedNew"
+            every { jwtProvider.deleteRefreshToken(testMemberIdStr) } just Runs
+
+            assertThatNoException().isThrownBy { authService.changePassword(testMemberIdStr, request) }
+
+            verify { member.changePassword("encodedNew") }
+            verify { jwtProvider.deleteRefreshToken(testMemberIdStr) }
+        }
+
+        @Test
+        @DisplayName("현재 비밀번호가 일치하지 않으면 CURRENT_PASSWORD_MISMATCH 예외")
+        fun `changePassword 현재 비밀번호 불일치`() {
+            val member = mockMember(password = "encodedCurrent")
+            every { memberRepository.findById(testMemberId) } returns member
+            every { passwordEncoder.matches("Current123!", "encodedCurrent") } returns false
+
+            assertThatThrownBy { authService.changePassword(testMemberIdStr, request) }
+                .isInstanceOf(NoAuthenticationException::class.java)
+                .satisfies(Consumer { ex ->
+                    assertThat((ex as NoAuthenticationException).result).isEqualTo(AuthResult.CURRENT_PASSWORD_MISMATCH)
+                })
+
+            verify(exactly = 0) { member.changePassword(any()) }
+            verify(exactly = 0) { jwtProvider.deleteRefreshToken(any()) }
+        }
+
+        @Test
+        @DisplayName("새 비밀번호가 현재와 동일하면 NEW_PASSWORD_SAME_AS_CURRENT 예외")
+        fun `changePassword 동일 비밀번호`() {
+            val member = mockMember(password = "encodedCurrent")
+            every { memberRepository.findById(testMemberId) } returns member
+            every { passwordEncoder.matches("Current123!", "encodedCurrent") } returns true
+            every { passwordEncoder.matches("NewPass123!", "encodedCurrent") } returns true
+
+            assertThatThrownBy { authService.changePassword(testMemberIdStr, request) }
+                .isInstanceOf(BusinessException::class.java)
+                .satisfies(Consumer { ex ->
+                    assertThat((ex as BusinessException).result).isEqualTo(AuthResult.NEW_PASSWORD_SAME_AS_CURRENT)
+                })
+
+            verify(exactly = 0) { member.changePassword(any()) }
+            verify(exactly = 0) { jwtProvider.deleteRefreshToken(any()) }
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 회원이면 MEMBER_NOT_FOUND 예외")
+        fun `changePassword 회원 없음`() {
+            every { memberRepository.findById(testMemberId) } returns null
+
+            assertThatThrownBy { authService.changePassword(testMemberIdStr, request) }
+                .hasMessageContaining(AuthResult.MEMBER_NOT_FOUND.message)
         }
     }
 }
