@@ -1,9 +1,12 @@
 package com.media.bus.reservation.reservation.client
 
+import com.media.bus.reservation.reservation.dto.request.BulkStopLookupRequest
 import com.media.bus.reservation.reservation.dto.response.internal.StopPageResponse
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.service.annotation.GetExchange
 import org.springframework.web.service.annotation.HttpExchange
+import org.springframework.web.service.annotation.PostExchange
 import java.util.*
 
 /**
@@ -24,4 +27,8 @@ interface StopApi {
     /** stopId(정류소 번호) 기준 정류소 조회 */
     @GetExchange
     fun getStopByStopId(@RequestParam("stopId") stopId: String): StopPageResponse?
+
+    /** pk(UUID) 복수 기반 일괄 조회 — 내부 전용 POST /bulk */
+    @PostExchange("/bulk")
+    fun getStopsByPks(@RequestBody request: BulkStopLookupRequest): StopPageResponse?
 }

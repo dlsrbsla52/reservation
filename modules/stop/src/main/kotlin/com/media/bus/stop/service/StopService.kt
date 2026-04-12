@@ -10,6 +10,7 @@ import com.media.bus.stop.repository.StopRepository
 import jakarta.validation.Valid
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
 @Service
 class StopService(
@@ -41,4 +42,14 @@ class StopService(
         is StopSearchCriteria.ByStopId   -> listOfNotNull(stopRepository.findByStopId(criteria.stopId)).map(BusStopResponse::of)
         is StopSearchCriteria.ByStopName -> stopRepository.findByStopNameStartingWith(criteria.stopName).map(BusStopResponse::of)
     }
+
+    /**
+     * pk(UUID) 복수 기반 일괄 조회.
+     *
+     * 예약 서비스가 본인 예약 목록 조회 시 각 예약의 정류소 정보를 **단일 S2S 호출로** 붙이기 위해 사용한다.
+     * 반환 순서는 입력 순서와 무관하며, 일부 id가 누락되어도 정상 처리한다(예약 목록에서 stopName null로 fallback).
+     */
+    @Transactional(readOnly = true)
+    fun getBusStopsByIds(ids: Collection<UUID>): List<BusStopResponse> =
+        stopRepository.findByIdIn(ids).map(BusStopResponse::of)
 }

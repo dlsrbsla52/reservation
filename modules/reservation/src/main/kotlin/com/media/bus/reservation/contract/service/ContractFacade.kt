@@ -51,6 +51,7 @@ class ContractFacade(
 
         // 3단계: Contract + ContractDetail DB 저장 (단일 트랜잭션)
         val contract = contractService.createContract(memberInfo, stopInfo, request)
-        return ContractResponse.from(contract)
+        // 생성 응답에도 정류소 정보(이미 2단계에서 확보)를 포함하여 클라이언트가 UUID 외의 정보를 바로 사용할 수 있게 한다.
+        return ContractResponse.from(contract, stopNumber = stopInfo.stopId, stopName = stopInfo.stopName)
     }
 }

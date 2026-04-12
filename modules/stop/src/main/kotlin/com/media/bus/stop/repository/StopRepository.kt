@@ -33,4 +33,14 @@ class StopRepository {
     @Transactional(readOnly = true)
     fun findByStopNameStartingWith(stopName: String): List<StopEntity> =
         StopEntity.find { StopTable.stopName like "$stopName%" }.toList()
+
+    /**
+     * pk(UUID) 복수 기반 일괄 조회 — 예약 서비스의 N+1 S2S 호출 제거용.
+     * 빈 컬렉션은 DB 쿼리 없이 빈 리스트를 반환한다.
+     */
+    @Transactional(readOnly = true)
+    fun findByIdIn(pks: Collection<UUID>): List<StopEntity> {
+        if (pks.isEmpty()) return emptyList()
+        return StopEntity.find { StopTable.id inList pks.toList() }.toList()
+    }
 }
