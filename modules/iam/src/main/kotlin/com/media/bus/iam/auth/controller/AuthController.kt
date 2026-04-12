@@ -3,10 +3,12 @@ package com.media.bus.iam.auth.controller
 import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
+import com.media.bus.contract.security.JwtProvider
 import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.service.AuthService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.beans.factory.annotation.Value
@@ -29,6 +31,7 @@ import java.time.Duration
 @RequestMapping("/api/v1/auth")
 class AuthController(
     private val authService: AuthService,
+    private val jwtProvider: JwtProvider,
     /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
     @param:Value($$"${cookie.secure:false}") private val cookieSecure: Boolean = false,
 ) {
@@ -55,9 +58,14 @@ class AuthController(
     @PostMapping("/login")
     fun login(
         @RequestBody @Valid request: LoginRequest,
+        httpRequest: HttpServletRequest,
         response: HttpServletResponse,
     ): ApiResponse<TokenResponse> {
-        val result = authService.login(request)
+        val result = authService.login(
+            request = request,
+            deviceInfo = extractDeviceInfo(httpRequest),
+            ip = extractClientIp(httpRequest),
+        )
         setRefreshTokenCookie(response, result.refreshToken)
         return ApiResponse.success(TokenResponse.of(result.accessToken))
     }
@@ -112,9 +120,14 @@ class AuthController(
     @PostMapping("/logout")
     fun logout(
         @RequestHeader("X-User-Id") memberId: String,
+        @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) refreshToken: String?,
         response: HttpServletResponse,
     ): ApiResponse<Unit?> {
-        authService.logout(memberId)
+        // Refresh Cookie에서 sid claim을 추출하여 현재 세션만 로그아웃 시킨다 (타 디바이스 보존)
+        val sessionId = refreshToken?.let { token ->
+            jwtProvider.tryParseClaims(token)?.get(JwtProvider.SESSION_ID_CLAIM) as? String
+        }
+        authService.logout(memberId, sessionId)
         expireRefreshTokenCookie(response)
         return ApiResponse.success()
     }
@@ -157,6 +170,100 @@ class AuthController(
     fun confirmPasswordReset(@RequestBody @Valid request: PasswordResetConfirmRequest): ApiResponse<Unit?> {
         authService.confirmPasswordReset(request)
         return ApiResponse.successWithMessage("비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.")
+    }
+
+    /**
+     * 로그인 상태에서 비밀번호 직접 변경.
+     * 현재 비밀번호 검증으로 본인 확인을 갈음하며, 변경 후 모든 세션이 무효화된다.
+     */
+    @Operation(summary = "비밀번호 변경", description = "로그인된 사용자가 현재 비밀번호 확인 후 새 비밀번호로 변경합니다.")
+    @PostMapping("/password/change")
+    fun changePassword(
+        @RequestHeader("X-User-Id") memberId: String,
+        @RequestBody @Valid request: PasswordChangeRequest,
+    ): ApiResponse<Unit?> {
+        authService.changePassword(memberId, request)
+        return ApiResponse.successWithMessage("비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해주세요.")
+    }
+
+    /**
+     * 비활성화(INACTIVE) 계정 재활성화.
+     * 로그인 시도 시 `ACCOUNT_INACTIVE_FAIL`을 받은 사용자가 loginId/password로 복귀 요청한다.
+     * 성공 시 Access Token + Refresh Token을 로그인과 동일하게 발급한다.
+     */
+    @Operation(summary = "계정 재활성화", description = "사용자가 본인이 비활성화한 계정을 다시 활성화합니다.")
+    @PostMapping("/reactivate")
+    fun reactivate(
+        @RequestBody @Valid request: LoginRequest,
+        httpRequest: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<TokenResponse> {
+        val result = authService.reactivate(
+            request = request,
+            deviceInfo = extractDeviceInfo(httpRequest),
+            ip = extractClientIp(httpRequest),
+        )
+        setRefreshTokenCookie(response, result.refreshToken)
+        return ApiResponse.success(TokenResponse.of(result.accessToken))
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 세션 관리
+    // ─────────────────────────────────────────────────────────────────
+
+    /** 내 활성 세션 목록을 조회한다. 현재 요청 세션은 `current=true`로 표시된다. */
+    @Operation(summary = "내 세션 목록", description = "로그인된 사용자의 활성 디바이스 세션 목록을 반환합니다.")
+    @GetMapping("/sessions")
+    fun listSessions(
+        @RequestHeader("X-User-Id") memberId: String,
+        @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) refreshToken: String?,
+    ): ApiResponse<List<SessionResponse>> {
+        val currentSessionId = refreshToken?.let { jwtProvider.tryParseClaims(it)?.get(JwtProvider.SESSION_ID_CLAIM) as? String }
+        return ApiResponse.success(authService.listMySessions(memberId, currentSessionId))
+    }
+
+    /** 특정 세션을 로그아웃 시킨다. */
+    @Operation(summary = "특정 세션 로그아웃", description = "지정된 세션만 강제 로그아웃합니다. 다른 디바이스는 유지됩니다.")
+    @DeleteMapping("/sessions/{sessionId}")
+    fun revokeSession(
+        @RequestHeader("X-User-Id") memberId: String,
+        @PathVariable sessionId: String,
+    ): ApiResponse<Unit?> {
+        authService.revokeSession(memberId, sessionId)
+        return ApiResponse.successWithMessage("세션이 로그아웃되었습니다.")
+    }
+
+    /** 현재 요청 세션을 제외한 모든 세션을 로그아웃 시킨다. */
+    @Operation(summary = "다른 기기 모두 로그아웃", description = "현재 세션을 제외한 모든 디바이스를 강제 로그아웃합니다.")
+    @DeleteMapping("/sessions")
+    fun revokeOtherSessions(
+        @RequestHeader("X-User-Id") memberId: String,
+        @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) refreshToken: String?,
+    ): ApiResponse<Unit?> {
+        val currentSessionId = refreshToken?.let { jwtProvider.tryParseClaims(it)?.get(JwtProvider.SESSION_ID_CLAIM) as? String }
+            ?: throw NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL)
+        authService.revokeOtherSessions(memberId, currentSessionId)
+        return ApiResponse.successWithMessage("다른 디바이스 세션이 모두 로그아웃되었습니다.")
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Request 메타데이터 추출 유틸
+    // ─────────────────────────────────────────────────────────────────
+
+    /** User-Agent 헤더를 기기 식별 정보로 사용한다. 없으면 null. */
+    private fun extractDeviceInfo(request: HttpServletRequest): String? =
+        request.getHeader("User-Agent")?.take(500)
+
+    /**
+     * 클라이언트 IP를 추출한다.
+     * X-Forwarded-For 헤더(첫 번째 값) 우선 — Gateway/Load Balancer 뒤에서 실제 클라이언트 IP 보존.
+     */
+    private fun extractClientIp(request: HttpServletRequest): String? {
+        val forwarded = request.getHeader("X-Forwarded-For")
+        if (!forwarded.isNullOrBlank()) {
+            return forwarded.substringBefore(",").trim().ifBlank { null }
+        }
+        return request.remoteAddr
     }
 
     // ────────────────────────────────────────────────────��────────────

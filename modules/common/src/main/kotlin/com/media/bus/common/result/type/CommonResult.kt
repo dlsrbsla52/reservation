@@ -58,6 +58,8 @@ enum class CommonResult(
     ACCOUNT_WITHDRAWN_FAIL("00254", "탈퇴된 계정입니다.", HttpStatus.FORBIDDEN),
     EMAIL_TOKEN_INVALID_FAIL("00255", "유효하지 않거나 만료된 이메일 인증 토큰입니다."),
     USER_NOT_FOUND_FAIL("00256", "회원 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    ACCOUNT_INACTIVE_FAIL("00258", "사용자가 비활성화한 계정입니다. 재활성화가 필요합니다.", HttpStatus.FORBIDDEN),
+    ACCOUNT_NOT_INACTIVE_FAIL("00259", "비활성 상태가 아닌 계정은 재활성화할 수 없습니다."),
     USER_NOT_DENY_ADMIN("00257", "어드민 회원은 신청할 수 없습니다.", HttpStatus.FORBIDDEN),
     VALIDATION_FAIL("00260","입력 값 검증에 실패하였습니다."),
     BULKHEAD_FULL("00270", "서버가 처리할 수 있는 최대 동시 요청 수를 초과하였습니다. 잠시 후 다시 시도해 주세요."),
