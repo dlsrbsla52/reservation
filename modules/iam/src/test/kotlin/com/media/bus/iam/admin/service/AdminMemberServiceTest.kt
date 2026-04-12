@@ -48,6 +48,7 @@ class AdminMemberServiceTest {
     @MockK private lateinit var memberRoleRepository: MemberRoleRepository
     @MockK private lateinit var rolePermissionRepository: RolePermissionRepository
     @MockK private lateinit var memberStatusHistoryRepository: MemberStatusHistoryRepository
+    @MockK(relaxed = true) private lateinit var auditLogService: com.media.bus.iam.audit.service.AuditLogService
 
     @InjectMockKs private lateinit var adminMemberService: AdminMemberService
 

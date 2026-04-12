@@ -20,5 +20,7 @@
   <include file="/db/changelog/V006__permission_uuid_pk_and_member_role_unique.xml"/>
   <!-- V007: 회원 상태 변경 이력(member_status_history) 테이블 생성 -->
   <include file="/db/changelog/V007__create_member_status_history.xml"/>
+  <!-- V008: 감사 로그(audit.audit_log) 테이블 생성 -->
+  <include file="/db/changelog/V008__create_audit_log.xml"/>
 
 </databaseChangeLog>
