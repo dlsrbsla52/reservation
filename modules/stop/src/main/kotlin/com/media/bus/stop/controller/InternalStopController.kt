@@ -2,15 +2,14 @@ package com.media.bus.stop.controller
 
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.response.ListData
+import com.media.bus.stop.dto.request.BulkStopLookupRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
 import com.media.bus.stop.dto.response.BusStopResponse
 import com.media.bus.stop.service.StopService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
+import org.springframework.web.bind.annotation.*
 import java.util.*
 
 /**
@@ -43,4 +42,18 @@ class InternalStopController(
         @RequestParam(required = false) stopName: String?,
     ): ApiResponse<ListData<BusStopResponse>> =
         ApiResponse.page(stopService.getBusStop(StopSearchCriteria.of(pk, stopId, stopName)))
+
+    /**
+     * 정류소 일괄 조회 — 예약 서비스의 목록 조회 시 N+1 호출 제거용.
+     * 입력 id 중 존재하지 않는 것은 결과에서 누락되며, 호출자는 누락된 id를 fallback 처리해야 한다.
+     */
+    @Operation(
+        summary = "정류소 일괄 조회 (내부 전용)",
+        description = "pk(UUID) 목록을 body로 전달하여 정류소를 한 번에 조회합니다. 최대 200개, 누락 id는 결과에서 제외됩니다.",
+    )
+    @PostMapping("/bulk")
+    fun getBusStopsBulk(
+        @RequestBody @Valid request: BulkStopLookupRequest,
+    ): ApiResponse<ListData<BusStopResponse>> =
+        ApiResponse.page(stopService.getBusStopsByIds(request.ids))
 }

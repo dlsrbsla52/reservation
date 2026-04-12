@@ -1,5 +1,6 @@
 package com.media.bus.reservation.reservation.client
 
+import com.media.bus.reservation.reservation.dto.request.BulkStopLookupRequest
 import com.media.bus.reservation.reservation.dto.response.StopInfo
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -29,6 +30,16 @@ class StopServiceClient(
     fun getStopByStopId(stopId: String): List<StopInfo> {
         log.debug("[StopServiceClient] stopId 기준 정류소 조회: stopId={}", stopId)
         return extractList(stopApi.getStopByStopId(stopId))
+    }
+
+    /**
+     * pk(UUID) 복수 기반 일괄 조회. 누락된 id는 응답 리스트에 포함되지 않는다.
+     * 빈 입력에 대해서는 S2S 호출 없이 빈 리스트를 반환한다.
+     */
+    fun getStopsByPks(pks: Collection<UUID>): List<StopInfo> {
+        if (pks.isEmpty()) return emptyList()
+        log.debug("[StopServiceClient] pk 기준 일괄 정류소 조회: count={}", pks.size)
+        return extractList(stopApi.getStopsByPks(BulkStopLookupRequest(ids = pks.toList())))
     }
 
     private fun extractList(response: com.media.bus.reservation.reservation.dto.response.internal.StopPageResponse?): List<StopInfo> =
