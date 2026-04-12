@@ -28,6 +28,8 @@ enum class AuthResult(
     CANNOT_SUSPEND_ADMIN_MASTER("A0012", "최고 관리자 계정은 정지할 수 없습니다."),
     MEMBER_NOT_ACTIVE("A0013", "활성 상태가 아닌 회원입니다."),
     MEMBER_NOT_SUSPENDED("A0014", "정지 상태가 아닌 회원은 정지 해제할 수 없습니다."),
+    CURRENT_PASSWORD_MISMATCH("A0015", "현재 비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED),
+    NEW_PASSWORD_SAME_AS_CURRENT("A0016", "새 비밀번호가 현재 비밀번호와 동일합니다."),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

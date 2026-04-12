@@ -9,6 +9,10 @@ import com.media.bus.iam.admin.dto.*
 import com.media.bus.iam.admin.entity.MemberStatusHistoryEntity
 import com.media.bus.iam.admin.guard.AdminRegisterRequestValidator
 import com.media.bus.iam.admin.repository.MemberStatusHistoryRepository
+import com.media.bus.iam.audit.AuditAction
+import com.media.bus.iam.audit.AuditTargetType
+import com.media.bus.iam.audit.entity.enumerated.AuditActorType
+import com.media.bus.iam.audit.service.AuditLogService
 import com.media.bus.iam.auth.entity.MemberRoleEntity
 import com.media.bus.iam.auth.repository.MemberRoleRepository
 import com.media.bus.iam.auth.repository.RolePermissionRepository
@@ -43,6 +47,7 @@ class AdminMemberService(
     private val memberRoleRepository: MemberRoleRepository,
     private val rolePermissionRepository: RolePermissionRepository,
     private val memberStatusHistoryRepository: MemberStatusHistoryRepository,
+    private val auditLogService: AuditLogService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -74,6 +79,14 @@ class AdminMemberService(
         log.info(
             "[AdminMemberService.createAdminMember] 어드민 멤버 생성 완료. memberId={}, memberType={}",
             member.id.value, request.memberType,
+        )
+        auditLogService.success(
+            actorId = null, // 인증 정보는 컨트롤러 단에서 별도 주입 — 간단화
+            actorType = AuditActorType.ADMIN,
+            action = AuditAction.ADMIN_CREATE,
+            targetType = AuditTargetType.MEMBER,
+            targetId = member.id.value.toString(),
+            detail = """{"memberType":"${request.memberType.name}"}""",
         )
 
         return AdminMemberResponse.of(member, request.memberType)
@@ -136,7 +149,8 @@ class AdminMemberService(
         val member = memberRepository.findById(targetMemberId)
             ?: throw BaseException(AuthResult.MEMBER_NOT_FOUND)
 
-        if (member.status != MemberStatus.ACTIVE) {
+        // ACTIVE 또는 INACTIVE(사용자 자체 비활성) 상태만 정지 가능. SUSPENDED/WITHDRAWN은 거부.
+        if (member.status != MemberStatus.ACTIVE && member.status != MemberStatus.INACTIVE) {
             throw BusinessException(AuthResult.MEMBER_NOT_ACTIVE)
         }
 
@@ -163,6 +177,14 @@ class AdminMemberService(
         jwtProvider.deleteRefreshToken(targetMemberId.toString())
 
         log.info("[AdminMemberService.suspendMember] 회원 정지 완료. targetMemberId={}, reason={}", targetMemberId, reason)
+        auditLogService.success(
+            actorId = requesterId,
+            actorType = AuditActorType.ADMIN,
+            action = AuditAction.MEMBER_SUSPEND,
+            targetType = AuditTargetType.MEMBER,
+            targetId = targetMemberId.toString(),
+            detail = """{"reason":${escapeJsonString(reason)}}""",
+        )
     }
 
     /**
@@ -194,7 +216,19 @@ class AdminMemberService(
         )
 
         log.info("[AdminMemberService.unsuspendMember] 회원 정지 해제 완료. targetMemberId={}, reason={}", targetMemberId, reason)
+        auditLogService.success(
+            actorId = requesterId,
+            actorType = AuditActorType.ADMIN,
+            action = AuditAction.MEMBER_UNSUSPEND,
+            targetType = AuditTargetType.MEMBER,
+            targetId = targetMemberId.toString(),
+            detail = """{"reason":${escapeJsonString(reason)}}""",
+        )
     }
+
+    /** 단순 JSON 문자열 이스케이프 — detail 필드에 사용. */
+    private fun escapeJsonString(value: String): String =
+        "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
     /** 특정 회원의 상태 변경 이력을 조회한다. */
     @Transactional(readOnly = true)

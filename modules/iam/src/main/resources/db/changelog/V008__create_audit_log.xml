@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+
+  <!-- ================================================================
+       V008: 감사 로그(audit.audit_log) 테이블 생성
+       - 민감 작업(로그인, 권한 변경, 비밀번호 변경, 계정 상태 전이 등) 추적
+       - actor_id는 nullable — 미인증 로그인 실패 등 null 허용
+       - target_id는 문자열 — UUID 이외(역할명 등) 수용
+       ================================================================ -->
+
+  <changeSet id="V008-0" author="dlsrbsla52" dbms="postgresql">
+    <comment>audit 스키마 생성</comment>
+    <sql>CREATE SCHEMA IF NOT EXISTS audit;</sql>
+  </changeSet>
+
+  <changeSet id="V008-1" author="dlsrbsla52" dbms="postgresql">
+    <comment>감사 로그 테이블 생성</comment>
+
+    <createTable schemaName="audit" tableName="audit_log">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <!-- 행위 주체 — 로그인 실패 등 미인증 이벤트는 null 가능 -->
+      <column name="actor_id" type="varchar(36)"/>
+
+      <!-- 행위 주체 유형: MEMBER, ADMIN, SYSTEM, ANONYMOUS -->
+      <column name="actor_type" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 동작 식별자 (예: LOGIN, LOGOUT, PASSWORD_CHANGE, MEMBER_DEACTIVATE) -->
+      <column name="action" type="varchar(50)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 대상 객체 유형 (MEMBER, ROLE, SESSION 등) — 선택 -->
+      <column name="target_type" type="varchar(50)"/>
+
+      <!-- 대상 객체 식별자 (문자열로 저장하여 UUID/식별자 모두 수용) -->
+      <column name="target_id" type="varchar(100)"/>
+
+      <!-- 요청 메타데이터 -->
+      <column name="ip" type="varchar(45)"/>
+      <column name="user_agent" type="varchar(500)"/>
+
+      <!-- 처리 결과: SUCCESS / FAILURE -->
+      <column name="result" type="varchar(10)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 추가 상세 정보 (실패 사유, 변경 전후 값 등) — JSON 형식 -->
+      <column name="detail" type="jsonb"/>
+
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <createIndex schemaName="audit" tableName="audit_log" indexName="idx_audit_log_actor_id">
+      <column name="actor_id"/>
+      <column name="created_at"/>
+    </createIndex>
+
+    <createIndex schemaName="audit" tableName="audit_log" indexName="idx_audit_log_action_created_at">
+      <column name="action"/>
+      <column name="created_at"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- H2 호환 changeset — jsonb 대신 text, 스키마 생성 문법 상이 -->
+  <changeSet id="V008-0-h2" author="dlsrbsla52" dbms="h2">
+    <comment>audit 스키마 생성 (H2)</comment>
+    <sql>CREATE SCHEMA IF NOT EXISTS audit;</sql>
+  </changeSet>
+
+  <changeSet id="V008-1-h2" author="dlsrbsla52" dbms="h2">
+    <comment>감사 로그 테이블 생성 (H2) — jsonb는 clob로 대체</comment>
+
+    <createTable schemaName="audit" tableName="audit_log">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="actor_id" type="varchar(36)"/>
+      <column name="actor_type" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="action" type="varchar(50)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="target_type" type="varchar(50)"/>
+      <column name="target_id" type="varchar(100)"/>
+      <column name="ip" type="varchar(45)"/>
+      <column name="user_agent" type="varchar(500)"/>
+      <column name="result" type="varchar(10)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="detail" type="clob"/>
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- 테이블/컬럼 코멘트 -->
+  <changeSet id="V008-2" author="dlsrbsla52" dbms="postgresql">
+    <comment>audit_log 테이블 코멘트 추가</comment>
+    <setTableRemarks schemaName="audit" tableName="audit_log"
+                     remarks="감사 로그 — 민감 작업(인증, 권한, 계정 상태) 추적"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="id" remarks="감사 로그 PK (UUID)"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="actor_id" remarks="행위 주체 회원 ID — 미인증 이벤트는 null"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="actor_type" remarks="행위 주체 유형 (MEMBER, ADMIN, SYSTEM, ANONYMOUS)"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="action" remarks="동작 식별자 (LOGIN, PASSWORD_CHANGE 등)"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="target_type" remarks="대상 객체 유형"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="target_id" remarks="대상 객체 식별자 (UUID 또는 코드)"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="ip" remarks="요청 IP"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="user_agent" remarks="요청 User-Agent"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="result" remarks="처리 결과 (SUCCESS, FAILURE)"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="detail" remarks="추가 상세 정보 (JSON — 실패 사유, 변경 전후 값 등)"/>
+    <setColumnRemarks schemaName="audit" tableName="audit_log"
+                      columnName="created_at" remarks="이벤트 발생 시각"/>
+  </changeSet>
+
+</databaseChangeLog>
