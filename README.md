@@ -132,6 +132,139 @@
 
 > 💡 **Best Practice Tip**: 타 서비스(예: `reservation`)가 회원 상세 데이터 조회를 위해 `iam` 서비스를 호출할 때 유저 컨텍스트를 억지로 조작하여 `@Authorize`를 뚫으려 하지 마십시오. **S2STokenFilter**를 사용해 시스템 간 인증만 통과시킨 후 데이터를 자유롭게 조회하도록 분리된 엔드포인트를 두는 방식이 도메인 모델의 순수성을 지키는 데 적합합니다.
 
+---
+
+## JWT & 인증 아키텍처
+
+### JWT 구조: Header.Payload.Signature
+
+JWT는 `.`으로 구분된 3개의 Base64URL 인코딩 파트로 구성됩니다.
+
+```
+eyJhbGciOiJIUzI1NiJ9  .  eyJzdWIiOiI1NTJmLi4uIn0  .  xK9mT2...
+       Header                     Payload                Signature
+```
+
+**Header** — 서명 알고리즘 명시
+```json
+{ "alg": "HS256", "typ": "JWT" }
+```
+
+**Payload** — 이 프로젝트의 Access Token 클레임 구성
+```json
+{
+  "sub":           "550e8400-e29b-41d4-a716-446655440000",
+  "loginId":       "user01",
+  "email":         "user@example.com",
+  "memberType":    "MEMBER",
+  "emailVerified": true,
+  "permissions":   "READ,WRITE",
+  "iat":           1713000000,
+  "exp":           1713003600
+}
+```
+
+**Signature** — Header + Payload를 secret key로 HMAC-SHA256 해싱한 위·변조 감지용 봉인값
+```
+HMAC-SHA256(base64url(Header) + "." + base64url(Payload), secretKey)
+```
+
+> ⚠️ **Payload는 암호화가 아닌 인코딩입니다.** Base64URL은 누구나 디코딩할 수 있으므로 비밀번호·개인식별정보 등 민감 데이터를 절대 포함하지 마십시오. Signature는 위·변조 감지용이며 기밀성을 제공하지 않습니다.
+
+---
+
+### 왜 RS256이 아닌 HS256인가?
+
+| 항목 | HS256 (이 프로젝트) | RS256 |
+|------|---------------------|-------|
+| 방식 | HMAC-SHA256 (대칭키, secret 1개 공유) | RSA-SHA256 (비대칭키, Private/Public 분리) |
+| 적합한 구조 | 단일 조직 내부망 MSA | 외부 서비스에 검증 위임 (JWKS 공개) |
+| secret 관리 | 환경변수 1개 | Private Key 별도 관리 필요 |
+| 성능 | 빠름 | 느림 (RSA 연산) |
+
+모든 모듈이 동일 조직 내부망에 위치하고 `modules/auth-contract`를 통해 `JwtProvider`를 공유하는 구조이므로 HS256이 적합합니다. `jwt.secret`은 **반드시 256bit(32byte) 이상**이어야 합니다.
+
+---
+
+### 인증 흐름
+
+```
+[로그인]
+  Client → POST /api/v1/auth/login
+         → Gateway (PUBLIC_PATHS 해당, 토큰 검증 스킵)
+         → IAM: 자격증명 검증 → Access Token(body) + Refresh Token(HttpOnly Cookie)
+
+[인증이 필요한 API 호출]
+  Client → Authorization: Bearer <access_token>
+         → Gateway JwtAuthenticationFilter
+              tryParseClaims() 단일 호출로 서명·만료 검증
+              실패 → 401 즉시 응답 (하위 서비스 도달 차단)
+              성공 → X-User-* 헤더 + X-Service-Token(S2S) 주입 → 하위 서비스 라우팅
+         → 하위 서비스 (stop / reservation)
+              MemberPrincipalExtractFilter: X-User-* 헤더 → MemberPrincipal 복원
+              AuthorizeHandlerInterceptor: @Authorize 평가 → 없으면 401, 불일치 403
+              CurrentMemberArgumentResolver: @CurrentMember 파라미터 주입
+
+[토큰 갱신]
+  Client → POST /api/v1/auth/token/refresh
+         → IAM: Redis 저장 토큰과 비교 → 새 Access Token + 새 Refresh Token (Token Rotation)
+
+[로그아웃]
+  Client → POST /api/v1/auth/logout
+         → IAM: Redis에서 Refresh Token 삭제 → 서버 측 즉시 무효화
+```
+
+---
+
+### 토큰 정책
+
+| 토큰 종류 | TTL | 저장소 | 특징 |
+|-----------|-----|--------|------|
+| Access Token | 60분 | 없음 (Stateless) | 서명 검증만 수행. 권한 변경 시 최대 60분 지연 허용 (의도적 설계) |
+| Refresh Token | 7일 | Redis (`refresh:{memberId}`) | 서버 측 무효화 가능. 재발급 시 Token Rotation 적용 |
+| S2S Token | 1시간 | 메모리 캐시 | `type: "s2s"` 클레임으로 구분. double-checked locking + `ReentrantLock` 캐싱 |
+
+> Access Token에 Redis 블랙리스트를 적용하지 않은 것은 의도적 결정입니다. Redis 의존성 제거와 낮은 레이턴시를 우선합니다. 권한 변경의 즉시 반영이 필요한 경우 `JwtProvider`에 블랙리스트 조회 로직을 추가하십시오.
+
+---
+
+### Spring Security 설계 원칙
+
+이 프로젝트는 Spring Security를 인증·인가 엔진으로 사용하지 않습니다. **Spring Security는 CSRF·세션·CORS 등 인프라 설정 도구로만 활용**하고, 실제 인증·인가는 커스텀 계층이 담당합니다.
+
+```
+일반적인 Spring Security JWT 방식:
+  SecurityFilterChain → JwtFilter → SecurityContextHolder.setAuthentication(...)
+  → @PreAuthorize, hasRole() 등
+
+이 프로젝트 방식:
+  SecurityFilterChain → anyRequest().permitAll()        (인프라 설정만)
+  Gateway GlobalFilter → JWT 검증 → X-User-* 헤더 주입  (Edge Authentication)
+  하위 서비스 → MemberPrincipalExtractFilter            (헤더 → 컨텍스트 복원)
+             → AuthorizeHandlerInterceptor + @Authorize (인가)
+```
+
+**이 설계를 선택한 이유**
+
+일반적인 방식으로 구현하면 하위 서비스 전부가 JWT를 직접 파싱해야 합니다. 서비스 수가 늘어날수록 다음 문제가 발생합니다:
+
+1. **중복 HMAC 연산**: Gateway, IAM, stop, reservation 등 모든 서비스가 같은 토큰을 각각 검증
+2. **secret 분산**: 모든 서비스 환경변수에 `jwt.secret` 배포 및 관리 필요
+3. **Spring Security 내부 의존**: `SecurityContext`, `GrantedAuthority`, `Authentication` 등 버전 변경 시 전 서비스에 영향
+
+이 프로젝트는 **Edge Authentication 패턴**을 채택합니다. Gateway 단일 경계에서 JWT를 검증하고, 하위 서비스는 신뢰된 `X-User-*` 헤더만 읽어 컨텍스트를 복원합니다.
+
+**AOP 대신 HandlerInterceptor를 사용하는 이유**
+
+AOP(`@Around`)는 내부적으로 `RequestContextHolder`(ThreadLocal 기반)를 통해 `HttpServletRequest`에 접근합니다. 이 프로젝트는 Virtual Thread 환경에서 `ThreadLocal` 사용을 지양하므로, `HttpServletRequest`를 직접 파라미터로 받는 `HandlerInterceptor`를 채택했습니다.
+
+**Java 버전 업그레이드와의 관계**
+
+이 설계의 일부 제약(예: `synchronized` 금지)은 Java 21 시절 Virtual Thread 핀닝 문제를 피하기 위한 것이었습니다. Java 24(JEP 491)에서 이 핀닝 문제가 JVM 레벨에서 해소되었고, Java 25(JEP 506)에서 `ScopedValue`가 정식 표준화되었습니다.
+
+그러나 **이 아키텍처를 일반적인 Spring Security 방식으로 되돌릴 이유는 없습니다.** Virtual Thread 제약 해소는 이 설계의 부수적 이유였을 뿐이며, 핵심 이유인 Edge Authentication 패턴의 아키텍처적 이점(단일 검증, secret 집중, 낮은 결합도)은 Java 버전과 무관하게 유효합니다.
+
+---
 
 ## 로깅 (Logging & MDC 전파)
 > 본 프로젝트는 **Log4j2 + LMAX Disruptor** 비동기 로거와 **Micrometer Tracing(OTel 브릿지)**를 통해
