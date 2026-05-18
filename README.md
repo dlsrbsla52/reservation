@@ -1,5 +1,6 @@
 # 예약 시스템 개발 프로젝트
-ㄴ ㄲㅏㄹ>`java25`, `Spring Boot 4.0.5`, `Kotlin 2.3.20`을 위한 MSA(Microservices Architecture) 기반 보일러플레이트
+
+> **`Java 25 (LTS)`** · **`Spring Boot 4.0.5`** · **`Kotlin 2.3.20 (K2)`** 기반 MSA(Microservices Architecture) 보일러플레이트
 
 ## 시스템 아키텍처 (MSA Multi-Module 구조)
 본 프로젝트는 **MSA(Microservices Architecture)** 구조를 지향하며, 단일 프로젝트(Monorepo) 내에서 멀티 모듈 기반으로 구성됩니다. 각 서브 모듈은 도메인 특성에 맞게 독립적인 웹 애플리케이션으로 동작합니다.
@@ -10,6 +11,29 @@
 - **iam**: JWT 토큰 발급·갱신 프로세스와 사용자의 인증(Authentication)/인가(Authorization) 및 회원의 라이프사이클(가입, 조회, 수정, 제재, 탈퇴 등) 및 회원 관련 비즈니스 도메인을 관리하는 모듈입니다. (Expected Port: 8181)
 - **stop**: 정류소의 관리 매니저를 담당하는 서비스 모듈입니다. 각 정류소의 매칭 상태와 가격(유동인구, 판매가격, 결제 시기, 재계약 시기) 등 비즈니스 도메인을 책임지는 메인 워커 모듈입니다. (Expected Port: 8182)
 - **reservation**: 시스템의 Core 비즈니스인 실제 예약 생성, 변경, 취소 등의 트랜잭션 로직을 책임지는 메인 워커 모듈입니다. (Expected Port: 8183)
+
+## 기술 스택 요약
+
+> Kotlin은 언어, JDK 25는 컴파일 타깃 + 런타임입니다. 두 축을 분리해서 선정 근거를 기록합니다.
+
+| 레이어 | 선택 | 선정 이유 |
+|--------|------|-----------|
+| **언어** | Kotlin 2.3.20 (K2 컴파일러) | Null 안전성, `data class`, `sealed interface`, JDK API 직접 호출 가능 |
+| **런타임/타깃** | JDK 25 (LTS, 2025-09) | Virtual Thread 핀닝 해소(JEP 491, JDK 24) + `ScopedValue` 정식 표준화(JEP 506, JDK 25) |
+| **프레임워크** | Spring Boot 4.0.5 (Spring Framework 7) | Boot 4 BOM 통합, 최신 Auto-Configuration |
+| **API Gateway** | Spring Cloud Gateway 5.x (WebFlux/Netty) | Reactive 라우팅, Spring Cloud `2025.1.1 Oakwood` Boot 4 공식 호환 |
+| **ORM** | Exposed 1.0.0 (DAO + DSL) | Kotlin 친화적 type-safe SQL, JPA 대비 가벼움 |
+| **DB** | PostgreSQL 18.3 | 모듈별 schema 격리 (`auth` / `stop` / `reservation`) |
+| **캐시/세션** | Valkey 8.1.6 (Redis 호환) | Redis BSL 라이선스 회피, BSD-3-Clause |
+| **인증** | JWT (jjwt 0.13.0, HS256) | 단일 조직 내부망 MSA에 적합한 대칭키 |
+| **회복성** | Resilience4j 2.4.0 (Bulkhead, Semaphore) | DB connection pool 고갈 사전 차단 |
+| **로깅** | Log4j2 + LMAX Disruptor 4.0 | 비동기 락프리 로깅, Virtual Thread 핀닝 회피 |
+| **추적** | Micrometer Tracing + OpenTelemetry API | `traceId`/`spanId` MDC 자동 주입 |
+| **에러** | Sentry 4.11.0 | 운영 환경 예외 수집 |
+| **API 문서** | springdoc-openapi 3.0.2 | OpenAPI 3.0 Swagger UI |
+| **마이그레이션** | Liquibase | 모듈별 changelog, 스키마 분리 |
+| **테스트** | JUnit 5 + MockK 1.13.10 | Kotlin 친화적 Mock |
+| **빌드/배포** | Gradle 8.x (Kotlin DSL) + Docker BuildKit | 멀티 스테이지 + `--mount=type=cache` 캐시 마운트 |
 
 ## API 문서 (Swagger UI)
 
@@ -28,7 +52,7 @@
 
 ## DB 및 통합 테스트(MSA) 구동 환경
 > 본 프로젝트는 Docker Compose를 이용해 모든 MSA 모듈을 로컬 컨테이너 환경에서 통합 테스트할 수 있도록 최적화되어 있습니다.
-> 
+>
 > 다음과 같은 명령어로 DB(PostgreSQL) 및 API Gateway를 포함한 서비스를 띄울 수 있습니다.
 >
 > ```bash
@@ -72,7 +96,7 @@
 > | `docker-compose-dev.yml` | override — Gateway 라우팅을 `host.docker.internal`로 전환 |
 >
 > 💡 **dev override 없이** `docker-compose -f docker-compose-local.yml up -d`만 사용하면 모든 서비스가 Docker 네트워크 내에서 통신합니다.
-> 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 각 모듈의 `.jar`가 패키징됩니다. 
+> 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 각 모듈의 `.jar`가 패키징됩니다.
 > API Gateway(`8080`)를 단일 진입점으로 하여 뒤단의 개별 서비스(`8181`, `8183`) 포트가 묶여 백그라운드에서 구동됩니다. DB는 `15433` 포트로 바인딩됩니다.
 >
 > 💡 **데이터 영속성(Persistence)**
@@ -92,11 +116,11 @@
 > 모든 내부 통신은 `common` 모듈에 정의된 `internalRestClient` 빈(Bean)을 통해 이루어지며, 다음과 같은 보안 및 편의 기능을 내장하고 있습니다.
 >
 > 1. **인증 컨텍스트 자동 전파 (Security Context Propagation)**
->    - 외부에서 유입된 유저의 JWT 토큰을 Interceptor 수준에서 가로채어, 내부 서비스 호출 시 `Authorization` 헤더에 자동으로 주입합니다.
+     >    - 외부에서 유입된 유저의 JWT 토큰을 Interceptor 수준에서 가로채어, 내부 서비스 호출 시 `Authorization` 헤더에 자동으로 주입합니다.
 > 2. **S2S (System-to-System) Fallback**
->    - 스케줄러(@Scheduled)나 비동기(@Async) 등 유저 컨텍스트가 없는 환경에서 호출될 경우, 미리 정의된 시스템 전용 토큰을 자동으로 주입하여 인가 장애를 방지합니다.
+     >    - 스케줄러(@Scheduled)나 비동기(@Async) 등 유저 컨텍스트가 없는 환경에서 호출될 경우, 미리 정의된 시스템 전용 토큰을 자동으로 주입하여 인가 장애를 방지합니다.
 > 3. **엔드포인트 화이트리스트 (Security Whitelisting)**
->    - 내부 인증 정보가 외부 API(예: Google, Kakao 등)로 유출되는 것을 차단하기 위해, 신뢰할 수 있는 도메인으로의 요청에만 토큰을 주입합니다.
+     >    - 내부 인증 정보가 외부 API(예: Google, Kakao 등)로 유출되는 것을 차단하기 위해, 신뢰할 수 있는 도메인으로의 요청에만 토큰을 주입합니다.
 >    - **허용 도메인**: `*.local`, `*.internal`, `*service*`, `localhost`, `10.* (Internal IP)`
 >
 > 💡 **사용 방법**
@@ -120,15 +144,15 @@
 본 프로젝트는 단일 서비스가 아닌 분산 환경(MSA)이므로 "누가(혹은 어느 서비스가) 요청했는가"를 식별하기 위해 인증/인가 단계를 명확히 분리하여 운영합니다.
 
 1. **S2STokenFilter (시스템 간 인증)**:
-   - **적용 대상**: 외부 사용자가 아닌 시스템(Gateway, 백그라운드 워커, 스케줄러, 내부 타 모듈 등)
-   - **목적**: 해당 API가 인터넷을 통한 접속이 아니라, **신뢰할 수 있는 내부 망(Service-to-Service)에서 넘어온 호출인지 1차로 확인**하여 외부로부터의 접근을 원천 차단합니다.
-   - **구현**: `X-Service-Token` 헤더를 검증합니다. (예: `iam` 서비스의 `/api/v1/member/**` 등 서비스 간 정보 조회 API에 주로 적용)
-   - **설정**: 각 서비스의 `SecurityConfig`에서 이 필터를 Bean으로 등록할 때 적용할 경로 리스트(`listOf(...)`)를 주입하여 유연하게 적용 범위를 제어합니다.
+    - **적용 대상**: 외부 사용자가 아닌 시스템(Gateway, 백그라운드 워커, 스케줄러, 내부 타 모듈 등)
+    - **목적**: 해당 API가 인터넷을 통한 접속이 아니라, **신뢰할 수 있는 내부 망(Service-to-Service)에서 넘어온 호출인지 1차로 확인**하여 외부로부터의 접근을 원천 차단합니다.
+    - **구현**: `X-Service-Token` 헤더를 검증합니다. (예: `iam` 서비스의 `/api/v1/member/**` 등 서비스 간 정보 조회 API에 주로 적용)
+    - **설정**: 각 서비스의 `SecurityConfig`에서 이 필터를 Bean으로 등록할 때 적용할 경로 리스트(`listOf(...)`)를 주입하여 유연하게 적용 범위를 제어합니다.
 
 2. **@Authorize (사용자 인가)**:
-   - **적용 대상**: 모바일/웹 등의 클라이언트를 통해 접근하는 실제 **사용자(Member/User)**
-   - **목적**: 사용자의 자격 증명(MemberType, MemberCategory, EmailVerified 여부, Permission 등)을 확인하여 **비즈니스 로직 연산(API) 수행 권한이 있는지 세밀하게 제어**합니다.
-   - **구현**: 유저 토큰이 Gateway에서 검증 및 해석되어 주입된 `X-User-...` 헤더 기반의 `MemberPrincipal` 객체를 `AuthorizeHandlerInterceptor`가 AOP 동작 이전에 가로채어 검사합니다.
+    - **적용 대상**: 모바일/웹 등의 클라이언트를 통해 접근하는 실제 **사용자(Member/User)**
+    - **목적**: 사용자의 자격 증명(MemberType, MemberCategory, EmailVerified 여부, Permission 등)을 확인하여 **비즈니스 로직 연산(API) 수행 권한이 있는지 세밀하게 제어**합니다.
+    - **구현**: 유저 토큰이 Gateway에서 검증 및 해석되어 주입된 `X-User-...` 헤더 기반의 `MemberPrincipal` 객체를 `AuthorizeHandlerInterceptor`가 AOP 동작 이전에 가로채어 검사합니다.
 
 > 💡 **Best Practice Tip**: 타 서비스(예: `reservation`)가 회원 상세 데이터 조회를 위해 `iam` 서비스를 호출할 때 유저 컨텍스트를 억지로 조작하여 `@Authorize`를 뚫으려 하지 마십시오. **S2STokenFilter**를 사용해 시스템 간 인증만 통과시킨 후 데이터를 자유롭게 조회하도록 분리된 엔드포인트를 두는 방식이 도메인 모델의 순수성을 지키는 데 적합합니다.
 
@@ -353,26 +377,41 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap {
 | `common/configuration/ThreadPoolConfig.kt` | MDC `TaskDecorator` + 기본 Executor (`AsyncConfigurer`) |
 | `common/src/test/.../MdcLoggingFilterDemo.kt` | 동작 시각화 데모 (`./gradlew :modules:common:demoLogging`) |
 
+## 관측성(Observability) 현황
+
+> 코드 측에서 노출되는 신호와 수집 백엔드를 분리해 정직하게 기록합니다.
+> 현재는 **신호 노출까지는 완비**, **수집 백엔드는 로컬 미구성** 상태입니다.
+
+| 영역 | 코드 측 준비 | 수집 백엔드 |
+|------|--------------|-------------|
+| **메트릭** | Spring Boot Actuator + Micrometer | ⚠️ Prometheus 미구성 |
+| **추적** | Micrometer Tracing + OpenTelemetry API | ⚠️ OTel Collector / Tempo 미구성 |
+| **로그** | Log4j2 JSON Layout (운영 프로파일) | ⚠️ Loki / CloudWatch Logs Insights 미연동 |
+| **에러** | Sentry SDK | ✅ Sentry DSN 환경변수만 주입하면 동작 |
+| **Bulkhead 메트릭** | Resilience4j Micrometer 바인더 | Actuator `/metrics` 엔드포인트로 노출 |
+
+> 💡 로컬에서 빠르게 관측성 백엔드를 띄우려면 `grafana/otel-lgtm` 단일 컨테이너를 `docker-compose-local.yml`에 추가하는 방식이 가장 가볍습니다(Grafana + Loki + Tempo + Mimir 일체형).
+
 ## 디버깅 (Remote JVM Debug)
 > 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
 > `docker-compose.yml` 리소스에 JDWP(Java Debug Wire Protocol) 설정 및 포워딩이 구성되어 있습니다.
 
 ### 디버깅 모드 접속 방법
 1. **IntelliJ Remote Debugger 설정**
-   - 우측 상단 `Run/Debug Configurations` -> **Edit Configurations...**
-   - **+** 기호 -> **Remote JVM Debug** 선택
-   - **Name**: `Remote: Auth Service` 등 원하는 이름 설정
-   - **Host**: `localhost` / **Port**: 해당 서비스의 디버그 포트 입력
-     - `gateway`: `18080`
-     - `iam`: `18181`
-     - `stop`: `18182`
-     - `reservation`: `18183`
-   - **Use module classpath**: 디버깅 타겟 모듈 지정 (예: `reservation.modules.iam.main`)
+    - 우측 상단 `Run/Debug Configurations` -> **Edit Configurations...**
+    - **+** 기호 -> **Remote JVM Debug** 선택
+    - **Name**: `Remote: Auth Service` 등 원하는 이름 설정
+    - **Host**: `localhost` / **Port**: 해당 서비스의 디버그 포트 입력
+        - `gateway`: `18080`
+        - `iam`: `18181`
+        - `stop`: `18182`
+        - `reservation`: `18183`
+    - **Use module classpath**: 디버깅 타겟 모듈 지정 (예: `reservation.modules.iam.main`)
 2. **실행 및 Attach**
-   - `docker-compose up -d` 로 컨테이너 기동
-   - 비즈니스 로직에 Breakpoint(중단점) 지정
-   - 생성한 `Remote JVM Debug` 환경을 실행(디버그 아이콘 클릭)하여 컨테이너에 Attach
-   - 정상 연결 시 `Connected to the target VM` 메시지 확인 가능
+    - `docker-compose up -d` 로 컨테이너 기동
+    - 비즈니스 로직에 Breakpoint(중단점) 지정
+    - 생성한 `Remote JVM Debug` 환경을 실행(디버그 아이콘 클릭)하여 컨테이너에 Attach
+    - 정상 연결 시 `Connected to the target VM` 메시지 확인 가능
 
 💡 **애플리케이션 초기화 시점 디버깅**
 컨테이너 기동 과정(예: 빈 생성, 컨텍스트 초기화)을 디버깅해야 한다면, `docker-compose.yml`의 `JAVA_TOOL_OPTIONS` 환경 변수 중 `suspend=n`을 `suspend=y`로 변경 후 컨테이너를 재시작하십시오. 디버거가 Attach 될 때까지 애플리케이션 Bootstrap이 일시 정지(Hold)됩니다.
@@ -394,3 +433,79 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap {
 > `DB Connection Pool`을 사용하기 때문입니다. \
 > \
 > 자세한 내용은 `com.common.boilerplate.core.aop.TransactionalBulkheadAspect` 참조 바랍니다.
+
+---
+
+## 테스트 현황
+
+> 단위 테스트는 MockK, Repository는 in-memory H2 기반입니다.
+> 현재 26개 테스트 클래스가 모듈별로 분산되어 있습니다.
+
+| 모듈 | 클래스 수 | 주요 대상 |
+|------|----------|-----------|
+| `common` | 8 | AOP(Bulkhead·Async MDC), MDC Filter, RestClient, PageResult |
+| `auth-contract` | 4 | MemberType, 인증 Filter / Interceptor / ArgumentResolver |
+| `iam` | 9 | Validator, AuthService, RoleResolution, Repository, MemberService |
+| `stop` | 5 | Seoul Bus API Client, Entity 변경 이력, Guard, Service |
+| `reservation` | 0 | **(미구현 — 우선 보완 대상)** |
+| `gateway` | 0 | **(미구현 — 우선 보완 대상)** |
+
+### 실행
+
+```bash
+./gradlew test                                                # 전체
+./gradlew :modules:iam:test                                   # 단일 모듈
+./gradlew :modules:iam:test --tests "패키지.클래스.메서드"
+```
+
+---
+
+## 설계 트레이드오프 및 알려진 제약
+
+> 본 프로젝트는 트레이드오프를 명시적으로 기록하여 회수(언제·왜 바꿀지) 시점을 판단하기 쉽도록 합니다.
+
+### 1. Access Token 무상태 (60분 권한 반영 지연)
+
+- **선택**: Access Token TTL 60분 + Redis 블랙리스트 없음
+- **장점**: 검증 레이턴시 최소화(HMAC 1회), Redis 의존성 제거
+- **단점**: 권한 박탈/계정 정지가 **최대 60분 지연** 됨
+- **회수 시점**: 어드민 권한 변경의 즉시 반영이 필요해지면 `JwtProvider`에 `jti` 블랙리스트 또는 `iat` 비교 로직 추가. 어드민 라우트만 TTL 5~10분으로 분리하는 절충도 가능
+
+### 2. Bulkhead는 Semaphore 카운터 (Hikari pool과 자동 동기화 X)
+
+- **선택**: Resilience4j `Bulkhead`(semaphore) + `maxConcurrentCalls=19` (Hikari pool=20 − 1 여유)
+- **장점**: VT 환경에서 connection 점유 폭주를 application 레벨에서 미리 차단
+- **단점**: semaphore 카운터와 실제 connection 점유가 **자동 동기화되지 않음.** 한 트랜잭션이 외부 호출 후 다른 connection을 요청하는 케이스에서 가정이 깨질 수 있음
+- **보완**: HikariCP `leakDetectionThreshold`(예: 5초), `connectionTimeout`을 함께 튜닝
+
+### 3. 예약 동시성 — 현재는 애플리케이션 + UNIQUE 제약 기반
+
+- **현재 보호**: `existsActiveByMemberAndStop` 사전 체크 + DB UNIQUE 제약
+- **커버 범위**: 동일 회원의 이중 신청 차단
+- **커버하지 않는 범위**: 정류소 슬롯/시간대 경쟁(여러 회원이 같은 자원을 동시에 노릴 때) — Bulkhead는 동시성을 **제한**하는 것이지 **직렬화**가 아님
+- **개선안**: 슬롯·예약 정원이 도입되는 시점에 PostgreSQL `pg_try_advisory_xact_lock(stopId)` 또는 Redisson 분산 락 적용 (Valkey가 이미 구성되어 추가 인프라 부담 없음)
+
+### 4. CI/CD 파이프라인 미구성
+
+- 현재는 로컬 + Docker Compose만 구성. `.gitlab-ci.yml` / `.github/workflows` 없음
+
+### 5. AWS Aurora / Secrets Manager 통합 미적용
+
+- `JWT_SECRET` 등 시크릿이 현재 환경변수 평문 의존
+
+### 6. 부하/내구성 테스트 도구 미포함
+
+- 동시성·Bulkhead·VT 효과 검증용 도구(k6 / Gatling / JMH 등) 미설정
+- **권장**: 동시 예약 시나리오 한 가지라도 k6 스크립트로 reproducible하게 확보
+
+---
+
+## 로드맵(우선순위)
+
+1. `reservation` 모듈 동시성 보강 — `pg_try_advisory_xact_lock` 도입 + 동시 호출 통합 테스트
+2. `reservation` / `gateway` 단위·통합 테스트 충원 (상태 머신 + 라우팅 필터)
+3. **GitHub Actions 1장** — build + test + docker build 검증을 PR 게이트로
+4. **관측성 백엔드 compose 추가** — `grafana/otel-lgtm` 단일 컨테이너 연동
+5. **어드민 토큰 TTL 단축** 또는 `jti` 블랙리스트 — 권한 회수 지연 완화
+6. **Testcontainers 전환** — H2 → PostgreSQL 18 (PostgreSQL 전용 기능 검증)
+7. **AWS 시크릿 관리 PoC** — Secrets Manager + Aurora IAM 인증
