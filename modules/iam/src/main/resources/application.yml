@@ -43,7 +43,14 @@ resilience4j:
 
 rest:
   service:
-    apply-patterns: /health-check, /api/**
+    apply-patterns: /api/**
+
+# 내부 서비스 URL — 운영환경 Docker 컨테이너명 기준
+services:
+  stop:
+    url: ${STOP_SERVICE_URL:http://msa-stop:8182}
+  reservation:
+    url: ${RESERVATION_SERVICE_URL:http://msa-reservation:8183}
 
 springdoc:
   api-docs:
