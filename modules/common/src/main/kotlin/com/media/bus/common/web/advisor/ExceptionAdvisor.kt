@@ -49,30 +49,31 @@ class ExceptionAdvisor {
         val fieldErrors = error.bindingResult.fieldErrors.map { fe ->
             ErrorView.FieldErrorDetail(fe.field, fe.defaultMessage)
         }
+        log.warn("validationHandler: {} {} -> {}", request.method, request.requestURI, fieldErrors)
         return buildErrorResponse(HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, null, request, fieldErrors)
     }
 
     @ExceptionHandler(StorageException::class)
     fun storageExceptionHandler(request: HttpServletRequest, error: StorageException): ResponseEntity<ErrorView> {
-        log.error("storageExceptionHandler.error : ", error)
+        log.error("storageExceptionHandler.error: {} {}", request.method, request.requestURI, error)
         return buildErrorResponse(HttpStatus.NOT_FOUND, error.result, error.message, request)
     }
 
     @ExceptionHandler(AccessDeniedException::class)
     fun accessDeniedHandler(request: HttpServletRequest, error: AccessDeniedException): ResponseEntity<ErrorView> {
-        log.error("accessDeniedHandler.error : ", error)
+        log.error("accessDeniedHandler.error: {} {}", request.method, request.requestURI, error)
         return buildErrorResponse(HttpStatus.FORBIDDEN, CommonResult.AUTHORIZATION_FAIL, null, request)
     }
 
     @ExceptionHandler(NoAuthenticationException::class)
     fun noAuthenticationHandler(request: HttpServletRequest, error: NoAuthenticationException): ResponseEntity<ErrorView> {
-        log.error("noAuthenticationHandler.error : ", error)
+        log.error("noAuthenticationHandler.error: {} {}", request.method, request.requestURI, error)
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, error.result, error.message, request)
     }
 
     @ExceptionHandler(NoAuthorizationException::class)
     fun noAuthorizationHandler(request: HttpServletRequest, error: NoAuthorizationException): ResponseEntity<ErrorView> {
-        log.error("noAuthorizationHandler.error : ", error)
+        log.error("noAuthorizationHandler.error: {} {}", request.method, request.requestURI, error)
         return buildErrorResponse(HttpStatus.FORBIDDEN, error.result, error.message, request)
     }
 
@@ -82,19 +83,22 @@ class ExceptionAdvisor {
      */
     @ExceptionHandler(BusinessException::class)
     fun businessExceptionHandler(request: HttpServletRequest, error: BusinessException): ResponseEntity<ErrorView> {
-        log.warn("businessExceptionHandler: result={}, message={}, uri={}", error.result.code, error.message, request.requestURI)
+        log.warn(
+            "businessExceptionHandler: {} {} result={} message={}",
+            request.method, request.requestURI, error.result.code, error.message,
+        )
         return buildErrorResponse(error.httpStatus, error.result, error.message, request)
     }
 
     @ExceptionHandler(BaseException::class)
     fun baseExceptionHandler(request: HttpServletRequest, error: BaseException): ResponseEntity<ErrorView> {
-        log.error("baseExceptionHandler.error : ", error)
+        log.error("baseExceptionHandler.error: {} {}", request.method, request.requestURI, error)
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, error.result, error.message, request)
     }
 
     @ExceptionHandler(Exception::class)
     fun defaultHandler(request: HttpServletRequest, error: Exception): ResponseEntity<ErrorView> {
-        log.error("defaultHandler.error : ", error)
+        log.error("defaultHandler.error: {} {}", request.method, request.requestURI, error)
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, CommonResult.ERROR, null, request)
     }
 

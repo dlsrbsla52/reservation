@@ -33,8 +33,13 @@ object AuditLogTable : BaseTable("audit.audit_log") {
     val ip = varchar("ip", 45).nullable()
     val userAgent = varchar("user_agent", 500).nullable()
     val result = enumerationByName<AuditResult>("result", 10)
-    /** 추가 상세 정보 — JSON 문자열 (PostgreSQL jsonb / H2 clob) */
-    val detail = text("detail").nullable()
+    /**
+     * 추가 상세 정보 — JSON 문자열.
+     * PostgreSQL `jsonb` / H2 `clob` 컬럼에 대응한다.
+     * 평문 `text()` 로 바인딩하면 PG 가 `text → jsonb` implicit cast 를 거부하므로
+     * [jsonbString] 커스텀 컬럼 타입으로 dialect 별 바인딩을 분기한다.
+     */
+    val detail = jsonbString("detail").nullable()
     val createdAt = timestampWithTimeZone("created_at")
         .also { it.defaultValueFun = { OffsetDateTime.now(ZoneId.of("Asia/Seoul")) } }
 }

@@ -40,7 +40,9 @@ dependencies {
     api("io.github.resilience4j:resilience4j-spring-boot4:2.4.0")
 
     runtimeOnly("com.h2database:h2")
-    runtimeOnly("org.postgresql:postgresql")
+    // jsonb 등 PostgreSQL 전용 타입을 코드(`PGobject`)에서 직접 다뤄야 하므로 컴파일 클래스패스에도 노출한다.
+    // `api`로 두어 common을 소비하는 모든 모듈(iam, reservation 등)이 추가 선언 없이 PG JDBC 심볼을 사용할 수 있다.
+    api("org.postgresql:postgresql")
 
     // Liquibase — 각 모듈 DB 마이그레이션 (Spring Boot 4.x는 starter 필수: auto-config이 spring-boot-liquibase 모듈에 분리됨)
     api("org.springframework.boot:spring-boot-starter-liquibase")
