@@ -2,9 +2,8 @@ package com.media.bus.stop.repository
 
 import com.media.bus.stop.entity.StopEntity
 import com.media.bus.stop.entity.StopTable
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
@@ -43,4 +42,34 @@ class StopRepository {
         if (pks.isEmpty()) return emptyList()
         return StopEntity.find { StopTable.id inList pks.toList() }.toList()
     }
+
+    /** 전체 정류소 수. */
+    @Transactional(readOnly = true)
+    fun countAll(): Long = StopTable.selectAll().count()
+
+    /** 오프셋 기반 페이지네이션으로 전체 정류소 조회 (이름 오름차순). */
+    @Transactional(readOnly = true)
+    fun findAllPaged(page: Int, size: Int): List<StopEntity> =
+        StopTable.selectAll()
+            .orderBy(StopTable.stopName to SortOrder.ASC)
+            .limit(size)
+            .offset((page.toLong()) * size)
+            .map { StopEntity.wrapRow(it) }
+
+    /** 키워드(정류소명 또는 정류소번호 부분 일치) 매칭 정류소 수. */
+    @Transactional(readOnly = true)
+    fun countByKeyword(keyword: String): Long =
+        StopTable.selectAll()
+            .where { (StopTable.stopName like "%$keyword%") or (StopTable.stopId like "%$keyword%") }
+            .count()
+
+    /** 키워드 매칭 정류소를 페이지네이션으로 조회 (이름 오름차순). */
+    @Transactional(readOnly = true)
+    fun findByKeywordPaged(keyword: String, page: Int, size: Int): List<StopEntity> =
+        StopTable.selectAll()
+            .where { (StopTable.stopName like "%$keyword%") or (StopTable.stopId like "%$keyword%") }
+            .orderBy(StopTable.stopName to SortOrder.ASC)
+            .limit(size)
+            .offset((page.toLong()) * size)
+            .map { StopEntity.wrapRow(it) }
 }

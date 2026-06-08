@@ -75,7 +75,17 @@ class AuditLogService {
         }
     }
 
-    /** 성공 이벤트 기록 — 가독성을 위한 헬퍼. */
+    /**
+     * 성공 이벤트 기록 — 가독성을 위한 헬퍼.
+     *
+     * **Self-invocation 회피**
+     * 헬퍼 내부에서 [record] 를 직접 호출하면 같은 빈 호출(self-invocation)이라
+     * `record` 의 `@Transactional(REQUIRES_NEW)` 어드바이스가 우회된다.
+     * outer 트랜잭션이 readOnly 라면 outer commit 시점에 `cannot execute INSERT in a
+     * read-only transaction` 오류가 발생한다.
+     * 헬퍼 자체에 동일 propagation 을 지정해 Spring proxy 가 새 트랜잭션을 열도록 한다.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun success(
         actorId: UUID?,
         actorType: AuditActorType,
@@ -85,7 +95,8 @@ class AuditLogService {
         detail: String? = null,
     ) = record(actorId, actorType, action, targetType, targetId, AuditResult.SUCCESS, detail)
 
-    /** 실패 이벤트 기록 — 로그인 실패, 비밀번호 불일치 등. */
+    /** 실패 이벤트 기록 — 로그인 실패, 비밀번호 불일치 등. [success] 와 동일한 Self-invocation 회피 사유로 어노테이션 부여. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun failure(
         actorId: UUID?,
         actorType: AuditActorType,

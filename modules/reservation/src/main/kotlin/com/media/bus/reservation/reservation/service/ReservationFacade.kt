@@ -54,8 +54,31 @@ class ReservationFacade(
      * Stop 서비스 장애 시 `StopResolutionService.resolveStops`가 빈 맵으로 fallback 하므로
      * 예약 목록 자체는 정상 반환된다 (stopName/stopNumber는 null).
      */
-    fun getMyReservations(principal: MemberPrincipal, page: Int, size: Int): PageResult<MyReservationResponse> {
-        val raw = reservationService.getMyReservations(principal.id, page, size)
+    fun getMyReservations(principal: MemberPrincipal, page: Int, size: Int): PageResult<MyReservationResponse> =
+        enrichWithStops(reservationService.getMyReservations(principal.id, page, size))
+
+    /**
+     * 특정 회원의 예약 목록을 조회한다(어드민 전용).
+     *
+     * `getMyReservations`와 동일한 정류소 결합 로직을 사용하되, 본인(principal)이 아닌
+     * 임의의 `memberId`를 대상으로 한다. 인가는 컨트롤러(`@Authorize`)에서 ADMIN 권한으로 강제하며,
+     * 이 메서드 자체는 소유권 검증을 하지 않는다(어드민은 타 회원 예약 조회가 정당한 동작).
+     *
+     * **모듈 경계**: 회원 존재 여부/유형 판별은 iam 책임이므로 여기서 확인하지 않는다.
+     * 존재하지 않는 회원이면 빈 페이지가 반환된다.
+     *
+     * @param memberId 조회 대상 회원 ID
+     */
+    fun getMemberReservations(memberId: UUID, page: Int, size: Int): PageResult<MyReservationResponse> =
+        enrichWithStops(reservationService.getMyReservations(memberId, page, size))
+
+    /**
+     * 예약 목록 페이지의 각 row에 정류소 정보(stopNumber/stopName)를 결합한다.
+     *
+     * 중복 제거된 stopId 집합에 대해 **1회 S2S 일괄 조회**로 N+1을 방지하며,
+     * stop 서비스 장애 시 `resolveStops`가 빈 맵으로 fallback 하여 목록 자체는 정상 반환된다.
+     */
+    private fun enrichWithStops(raw: PageResult<MyReservationResponse>): PageResult<MyReservationResponse> {
         val stopIds = raw.items.map { it.stopId }.toSet()
         val stopMap = stopResolutionService.resolveStops(stopIds)
         val enriched = raw.items.map { row ->

@@ -1,5 +1,6 @@
 package com.media.bus.stop.service
 
+import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.stop.dto.request.SimpleStopCreateRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
@@ -41,6 +42,24 @@ class StopService(
         is StopSearchCriteria.ByPk       -> listOfNotNull(stopRepository.findById(criteria.pk)).map(BusStopResponse::of)
         is StopSearchCriteria.ByStopId   -> listOfNotNull(stopRepository.findByStopId(criteria.stopId)).map(BusStopResponse::of)
         is StopSearchCriteria.ByStopName -> stopRepository.findByStopNameStartingWith(criteria.stopName).map(BusStopResponse::of)
+    }
+
+    /**
+     * 전체 정류소를 페이지네이션으로 조회한다 (관리자 목록 화면용).
+     * keyword가 주어지면 정류소명/정류소번호 부분 일치로 필터링한다.
+     */
+    @Transactional(readOnly = true)
+    fun getBusStopPage(page: Int, size: Int, keyword: String?): PageResult<BusStopResponse> {
+        val kw = keyword?.trim()?.takeIf { it.isNotEmpty() }
+        val entities = if (kw != null) stopRepository.findByKeywordPaged(kw, page, size)
+                       else stopRepository.findAllPaged(page, size)
+        val totalCnt = if (kw != null) stopRepository.countByKeyword(kw) else stopRepository.countAll()
+        return PageResult(
+            items = entities.map(BusStopResponse::of),
+            totalCnt = totalCnt,
+            pageRows = size,
+            pageNum = page,
+        )
     }
 
     /**

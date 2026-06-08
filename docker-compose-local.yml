@@ -125,5 +125,63 @@ services:
       - STOP_SERVICE_URL=http://stop-service:8182
       - RESERVATION_SERVICE_URL=http://reservation-service:8183
 
+  # ───────────────────────── 관측(로그) 스택 ─────────────────────────
+  # 운영(docker-compose.yml)과 동일한 셀프호스팅 파이프라인: Alloy(수집) → Loki(저장) → Grafana(조회).
+  # 로컬 디버깅 시에도 컨테이너 stdout 로그를 requestId/traceId로 묶어 검색할 수 있다.
+  # 주의: 로컬에서 직접 실행(컨테이너 외부)하는 모듈의 로그는 Alloy가 수집하지 못한다(컨테이너 대상만).
+
+  # Loki: 라벨만 인덱싱하는 경량 로그 저장소 (로컬 디스크, 7일 보존)
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: msa-loki
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    expose:
+      - "3100"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --tries=1 -O- http://localhost:3100/ready | grep -q ready || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Alloy: Docker 소켓으로 컨테이너 로그를 수집해 Loki로 전송 (Promtail 후속)
+  alloy:
+    image: grafana/alloy:v1.16.3
+    container_name: msa-alloy
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      # 컨테이너 자동 발견 및 로그 tail 을 위해 Docker 소켓을 읽기 전용 마운트
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  # Grafana: 로그 조회 UI. http://localhost:3300 (기본 계정 admin / ${GRAFANA_PASSWORD:-admin})
+  # 호스트 3300 → 컨테이너 3000. (3000은 Next.js 등과 충돌하기 쉬워 호스트 포트만 3300으로 노출)
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: msa-grafana
+    ports:
+      - "3300:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+
 volumes:
   postgres_data:
+  loki_data:
+  grafana_data:
+  alloy_data:

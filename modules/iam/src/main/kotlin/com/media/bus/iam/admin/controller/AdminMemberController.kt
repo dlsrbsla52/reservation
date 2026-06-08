@@ -2,16 +2,22 @@ package com.media.bus.iam.admin.controller
 
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
+import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.annotation.Authorize
 import com.media.bus.iam.admin.dto.*
 import com.media.bus.iam.admin.service.AdminMemberService
+import com.media.bus.iam.admin.service.MemberSearchService
+import com.media.bus.iam.member.dto.MemberSearchCondition
+import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -25,6 +31,7 @@ import java.util.*
 @Authorize(types = [MemberType.ADMIN_MASTER], permissions = [Permission.MANAGE])
 class AdminMemberController(
     private val adminMemberService: AdminMemberService,
+    private val memberSearchService: MemberSearchService,
 ) {
     /**
      * 어드민 멤버 생성.
@@ -58,6 +65,37 @@ class AdminMemberController(
     @GetMapping("/members/search")
     fun searchMembers(@RequestParam keyword: String): ApiResponse<List<AdminMemberListResponse>> =
         ApiResponse.success(adminMemberService.searchMembers(keyword))
+
+    /**
+     * 어드민 회원을 조건으로 검색한다. 조회 대상은 ADMIN 카테고리로 고정된다.
+     * 권한 부여·실적 조회 등 어드민 계정 관리의 진입점이며, `ADMIN_MASTER`+`MANAGE` 권한이 필요하다.
+     */
+    @Operation(
+        summary = "어드민 회원 조건 검색",
+        description = "키워드/상태/유형/가입일 범위로 어드민(ADMIN_*) 회원을 페이지 조회합니다. ADMIN_MASTER + MANAGE 권한 필요.",
+    )
+    @GetMapping("/admins/search")
+    fun searchAdminMembers(
+        @RequestParam(required = false) keyword: String?,
+        @RequestParam(required = false) status: MemberStatus?,
+        @RequestParam(required = false) type: MemberType?,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdFrom: OffsetDateTime?,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdTo: OffsetDateTime?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): ApiResponse<PageResult<MemberSearchResponse>> {
+        val condition = MemberSearchCondition(
+            keyword = keyword,
+            status = status,
+            type = type,
+            createdFrom = createdFrom,
+            createdTo = createdTo,
+            page = page,
+            size = size,
+        )
+        // 어드민 회원만 조회 가능하도록 ADMIN 카테고리로 고정
+        return ApiResponse.success(memberSearchService.search(condition, setOf(MemberCategory.ADMIN)))
+    }
 
     /** 회원 상세 정보를 조회한다 (역할 및 권한 포함). */
     @Operation(summary = "회원 상세 조회", description = "특정 회원의 상세 정보를 역할 및 권한과 함께 조회합니다.")

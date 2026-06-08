@@ -20,6 +20,18 @@ class MemberController(
 ) {
 
     /**
+     * 현재 로그인한 회원 본인 정보 조회.
+     * 게이트웨이가 JWT 검증 후 주입한 X-User-Id 헤더 기준으로 본인 정보를 반환한다.
+     * 내부 전용 /internal/jwt(게이트웨이 차단) 와 달리 external 에서 호출 가능하다.
+     */
+    @Authorize
+    @Operation(summary = "내 정보 조회", description = "JWT 인증된 본인의 회원 정보를 조회합니다.")
+    @GetMapping("/me")
+    fun me(@RequestHeader("X-User-Id") memberId: String): ApiResponse<MemberResponse> =
+        ApiResponse.success(memberService.findByMemberId(memberId))
+
+
+    /**
      * 이름으로 아이디 찾기
      */
     @Operation(summary = "아이디 찾기", description = "회원 이름, 전화번호, email로 아이디를 검색합니다.")
