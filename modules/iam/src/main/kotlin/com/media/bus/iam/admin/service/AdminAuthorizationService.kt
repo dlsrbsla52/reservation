@@ -42,8 +42,7 @@ class AdminAuthorizationService(
         val role = roleRepository.findById(roleId)
             ?: throw BaseException(AuthResult.ROLE_NOT_FOUND)
 
-        val permissions = rolePermissionRepository.findByRoleId(roleId)
-            .map { it.permission }
+        val permissions = rolePermissionRepository.findPermissionsByRoleId(roleId)
 
         return RoleDetailResponse.of(role, permissions)
     }
@@ -59,8 +58,8 @@ class AdminAuthorizationService(
         roleRepository.findById(roleId)
             ?: throw BaseException(AuthResult.ROLE_NOT_FOUND)
 
-        return rolePermissionRepository.findByRoleId(roleId)
-            .map { PermissionResponse.of(it.permission) }
+        return rolePermissionRepository.findPermissionsByRoleId(roleId)
+            .map { PermissionResponse.of(it) }
     }
 
     /** 역할에 권한을 할당한다. */
@@ -108,8 +107,7 @@ class AdminAuthorizationService(
             ?: throw BaseException(AuthResult.MEMBER_ROLE_NOT_FOUND)
 
         val role = memberRole.role
-        val permissions = rolePermissionRepository.findByRoleId(role.id.value)
-            .map { it.permission }
+        val permissions = rolePermissionRepository.findPermissionsByRoleId(role.id.value)
 
         return MemberRoleResponse.of(memberId, role, permissions)
     }

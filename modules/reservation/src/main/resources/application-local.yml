@@ -21,13 +21,22 @@ spring:
       # noinspection SpringBootApplicationYaml
       file: ./compose.yaml
   exposed:
-    show-sql: true
+    # show-sql: true 사용 금지 — StdOutSqlLogger가 println으로 Log4j2를 우회한다.
+    # SQL 로그는 common의 ExposedSqlLoggingInterceptor가 Exposed 로거(DEBUG)로 출력하므로
+    # 아래 logging.level.Exposed 로 제어한다.
+    show-sql: false
   jackson:
     default-property-inclusion: NON_NULL
   security:
     user:
       name: user
       password: boilerUser123!
+
+# Exposed SQL 로그 (local 전용). ExposedSqlLoggingInterceptor가 'Exposed' 로거 DEBUG로 출력.
+# 운영/스테이징에서는 미설정 → 루트 INFO 상속 → SQL 미출력.
+logging:
+  level:
+    Exposed: debug
 
 hig:
   bulkhead:

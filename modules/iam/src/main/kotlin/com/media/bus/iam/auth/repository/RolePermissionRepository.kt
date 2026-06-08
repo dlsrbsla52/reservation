@@ -1,9 +1,6 @@
 package com.media.bus.iam.auth.repository
 
-import com.media.bus.iam.auth.entity.PermissionTable
-import com.media.bus.iam.auth.entity.RolePermissionEntity
-import com.media.bus.iam.auth.entity.RolePermissionTable
-import com.media.bus.iam.auth.entity.RoleTable
+import com.media.bus.iam.auth.entity.*
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
@@ -39,6 +36,21 @@ class RolePermissionRepository {
     fun findByRoleId(roleId: UUID): List<RolePermissionEntity> =
         RolePermissionEntity.find { RolePermissionTable.roleId eq EntityID(roleId, RoleTable) }
             .toList()
+
+    /**
+     * 역할 ID로 매핑된 권한(`PermissionEntity`) 목록을 단일 조인 쿼리로 조회한다.
+     *
+     * 매핑 엔티티를 거쳐 `RolePermissionEntity.permission`(lazy reference)에 접근하면
+     * 권한 건수만큼 추가 SELECT가 발생하는 N+1 문제가 생긴다.
+     * 따라서 `PermissionTable innerJoin RolePermissionTable`로 권한 행을 직접 조회하고
+     * `wrapRows`로 엔티티를 구성하여 1회 쿼리로 끝낸다.
+     */
+    fun findPermissionsByRoleId(roleId: UUID): List<PermissionEntity> =
+        PermissionEntity.wrapRows(
+            (PermissionTable innerJoin RolePermissionTable)
+                .select(PermissionTable.columns)
+                .where { RolePermissionTable.roleId eq EntityID(roleId, RoleTable) }
+        ).toList()
 
     /** 역할 ID와 권한 이름으로 매핑 단건을 조회한다. 중복 할당 방지 및 해제 시 사용한다. */
     fun findByRoleIdAndPermissionName(roleId: UUID, permissionName: String): RolePermissionEntity? =

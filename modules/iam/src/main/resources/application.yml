@@ -30,6 +30,20 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+# Actuator — 런타임 로그레벨 토글(무재배포)에 사용. 응답 본문 로깅을 일시적으로 켜려면:
+#   POST /actuator/loggers/com.media.bus.common.logging.AccessLoggingFilter  body={"configuredLevel":"DEBUG"}
+#   원복: 같은 경로에 {"configuredLevel":"INFO"} (또는 null)
+# 서비스 포트는 내부 Docker 네트워크 전용(expose)이라 외부 직접 접근 불가.
+# host로 published 되는 서비스는 actuator 노출에 주의하거나 인증/방화벽으로 보호할 것.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, loggers
+  endpoint:
+    loggers:
+      access: unrestricted # POST 레벨 변경 허용 (기본값이지만 명시)
+
 hig:
   bulkhead:
     database-name: orderDatabase # resilience4j.bulkhead.instances 이름과 반드시 일치해야 함
