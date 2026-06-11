@@ -9,16 +9,16 @@ import java.util.*
 @Schema(description = "역할 상세 응답 DTO (연결된 권한 포함)")
 data class RoleDetailResponse(
 
-    @Schema(description = "역할 ID")
+    @param:Schema(description = "역할 ID")
     val id: UUID,
 
-    @Schema(description = "역할 이름 (MemberType 이름)", example = "ADMIN_MASTER")
+    @param:Schema(description = "역할 이름 (MemberType 이름)", example = "ADMIN_MASTER")
     val name: String,
 
-    @Schema(description = "역할 전시명", example = "관리회원 마스터")
+    @param:Schema(description = "역할 전시명", example = "관리회원 마스터")
     val displayName: String,
 
-    @Schema(description = "역할에 할당된 권한 목록")
+    @param:Schema(description = "역할에 할당된 권한 목록")
     val permissions: List<PermissionResponse>,
 ) {
     companion object {
