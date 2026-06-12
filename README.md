@@ -50,65 +50,32 @@
 
 ---
 
-## DB 및 통합 테스트(MSA) 구동 환경
-> 본 프로젝트는 Docker Compose를 이용해 모든 MSA 모듈을 로컬 컨테이너 환경에서 통합 테스트할 수 있도록 최적화되어 있습니다.
->
-> 다음과 같은 명령어로 DB(PostgreSQL) 및 API Gateway를 포함한 서비스를 띄울 수 있습니다.
->
-> ```bash
-> docker-compose up --build -d
-> ```
-> 특정 서비스만 재빌드시 사용
-> ```bash
-> docker-compose up -d --build --no-deps {{service-name}}
-> docker-compose up -d --build --no-deps gateway-service
-> ```
-> 병렬 빌드 실행 (약 30% 속도 향상)
-> ```bash
-> DOCKER_BUILDKIT=1 docker compose build --parallel
-> DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
-> DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml up --build -d
-> ```
-> 로컬 빌드 실행
-> ```bash
-> docker-compose -f docker-compose-local.yml up -d --build --no-deps {{service-name}}
-> docker-compose -f docker-compose-local.yml up -d --build --no-deps gateway-service
->```
->
-> ### 특정 모듈만 IntelliJ에서 로컬 실행 (하이브리드 개발)
-> Docker Compose로 전체 서비스를 띄운 상태에서, 개발 중인 모듈 하나만 컨테이너에서 내리고 IntelliJ에서 직접 실행할 수 있습니다.
-> `docker-compose-dev.yml` override 파일이 Gateway의 서비스 라우팅 URL을 `host.docker.internal`로 전환하여,
-> Docker 내 Gateway가 호스트에서 실행 중인 로컬 서비스에 접근할 수 있게 합니다.
->
-> ```bash
-> # 1. dev override를 포함하여 전체 서비스 기동
-> docker-compose -f docker-compose-local.yml -f docker-compose-dev.yml up -d
->
-> # 2. 로컬에서 실행할 모듈의 컨테이너만 중지 (예: IAM)
-> docker-compose -f docker-compose-local.yml -f docker-compose-dev.yml stop iam-service
->
-> # 3. IntelliJ에서 해당 모듈의 Application 실행 (profile: local)
-> ```
->
-> | 파일 | 용도 |
-> |------|------|
-> | `docker-compose-local.yml` | 전체 Docker 실행 (서비스 간 통신: Docker 네트워크) |
-> | `docker-compose-dev.yml` | override — Gateway 라우팅을 `host.docker.internal`로 전환 |
->
-> 💡 **dev override 없이** `docker-compose -f docker-compose-local.yml up -d`만 사용하면 모든 서비스가 Docker 네트워크 내에서 통신합니다.
-> 위 명령어를 실행하면 Host OS의 아키텍처(AMD64/ARM64)에 맞춰 Java 25 환경이 동적으로 구성되는 빌더 이미지를 통해 각 모듈의 `.jar`가 패키징됩니다.
-> API Gateway(`8080`)를 단일 진입점으로 하여 뒤단의 개별 서비스(`8181`, `8183`) 포트가 묶여 백그라운드에서 구동됩니다. DB는 `15433` 포트로 바인딩됩니다.
->
-> 💡 **데이터 영속성(Persistence)**
-> 개발환경에선 `docker-compose-local.yml` 내에 `postgres_data`라는 Docker Name Volume이 매핑되어 있습니다.
-> 이로 인해 `docker-compose down`이나 컨테이너(rm)를 강제로 삭제하더라도, **매핑된 볼륨(`-v`)을 함께 삭제하지 않는 이상 DB 내의 데이터는 영구적으로 유지**되므로 안전하게 테스트를 껐다 켤 수 있습니다.
+## Docker Compose 배포 및 로컬 통합 테스트
 
-### 인프라 구성
+단일 서버 Docker Compose 배포, 로컬 전체 스택 실행, Next.js 프론트엔드 배포 기준, 하이브리드 개발 방식은 [Docker Compose 단일 서버 배포 가이드](docs/infra/docker-compose-deployment.md)를 참고합니다.
+
+로컬 전체 스택은 다음 명령으로 실행합니다.
+
+```bash
+docker compose -f docker-compose-local.yml up --build -d
+```
+
+운영 단일 서버 배포는 필수 환경 변수를 설정한 뒤 다음 명령으로 실행합니다.
+
+```bash
+docker compose up --build -d
+```
+
+### 인프라 구성 요약
 
 | 컴포넌트 | 버전 | 포트 | 용도 |
 |----------|------|------|------|
 | PostgreSQL | 18.3 | 15433 | 주 데이터베이스 (모듈별 schema 격리) |
 | Valkey (Redis 호환) | 8.1.6 | 6379 | 캐시 / 세션 / 분산 락 |
+| Next.js | 프로젝트별 | 3000 | 웹 프론트엔드 |
+| Loki | 3.0.0 | 내부망 | 로그 저장소 |
+| Alloy | 1.16.3 | 내부망 | 컨테이너 stdout 로그 수집 |
+| Grafana | 11.0.0 | 3300 | 로그 조회 UI |
 
 
 ## MSA 내부 통신 (RestClient)

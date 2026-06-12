@@ -1,48 +1,65 @@
-# 모든 컨테이너 공통 로그 로테이션 — 단일 호스트에서 디스크 풀(full) 방지의 핵심.
-# json-file 드라이버로 컨테이너당 최대 50MB×5개(=250MB)까지만 보관하고 순환 삭제한다.
-# (Alloy가 이 stdout 로그를 수집해 Loki로 보내므로, 호스트 파일은 단기 버퍼 역할만)
+# EC2 같은 단일 서버 배포용 compose.
+# DB/Valkey/하위 서비스는 Docker 내부망에 두고, 외부 노출은 Gateway/Grafana 및 별도 프론트 컨테이너로 제한한다.
+
 x-logging: &default-logging
   driver: json-file
   options:
     max-size: "50m"
     max-file: "5"
 
-services:
-#  운영 환경에선 실제 데이터베이스 사용
-#  database:
-#    image: postgres:18.3
-#    container_name: msa-postgres
-#    environment:
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: postgres
-#      POSTGRES_DB: default
-#      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
-#    ports:
-#      - "15433:5432"
-#    volumes:
-#      - postgres_data:/var/lib/postgresql
-#    healthcheck:
-#      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-#      interval: 5s
-#      timeout: 5s
-#      retries: 5
+x-app-common: &app-common
+  restart: unless-stopped
+  logging: *default-logging
+  environment: &app-env
+    DB_HOST: database
+    DB_PORT: 5432
+    DB_NAME: ${POSTGRES_DB:-default}
+    DB_USERNAME: ${POSTGRES_USER:-postgres}
+    DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    JWT_SECRET: ${JWT_SECRET:-this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars}
+    REDIS_HOST: valkey
+    REDIS_PORT: 6379
+    COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+    IAM_SERVICE_URL: http://iam-service:8181
+    STOP_SERVICE_URL: http://stop-service:8182
+    RESERVATION_SERVICE_URL: http://reservation-service:8183
 
-  # Valkey: Redis 라이선스 변경(BSL) 이후 AWS, GCP, Oracle 등이 Linux Foundation에
-  # 기여하여 만든 완전 오픈소스(BSD-3-Clause) Redis 포크.
-  # Redis API와 100% 호환되므로 기존 Spring Data Redis 설정 변경 불필요.
+services:
+  database:
+    image: postgres:18.3
+    container_name: msa-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-default}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+
   valkey:
     image: valkey/valkey:8.1.6
     container_name: msa-valkey
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkey_data:/data
     healthcheck:
-      test: [ "CMD", "valkey-cli", "ping" ]
-      interval: 5s
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
       timeout: 3s
-      retries: 5
+      retries: 10
     logging: *default-logging
 
   iam-service:
+    <<: *app-common
     build:
       context: .
       dockerfile: Dockerfile
@@ -56,35 +73,23 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/default
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - REDIS_HOST=valkey
-      - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
-    logging: *default-logging
 
   stop-service:
+    <<: *app-common
     build:
       context: .
       dockerfile: Dockerfile
       args:
         MODULE_NAME: stop
     container_name: msa-stop
-    ports:
-      - "8182:8182"
+    expose:
+      - "8182"
     depends_on:
       database:
         condition: service_healthy
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/default
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-    logging: *default-logging
 
   reservation-service:
+    <<: *app-common
     build:
       context: .
       dockerfile: Dockerfile
@@ -96,14 +101,9 @@ services:
     depends_on:
       database:
         condition: service_healthy
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/default
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-    logging: *default-logging
 
   gateway-service:
+    <<: *app-common
     build:
       context: .
       dockerfile: Dockerfile
@@ -111,23 +111,21 @@ services:
         MODULE_NAME: gateway
     container_name: msa-gateway
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT:-8080}:8080"
     depends_on:
-      - iam-service
-      - reservation-service
-    environment:
-      - REDIS_HOST=valkey
-      - JWT_SECRET=this-is-a-very-long-secret-key-for-hmac-sha256-algorithm-32chars
-    logging: *default-logging
+      valkey:
+        condition: service_healthy
+      iam-service:
+        condition: service_started
+      stop-service:
+        condition: service_started
+      reservation-service:
+        condition: service_started
 
-  # ───────────────────────── 관측(로그) 스택 ─────────────────────────
-  # 단일 호스트·저예산용 셀프호스팅 로그 파이프라인: Alloy(수집) → Loki(저장) → Grafana(조회).
-  # 외부 SaaS 비용 0. 앱 컨테이너의 JSON stdout 로그를 requestId/traceId로 묶어 검색한다.
-
-  # Loki: 라벨만 인덱싱하는 경량 로그 저장소 (로컬 디스크, 7일 보존)
   loki:
     image: grafana/loki:3.0.0
     container_name: msa-loki
+    restart: unless-stopped
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -135,23 +133,22 @@ services:
     expose:
       - "3100"
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --tries=1 -O- http://localhost:3100/ready | grep -q ready || exit 1" ]
+      test: ["CMD-SHELL", "wget -q --tries=1 -O- http://localhost:3100/ready | grep -q ready || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
     logging: *default-logging
 
-  # Alloy: Docker 소켓으로 컨테이너 로그를 수집해 Loki로 전송 (Promtail 후속)
   alloy:
     image: grafana/alloy:v1.16.3
     container_name: msa-alloy
+    restart: unless-stopped
     command:
       - run
       - /etc/alloy/config.alloy
       - --storage.path=/var/lib/alloy/data
     volumes:
       - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      # 컨테이너 자동 발견 및 로그 tail 을 위해 Docker 소켓을 읽기 전용 마운트
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy_data:/var/lib/alloy/data
     depends_on:
@@ -159,26 +156,28 @@ services:
         condition: service_healthy
     logging: *default-logging
 
-  # Grafana: 로그 조회 UI. http://<host>:3300 (기본 계정 admin / ${GRAFANA_PASSWORD:-admin})
-  # 호스트 3300 → 컨테이너 3000. (3000은 Next.js 등과 충돌하기 쉬워 호스트 포트만 3300으로 노출)
   grafana:
     image: grafana/grafana:11.0.0
     container_name: msa-grafana
+    restart: unless-stopped
     ports:
-      - "3300:3000"
+      - "${GRAFANA_PORT:-3300}:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-}
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
     logging: *default-logging
 
 volumes:
   postgres_data:
+  valkey_data:
   loki_data:
   grafana_data:
   alloy_data:
