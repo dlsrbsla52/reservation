@@ -3,6 +3,7 @@ package com.media.bus.reservation.contract.client
 import com.media.bus.reservation.contract.dto.response.MemberInfo
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.util.*
 
 /**
  * ## IAM 서비스 내부 API 클라이언트
@@ -19,14 +20,14 @@ class IamServiceClient(
     private val log = LoggerFactory.getLogger(javaClass)
 
     /**
-     * JWT 토큰으로 IAM DB에서 회원을 조회한다.
+     * 회원 UUID로 IAM DB에서 회원을 조회한다.
      * 회원이 존재하지 않거나 응답이 null이면 null을 반환한다.
      *
-     * @param jwt 사용자가 전달한 Access JWT 토큰 (Bearer 접두사 제외)
+     * @param memberId 조회할 회원의 UUID
      * @return 조회된 회원 정보, 없으면 null
      */
-    fun findMemberByJwt(jwt: String): MemberInfo? {
-        log.debug("[IamServiceClient] JWT로 회원 조회 요청")
-        return iamApi.findMemberByJwt(mapOf("jwt" to jwt))?.data
+    fun findMemberById(memberId: UUID): MemberInfo? {
+        log.debug("[IamServiceClient] UUID로 회원 조회 요청: memberId={}", memberId)
+        return iamApi.findMemberById(memberId)?.data
     }
 }

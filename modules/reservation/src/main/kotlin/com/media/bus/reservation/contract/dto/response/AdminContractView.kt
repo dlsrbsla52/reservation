@@ -38,7 +38,7 @@ data class AdminContractView(
     val stopName: String?,
 
     @param:Schema(description = "매니저 회원 ID")
-    val memberId: UUID,
+    val memberId: UUID?,
 
     @param:Schema(description = "계약명")
     val contractName: String,

@@ -4,7 +4,6 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.dto.response.ContractResponse
-import com.media.bus.reservation.contract.dto.response.MemberInfo
 import com.media.bus.reservation.contract.entity.ContractDetailEntity
 import com.media.bus.reservation.contract.entity.ContractEntity
 import com.media.bus.reservation.contract.repository.ContractRepository
@@ -33,23 +32,21 @@ class ContractService(
      * Contract와 ContractDetail을 함께 저장한다.
      * 단일 트랜잭션 내에서 실행되어 부분 저장을 방지한다.
      *
-     * @param memberInfo IAM DB에서 재검증된 회원 정보
-     * @param stopInfo   stop 서비스에서 확인된 정류소 정보
-     * @param request    계약 생성 요청 DTO
+     * @param stopInfo stop 서비스에서 확인된 정류소 정보
+     * @param request  계약 생성 요청 DTO
      * @return 저장된 ContractEntity
      */
     @Transactional
     fun createContract(
-        memberInfo: MemberInfo,
         stopInfo: StopInfo,
         request: CreateContractRequest,
     ): ContractEntity {
-        val contract = ContractEntity.create(memberInfo, stopInfo, request)
+        val contract = ContractEntity.create(stopInfo, request)
         ContractDetailEntity.create(contract, request)
 
         log.debug(
             "[ContractService] 계약 저장 완료: contractId={}, memberId={}, stopId={}",
-            contract.id.value, memberInfo.id, stopInfo.id,
+            contract.id.value, request.memberId, stopInfo.id,
         )
         return contract
     }

@@ -2,9 +2,9 @@ package com.media.bus.reservation.contract.service
 
 import com.media.bus.common.exceptions.StorageException
 import com.media.bus.reservation.contract.client.IamServiceClient
-import com.media.bus.reservation.contract.dto.response.MemberInfo
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.util.*
 
 /**
  * ## IAM 서비스와의 연동을 담당하는 서비스
@@ -23,20 +23,19 @@ class MemberVerificationService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     /**
-     * JWT 토큰으로 IAM DB에서 회원을 조회하고 반환한다.
-     * 존재하지 않으면 `StorageException`(404)을 던진다.
+     * 요청의 memberId가 실제 IAM DB에 존재하는지 검증한다.
+     * memberId가 null이면 비회원 계약으로 간주하고 검증을 건너뛴다.
      *
-     * @param jwt 사용자 Access JWT 토큰 (Bearer 접두사 제외)
-     * @return IAM DB에서 조회된 회원 정보
-     * @throws StorageException 회원을 찾을 수 없거나 비활성 상태인 경우
+     * @param memberId 검증할 회원 UUID (null이면 검증 생략)
+     * @throws StorageException 회원을 찾을 수 없는 경우
      */
-    fun verifyMember(jwt: String): MemberInfo {
-        val member = iamServiceClient.findMemberByJwt(jwt)
+    fun verifyMemberIfPresent(memberId: UUID?) {
+        if (memberId == null) return
+        iamServiceClient.findMemberById(memberId)
             ?: run {
-                log.warn("[MemberVerificationService] IAM DB에서 회원을 찾을 수 없음")
+                log.warn("[MemberVerificationService] IAM DB에서 회원을 찾을 수 없음: memberId={}", memberId)
                 throw StorageException(message = "요청한 회원을 찾을 수 없습니다.")
             }
-        log.debug("[MemberVerificationService] IAM 회원 재검증 완료: memberId={}", member.id)
-        return member
+        log.debug("[MemberVerificationService] IAM 회원 검증 완료: memberId={}", memberId)
     }
 }

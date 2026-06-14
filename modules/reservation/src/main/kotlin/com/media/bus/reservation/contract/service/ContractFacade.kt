@@ -34,26 +34,23 @@ class ContractFacade(
      * 계약을 생성한다.
      *
      * @param principal JWT 클레임에서 파싱된 인증 정보 (로깅/감사 용도)
-     * @param jwt       Authorization 헤더에서 추출한 원본 JWT 문자열 (IAM 재검증 용도)
      * @param request   계약 생성 요청 DTO
      * @return 생성된 계약 응답 DTO
      */
     fun createContract(
         principal: MemberPrincipal,
-        jwt: String,
         request: CreateContractRequest,
     ): ContractResponse {
-        // 1단계: IAM DB에서 회원 재검증
-        val memberInfo = memberVerificationService.verifyMember(jwt)
-        log.debug("[ContractFacade] IAM 회원 재검증 완료: memberId={}", memberInfo.id)
+        // 1단계: 요청에 memberId가 있으면 IAM에서 해당 회원 존재 여부 검증 (비회원 계약이면 생략)
+        memberVerificationService.verifyMemberIfPresent(request.memberId)
+        log.debug("[ContractFacade] 회원 검증 완료: memberId={}", request.memberId)
 
         // 2단계: stop 서비스에서 정류소 존재 여부 확인
         val stopInfo = stopResolutionService.resolveStop(request.stopId)
-        log.debug("[ContractFacade] 정류소 확인 완료: stopName={}, memberId={}", stopInfo.stopName, principal.id)
+        log.debug("[ContractFacade] 정류소 확인 완료: stopName={}, adminId={}", stopInfo.stopName, principal.id)
 
         // 3단계: Contract + ContractDetail DB 저장 (단일 트랜잭션)
-        val contract = contractService.createContract(memberInfo, stopInfo, request)
-        // 생성 응답에도 정류소 정보(이미 2단계에서 확보)를 포함하여 클라이언트가 UUID 외의 정보를 바로 사용할 수 있게 한다.
+        val contract = contractService.createContract(stopInfo, request)
         return ContractResponse.from(contract, stopNumber = stopInfo.stopId, stopName = stopInfo.stopName)
     }
 

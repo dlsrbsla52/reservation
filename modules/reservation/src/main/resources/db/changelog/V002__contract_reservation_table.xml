@@ -27,9 +27,7 @@
       <column name="previous_contract_id" type="UUID"
               remarks="갱신 이전 계약 ID (원계약이면 NULL)"/>
 
-      <column name="member_id" type="UUID" remarks="계약 요청한 member ID (member FK)">
-        <constraints nullable="false"/>
-      </column>
+      <column name="member_id" type="UUID" remarks="계약 회원 ID (비회원 계약 시 NULL 가능)"/>
 
       <column name="manager_id" type="UUID" remarks="담당 관리자 member ID"/>
 
