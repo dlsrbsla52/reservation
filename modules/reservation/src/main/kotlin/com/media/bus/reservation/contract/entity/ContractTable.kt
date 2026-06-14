@@ -15,7 +15,7 @@ object ContractTable : DateBaseTable("reservation.contract") {
     val stopId = javaUUID("stop_id").index("idx_contract_stop_id")
     val previousContractId = javaUUID("previous_contract_id").nullable()
         .index("idx_contract_previous_contract_id")
-    val memberId = javaUUID("member_id").index("idx_contract_member_id")
+    val memberId = javaUUID("member_id").nullable().index("idx_contract_member_id")
     val managerId = javaUUID("manager_id").nullable()
     val contractName = varchar("contract_name", 300)
     val status = enumerationByName<ContractStatus>("status", 20)

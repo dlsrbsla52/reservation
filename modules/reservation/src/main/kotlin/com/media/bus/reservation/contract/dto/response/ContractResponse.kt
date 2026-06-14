@@ -9,18 +9,18 @@ import java.util.*
 /** ## 계약 생성 응답 DTO */
 @Schema(description = "계약 응답")
 data class ContractResponse(
-    @Schema(description = "계약 ID") val id: UUID,
-    @Schema(description = "정류소 PK (UUID)") val stopId: UUID,
-    @Schema(description = "정류소 번호 (STOPS_NO) — stop 서비스 장애 시 null", nullable = true)
+    @param:Schema(description = "계약 ID") val id: UUID,
+    @param:Schema(description = "정류소 PK (UUID)") val stopId: UUID,
+    @param:Schema(description = "정류소 번호 (STOPS_NO) — stop 서비스 장애 시 null", nullable = true)
     val stopNumber: String?,
-    @Schema(description = "정류소 이름 — stop 서비스 장애 또는 삭제된 정류소일 경우 null", nullable = true)
+    @param:Schema(description = "정류소 이름 — stop 서비스 장애 또는 삭제된 정류소일 경우 null", nullable = true)
     val stopName: String?,
-    @Schema(description = "회원 ID") val memberId: UUID,
-    @Schema(description = "계약명") val contractName: String,
-    @Schema(description = "계약 상태") val status: ContractStatus,
-    @Schema(description = "계약 시작일") val contractStartDate: OffsetDateTime,
-    @Schema(description = "계약 종료일") val contractEndDate: OffsetDateTime,
-    @Schema(description = "생성일시") val createdAt: OffsetDateTime,
+    @param:Schema(description = "회원 ID (비회원 계약 시 null)", nullable = true) val memberId: UUID?,
+    @param:Schema(description = "계약명") val contractName: String,
+    @param:Schema(description = "계약 상태") val status: ContractStatus,
+    @param:Schema(description = "계약 시작일") val contractStartDate: OffsetDateTime,
+    @param:Schema(description = "계약 종료일") val contractEndDate: OffsetDateTime,
+    @param:Schema(description = "생성일시") val createdAt: OffsetDateTime,
 ) {
     companion object {
         /**

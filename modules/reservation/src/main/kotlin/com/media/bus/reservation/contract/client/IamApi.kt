@@ -1,9 +1,10 @@
 package com.media.bus.reservation.contract.client
 
 import com.media.bus.reservation.contract.dto.response.internal.IamMemberResponse
-import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.service.annotation.GetExchange
 import org.springframework.web.service.annotation.HttpExchange
-import org.springframework.web.service.annotation.PostExchange
+import java.util.*
 
 /**
  * ## IAM 서비스 내부 API의 선언적 HTTP 인터페이스
@@ -16,7 +17,7 @@ import org.springframework.web.service.annotation.PostExchange
 @HttpExchange
 interface IamApi {
 
-    /** JWT 토큰으로 IAM DB 회원 조회 */
-    @PostExchange(url = "/api/v1/member/internal/jwt")
-    fun findMemberByJwt(@RequestBody body: Map<String, String>): IamMemberResponse?
+    /** 회원 UUID로 IAM DB 회원 조회 */
+    @GetExchange(url = "/api/v1/member/internal/{memberId}")
+    fun findMemberById(@PathVariable memberId: UUID): IamMemberResponse?
 }

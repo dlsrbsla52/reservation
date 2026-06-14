@@ -1,6 +1,5 @@
 package com.media.bus.reservation.contract.controller
 
-import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberCategory
@@ -14,7 +13,6 @@ import com.media.bus.reservation.contract.service.ContractFacade
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -27,26 +25,17 @@ class ContractController(
 ) {
     /**
      * 계약 생성.
-     * - `@Authorize`: JWT 인증 필수
-     * - `HttpServletRequest`: IAM 재검증을 위해 원본 JWT 문자열 추출에 필요
-     * - 어드민만 등록 가능(write 권한 필수)
+     * - `@Authorize`: JWT 인증 필수, 어드민만 등록 가능(write 권한 필수)
+     * - request.memberId가 있으면 IAM에서 해당 회원 존재 여부 검증 (없으면 비회원 계약으로 진행)
      */
     @Authorize(categories = [MemberCategory.ADMIN], permissions = [Permission.WRITE])
-    @Operation(summary = "계약 생성", description = "정류소 광고 계약을 생성합니다. IAM DB 회원 재검증 후 계약을 저장합니다.")
+    @Operation(summary = "계약 생성", description = "정류소 광고 계약을 생성합니다. memberId가 있으면 IAM DB에서 회원을 검증하며, 없으면 비회원 계약으로 저장합니다.")
     @PostMapping
     fun createContract(
         @CurrentMember principal: MemberPrincipal,
         @RequestBody @Valid request: CreateContractRequest,
-        httpRequest: HttpServletRequest,
     ): ApiResponse<ContractResponse> =
-        ApiResponse.success(
-            facade.createContract(
-                principal,
-                MemberPrincipal.extractBearerToken(httpRequest)
-                    ?: throw NoAuthenticationException(message = "Authorization 헤더가 누락되었습니다."),
-                request,
-            ),
-        )
+        ApiResponse.success(facade.createContract(principal, request))
 
     /** 내 계약 목록 조회 (페이지네이션). 본인 계약만 반환. */
     @Authorize
