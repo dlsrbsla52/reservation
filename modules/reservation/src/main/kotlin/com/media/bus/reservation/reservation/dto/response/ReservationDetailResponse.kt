@@ -15,34 +15,37 @@ import java.util.*
  */
 @Schema(description = "예약 상세")
 data class ReservationDetailResponse(
-    @Schema(description = "예약 ID")
+    @param:Schema(description = "예약 ID")
     val reservationId: UUID,
 
-    @Schema(description = "회원 ID")
+    @param:Schema(description = "회원 ID")
     val memberId: UUID,
 
-    @Schema(description = "정류소 PK (UUID)")
+    @param:Schema(description = "정류소 PK (UUID)")
     val stopId: UUID,
 
-    @Schema(description = "정류소 번호 (STOPS_NO) — stop 서비스 장애 시 null", nullable = true)
+    @param:Schema(description = "정류소 번호 (STOPS_NO) — stop 서비스 장애 시 null", nullable = true)
     val stopNumber: String?,
 
-    @Schema(description = "정류소 이름 — stop 서비스 장애 또는 삭제된 정류소일 경우 null", nullable = true)
+    @param:Schema(description = "정류소 이름 — stop 서비스 장애 또는 삭제된 정류소일 경우 null", nullable = true)
     val stopName: String?,
 
-    @Schema(description = "현재 상태")
+    @param:Schema(description = "현재 상태")
     val status: ReservationStatus,
 
-    @Schema(description = "상담 요청 일시")
+    @param:Schema(description = "상담 요청 일시")
     val consultationRequestedAt: OffsetDateTime,
 
-    @Schema(description = "계약 시작 희망 일자")
+    @param:Schema(description = "계약 시작 희망 일자")
     val desiredContractStartDate: LocalDate?,
 
-    @Schema(description = "예약 생성 일시")
+    @param:Schema(description = "예약 생성 일시")
     val createdAt: OffsetDateTime,
 
-    @Schema(description = "상담 이력 (생성일 오름차순)")
+    @param:Schema(description = "담당 어드민 ID (미지정 시 null)", nullable = true)
+    val assigneeId: UUID?,
+
+    @param:Schema(description = "상담 이력 (생성일 오름차순)")
     val consultations: List<ConsultationHistory>,
 ) {
 
@@ -81,6 +84,7 @@ data class ReservationDetailResponse(
             consultationRequestedAt = reservation.consultationRequestedAt,
             desiredContractStartDate = reservation.desiredContractStartDate,
             createdAt = reservation.createdAt,
+            assigneeId = reservation.assigneeId,
             consultations = consultations.map(ConsultationHistory::of),
         )
     }

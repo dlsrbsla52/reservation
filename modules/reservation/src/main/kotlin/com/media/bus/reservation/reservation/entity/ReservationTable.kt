@@ -15,4 +15,5 @@ object ReservationTable : DateBaseTable("reservation.reservation") {
     val stopId = javaUUID("stop_id")
     val consultationRequestedAt = timestampWithTimeZone("consultation_requested_at")
     val desiredContractStartDate = date("desired_contract_start_date").nullable()
+    val assigneeId = javaUUID("assignee_id").nullable()
 }

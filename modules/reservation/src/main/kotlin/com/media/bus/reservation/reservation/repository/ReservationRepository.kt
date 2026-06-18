@@ -4,12 +4,11 @@ import com.media.bus.reservation.reservation.entity.ReservationConsultationTable
 import com.media.bus.reservation.reservation.entity.ReservationEntity
 import com.media.bus.reservation.reservation.entity.ReservationTable
 import com.media.bus.reservation.reservation.entity.enums.ReservationStatus
-import org.jetbrains.exposed.v1.core.SortOrder
-import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -67,5 +66,105 @@ class ReservationRepository {
                 ?.get(ReservationConsultationTable.status)
             latestStatus == ReservationStatus.PENDING || latestStatus == ReservationStatus.CONSULTING
         }
+    }
+
+    /**
+     * 어드민용 전체 예약 목록을 검색 및 조건부 필터링하여 페이징 조회한다.
+     * Left Join newer is null 패턴을 활용하여 최신 상담 이력의 상태를 N+1 쿼리 없이 한번에 결합한다.
+     */
+    @Transactional(readOnly = true)
+    fun searchAdminReservations(
+        status: ReservationStatus?,
+        assigneeId: UUID?,
+        stopId: UUID?,
+        createdFrom: OffsetDateTime?,
+        createdTo: OffsetDateTime?,
+        page: Int,
+        size: Int
+    ): List<Pair<ReservationEntity, ReservationStatus>> {
+        val rc = ReservationConsultationTable
+        val rcNewer = ReservationConsultationTable.alias("rc_newer")
+
+        val joinRelation = ReservationTable
+            .join(
+                otherTable = rc,
+                joinType = JoinType.INNER,
+                onColumn = ReservationTable.id,
+                otherColumn = rc.reservationId
+            )
+            .join(
+                otherTable = rcNewer,
+                joinType = JoinType.LEFT,
+                onColumn = ReservationTable.id,
+                otherColumn = rcNewer[ReservationConsultationTable.reservationId],
+                additionalConstraint = {
+                    rc.createdAt less rcNewer[ReservationConsultationTable.createdAt]
+                }
+            )
+
+        val conditions = mutableListOf<Op<Boolean>>()
+        conditions.add(rcNewer[ReservationConsultationTable.id].isNull())
+
+        status?.let { conditions.add(rc.status eq it) }
+        assigneeId?.let { conditions.add(ReservationTable.assigneeId eq it) }
+        stopId?.let { conditions.add(ReservationTable.stopId eq it) }
+        createdFrom?.let { conditions.add(ReservationTable.createdAt greaterEq it) }
+        createdTo?.let { conditions.add(ReservationTable.createdAt lessEq it) }
+
+        val combinedOp = conditions.reduce { acc, op -> acc and op }
+
+        val query = joinRelation.selectAll().where(combinedOp)
+            .orderBy(ReservationTable.createdAt to SortOrder.DESC)
+            .limit(size)
+            .offset(start = (page * size).toLong())
+
+        return query.map { row ->
+            val entity = ReservationEntity.wrapRow(row)
+            val currentStatus = row[rc.status]
+            entity to currentStatus
+        }
+    }
+
+    /** 어드민 검색 조건에 매칭되는 전체 예약 개수를 반환한다. */
+    @Transactional(readOnly = true)
+    fun countAdminReservations(
+        status: ReservationStatus?,
+        assigneeId: UUID?,
+        stopId: UUID?,
+        createdFrom: OffsetDateTime?,
+        createdTo: OffsetDateTime?
+    ): Long {
+        val rc = ReservationConsultationTable
+        val rcNewer = ReservationConsultationTable.alias("rc_newer")
+
+        val joinRelation = ReservationTable
+            .join(
+                otherTable = rc,
+                joinType = JoinType.INNER,
+                onColumn = ReservationTable.id,
+                otherColumn = rc.reservationId
+            )
+            .join(
+                otherTable = rcNewer,
+                joinType = JoinType.LEFT,
+                onColumn = ReservationTable.id,
+                otherColumn = rcNewer[ReservationConsultationTable.reservationId],
+                additionalConstraint = {
+                    rc.createdAt less rcNewer[ReservationConsultationTable.createdAt]
+                }
+            )
+
+        val conditions = mutableListOf<Op<Boolean>>()
+        conditions.add(rcNewer[ReservationConsultationTable.id].isNull())
+
+        status?.let { conditions.add(rc.status eq it) }
+        assigneeId?.let { conditions.add(ReservationTable.assigneeId eq it) }
+        stopId?.let { conditions.add(ReservationTable.stopId eq it) }
+        createdFrom?.let { conditions.add(ReservationTable.createdAt greaterEq it) }
+        createdTo?.let { conditions.add(ReservationTable.createdAt lessEq it) }
+
+        val combinedOp = conditions.reduce { acc, op -> acc and op }
+
+        return joinRelation.selectAll().where(combinedOp).count()
     }
 }

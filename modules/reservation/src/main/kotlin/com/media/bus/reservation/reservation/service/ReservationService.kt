@@ -15,6 +15,7 @@ import com.media.bus.reservation.reservation.result.ReservationResult
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -133,4 +134,66 @@ class ReservationService(
     private fun resolveCurrentStatus(reservation: ReservationEntity): ReservationStatus =
         consultationRepository.findLatestByReservation(reservation)?.status
             ?: ReservationStatus.PENDING
+
+    /**
+     * 어드민용 전체 예약 목록 검색 및 조건부 필터링 페이징 조회.
+     * 결과 리스트와 전체 개수를 반환한다.
+     */
+    @Transactional(readOnly = true)
+    fun searchAdminReservations(
+        status: ReservationStatus?,
+        assigneeId: UUID?,
+        stopId: UUID?,
+        createdFrom: OffsetDateTime?,
+        createdTo: OffsetDateTime?,
+        page: Int,
+        size: Int
+    ): Pair<List<Pair<ReservationEntity, ReservationStatus>>, Long> {
+        val list = reservationRepository.searchAdminReservations(status, assigneeId, stopId, createdFrom, createdTo, page, size)
+        val total = reservationRepository.countAdminReservations(status, assigneeId, stopId, createdFrom, createdTo)
+        return list to total
+    }
+
+    /** 예약 담당 어드민 배정/변경 */
+    @Transactional
+    fun assignReservation(reservationId: UUID, assigneeId: UUID) {
+        val reservation = reservationRepository.findById(reservationId)
+            ?: throw BusinessException(ReservationResult.RESERVATION_NOT_FOUND)
+
+        reservation.assigneeId = assigneeId
+        log.info("[ReservationService] 예약 담당자 배정 완료: reservationId={}, assigneeId={}", reservationId, assigneeId)
+    }
+
+    /** 예약 상태 변경 및 상담 이력(메모) 기록 */
+    @Transactional
+    fun updateReservationStatus(reservationId: UUID, targetStatus: ReservationStatus, note: String?) {
+        val reservation = reservationRepository.findById(reservationId)
+            ?: throw BusinessException(ReservationResult.RESERVATION_NOT_FOUND)
+
+        val latest = consultationRepository.findLatestByReservation(reservation)
+            ?: throw BusinessException(ReservationResult.RESERVATION_STATE_MISSING)
+
+        if (!latest.status.canTransitionTo(targetStatus)) {
+            throw BusinessException(ReservationResult.RESERVATION_INVALID_STATE_TRANSITION)
+        }
+
+        ReservationConsultationEntity.create(reservation, targetStatus, note)
+        log.info(
+            "[ReservationService] 예약 상태 변경 완료: reservationId={}, fromStatus={}, toStatus={}",
+            reservationId, latest.status, targetStatus
+        )
+    }
+
+    /** 예약 상세 조회 (어드민용) */
+    @Transactional(readOnly = true)
+    fun getReservationDetailForAdmin(reservationId: UUID): ReservationDetailResponse {
+        val reservation = reservationRepository.findById(reservationId)
+            ?: throw BusinessException(ReservationResult.RESERVATION_NOT_FOUND)
+
+        val consultations = consultationRepository.findAllByReservation(reservation)
+        val currentStatus = consultations.maxByOrNull { it.createdAt }?.status
+            ?: throw BusinessException(ReservationResult.RESERVATION_STATE_MISSING)
+
+        return ReservationDetailResponse.of(reservation, currentStatus, consultations)
+    }
 }

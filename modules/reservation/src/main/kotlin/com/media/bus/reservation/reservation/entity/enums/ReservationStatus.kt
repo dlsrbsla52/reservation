@@ -21,13 +21,14 @@ enum class ReservationStatus(
     CONSULTING("상담 중"),
     COMPLETED("상담 완료"),
     CANCELLED("취소됨"),
+    REJECTED("반려됨"),
     ;
 
     /** 현재 상태에서 `target` 상태로 전이 가능한지 검사한다. */
     fun canTransitionTo(target: ReservationStatus): Boolean = when (this) {
-        PENDING -> target == CONSULTING || target == CANCELLED
-        CONSULTING -> target == COMPLETED
-        COMPLETED, CANCELLED -> false
+        PENDING -> target == CONSULTING || target == CANCELLED || target == REJECTED
+        CONSULTING -> target == COMPLETED || target == REJECTED
+        COMPLETED, CANCELLED, REJECTED -> false
     }
 
     companion object {

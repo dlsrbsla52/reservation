@@ -20,6 +20,7 @@ enum class ReservationResult(
     RESERVATION_ALREADY_EXISTS("R0003", "해당 정류소에 이미 진행 중인 예약이 있습니다.", HttpStatus.CONFLICT),
     RESERVATION_NOT_CANCELLABLE("R0004", "상담 전(PENDING) 상태에서만 예약을 취소할 수 있습니다."),
     RESERVATION_STATE_MISSING("R0005", "예약 상태 정보를 확인할 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    RESERVATION_INVALID_STATE_TRANSITION("R0006", "올바르지 않은 예약 상태 전이입니다."),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

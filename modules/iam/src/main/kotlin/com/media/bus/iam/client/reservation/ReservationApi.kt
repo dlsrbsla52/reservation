@@ -1,10 +1,14 @@
 package com.media.bus.iam.client.reservation
 
-import com.media.bus.iam.client.reservation.dto.AdminContractPageResponse
+import com.media.bus.common.web.response.ApiResponse
+import com.media.bus.iam.client.reservation.dto.*
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.service.annotation.GetExchange
 import org.springframework.web.service.annotation.HttpExchange
+import org.springframework.web.service.annotation.PostExchange
+import org.springframework.web.service.annotation.PutExchange
 import java.util.*
 
 /**
@@ -16,18 +20,49 @@ import java.util.*
  *
  * 매핑되는 reservation 측 컨트롤러:
  * - `InternalContractController` (`/api/v1/internal/reservation/contract`)
+ * - `InternalReservationController` (`/api/v1/internal/reservation`)
  */
 @HttpExchange(url = "/api/v1/internal/reservation")
 interface ReservationApi {
 
-    /**
-     * 매니저(memberId) 기준 계약 목록을 페이지 단위로 조회한다.
-     * reservation 측에서 stop 정보가 결합된 어드민 view 응답을 반환한다.
-     */
     @GetExchange("/contract/member/{memberId}")
     fun getContractsByMember(
         @PathVariable memberId: UUID,
         @RequestParam("page") page: Int,
         @RequestParam("size") size: Int,
     ): AdminContractPageResponse?
+
+    @GetExchange("/reservations")
+    fun searchAdminReservations(
+        @RequestParam("status") status: String?,
+        @RequestParam("assigneeId") assigneeId: UUID?,
+        @RequestParam("stopId") stopId: UUID?,
+        @RequestParam("createdFrom") createdFrom: String?,
+        @RequestParam("createdTo") createdTo: String?,
+        @RequestParam("page") page: Int,
+        @RequestParam("size") size: Int,
+    ): AdminReservationPageResponse?
+
+    @GetExchange("/reservations/{reservationId}")
+    fun getReservationDetailForAdmin(
+        @PathVariable reservationId: UUID,
+    ): AdminReservationDetailResponse?
+
+    @PutExchange("/reservations/{reservationId}/assignee")
+    fun assignReservation(
+        @PathVariable reservationId: UUID,
+        @RequestBody request: AssignReservationRequest,
+    ): ApiResponse<Unit?>?
+
+    @PutExchange("/reservations/{reservationId}/status")
+    fun updateReservationStatus(
+        @PathVariable reservationId: UUID,
+        @RequestBody request: UpdateReservationStatusRequest,
+    ): ApiResponse<Unit?>?
+
+    @PostExchange("/reservations/{reservationId}/complete-to-contract")
+    fun completeReservationToContract(
+        @PathVariable reservationId: UUID,
+        @RequestBody request: CompleteToContractRequest,
+    ): ApiResponse<Unit?>?
 }

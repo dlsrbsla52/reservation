@@ -23,6 +23,7 @@ buildscript {
 plugins {
     id("io.sentry.jvm.gradle") version "4.11.0" apply false
     id("com.bmuschko.docker-spring-boot-application") version "10.0.0" apply false
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0" apply false
 }
 
 allprojects {
@@ -98,4 +99,14 @@ subprojects {
         // 공식 지원 범위 초과 우회 — best-effort experimental 모드
         jvmArgs("-Dnet.bytebuddy.experimental=true")
     }
+}
+
+tasks.register("generateAllOpenApiDocs") {
+    group = "documentation"
+    description = "IAM, 정류소, 예약 서비스의 OpenAPI YAML 문서를 생성합니다."
+    dependsOn(
+        ":modules:iam:generateOpenApiDocs",
+        ":modules:stop:generateOpenApiDocs",
+        ":modules:reservation:generateOpenApiDocs",
+    )
 }
