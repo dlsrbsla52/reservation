@@ -29,7 +29,7 @@ class StopResolutionService(
      * @throws StorageException 정류소를 찾을 수 없는 경우
      */
     fun resolveStop(stopId: UUID): StopInfo =
-        stopServiceClient.getStopByPk(stopId).firstOrNull()
+        stopServiceClient.getStopByPk(setOf(stopId)).firstOrNull()
             ?: run {
                 log.warn("[StopResolutionService] 존재하지 않는 정류소: stopId={}", stopId)
                 throw StorageException(message = "요청한 정류소를 찾을 수 없습니다. stopId=$stopId")

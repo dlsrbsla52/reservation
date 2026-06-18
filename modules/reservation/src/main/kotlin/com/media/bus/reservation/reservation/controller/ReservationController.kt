@@ -31,9 +31,9 @@ class ReservationController(
     fun createReservation(
         @CurrentMember principal: MemberPrincipal,
         @RequestBody @Valid request: CreateStopReservationRequest,
-    ): ApiResponse<UUID> {
-        val reservationId = facade.createReservation(principal, request)
-        return ApiResponse.success(reservationId)
+    ): ApiResponse<Set<UUID>> {
+        val reservationIds = facade.createReservation(principal, request)
+        return ApiResponse.success(reservationIds)
     }
 
     /// 내 예약 목록 조회 (페이지네이션).

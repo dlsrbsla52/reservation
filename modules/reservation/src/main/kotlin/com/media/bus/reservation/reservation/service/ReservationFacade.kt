@@ -33,14 +33,14 @@ class ReservationFacade(
      * @param request   예약 생성 요청 DTO
      * @return 생성된 예약의 UUID
      */
-    fun createReservation(principal: MemberPrincipal, request: CreateStopReservationRequest): UUID {
-        // 1단계: stop 서비스에서 정류소 존재 여부 확인 (S2S, 트랜잭션 외부)
-        val stop = stopResolutionService.resolveStop(request.stopId)
-        log.debug("[ReservationFacade] 정류소 확인 완료: stopName={}, memberId={}", stop.stopName, principal.id)
-
-        // 2단계: 예약 + 초기 상담 row 저장 (단일 트랜잭션)
-        val reservation = reservationService.createReservation(principal.id, stop, request)
-        return reservation.id.value
+    fun createReservation(principal: MemberPrincipal, request: CreateStopReservationRequest): Set<UUID> {
+        // 1단계: 요청된 정류소 각각에 대해 존재 여부 확인 후 예약 생성 (stop S2S 호출은 트랜잭션 외부)
+        return request.stopId.map { stopId ->
+            val stop = stopResolutionService.resolveStop(stopId)
+            log.debug("[ReservationFacade] 정류소 확인 완료: stopName={}, memberId={}", stop.stopName, principal.id)
+            // 2단계: 예약 + 초기 상담 row 저장 (단일 트랜잭션)
+            reservationService.createReservation(principal.id, stop, request).id.value
+        }.toSet()
     }
 
     /**
