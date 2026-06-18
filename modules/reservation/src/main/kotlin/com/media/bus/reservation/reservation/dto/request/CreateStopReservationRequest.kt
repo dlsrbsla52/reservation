@@ -7,12 +7,12 @@ import java.util.*
 
 @Schema(description = "회원의 예약 요청 확인을 위한 DTO")
 data class CreateStopReservationRequest(
-    @Schema(description = "요청 stopId")
-    val stopId: UUID,
+    @param:Schema(description = "요청 stopId")
+    val stopId: Set<UUID>,
 
-    @Schema(description = "상담 요청 일자")
+    @param:Schema(description = "상담 요청 일자")
     val consultationRequestedAt: OffsetDateTime,
 
-    @Schema(description = "계약 시작 희망 일자")
+    @param:Schema(description = "계약 시작 희망 일자")
     val desiredContractStartDate: LocalDate?,
 )

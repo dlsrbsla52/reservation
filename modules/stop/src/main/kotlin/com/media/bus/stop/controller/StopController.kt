@@ -41,7 +41,7 @@ class StopController(
     ): ApiResponse<PageResult<BusStopResponse>> {
         val hasCriteria = pk != null || stopId != null || stopName != null
         return if (hasCriteria) {
-            val list = stopService.getBusStop(StopSearchCriteria.of(pk, stopId, stopName))
+            val list = stopService.getBusStop(StopSearchCriteria.of(pk?.let { setOf(it) }, stopId, stopName))
             ApiResponse.success(
                 PageResult(items = list, totalCnt = list.size.toLong(), pageRows = size, pageNum = 0),
             )

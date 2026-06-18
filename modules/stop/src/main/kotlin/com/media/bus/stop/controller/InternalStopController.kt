@@ -37,7 +37,7 @@ class InternalStopController(
     )
     @GetMapping
     fun getBusStop(
-        @RequestParam(required = false) pk: UUID?,
+        @RequestParam(required = false) pk: Set<UUID>?,
         @RequestParam(required = false) stopId: String?,
         @RequestParam(required = false) stopName: String?,
     ): ApiResponse<ListData<BusStopResponse>> =

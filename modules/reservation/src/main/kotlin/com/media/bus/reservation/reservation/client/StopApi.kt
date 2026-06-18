@@ -22,7 +22,7 @@ interface StopApi {
 
     /** pk(UUID) 기준 정류소 조회 */
     @GetExchange
-    fun getStopByPk(@RequestParam("pk") pk: UUID): StopPageResponse?
+    fun getStopByPk(@RequestParam("pk") pk: Set<UUID>): StopPageResponse?
 
     /** stopId(정류소 번호) 기준 정류소 조회 */
     @GetExchange

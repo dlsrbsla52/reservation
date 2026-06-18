@@ -21,8 +21,8 @@ class StopServiceClient(
     private val log = LoggerFactory.getLogger(javaClass)
 
     /** pk(UUID) 기준으로 정류소를 조회한다. 존재하지 않으면 빈 리스트를 반환한다. */
-    fun getStopByPk(pk: UUID): List<StopInfo> {
-        log.debug("[StopServiceClient] pk 기준 정류소 조회: pk={}", pk)
+    fun getStopByPk(pk: Set<UUID>): List<StopInfo> {
+        log.debug("[StopServiceClient] pk 기준 정류소 조회: pk={}", pk.toString())
         return extractList(stopApi.getStopByPk(pk))
     }
 

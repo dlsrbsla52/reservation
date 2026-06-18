@@ -39,7 +39,7 @@ class StopService(
      */
     @Transactional(readOnly = true)
     fun getBusStop(criteria: StopSearchCriteria): List<BusStopResponse> = when (criteria) {
-        is StopSearchCriteria.ByPk       -> listOfNotNull(stopRepository.findById(criteria.pk)).map(BusStopResponse::of)
+        is StopSearchCriteria.ByPk       -> stopRepository.findByIdIn(criteria.pk).map(BusStopResponse::of)
         is StopSearchCriteria.ByStopId   -> listOfNotNull(stopRepository.findByStopId(criteria.stopId)).map(BusStopResponse::of)
         is StopSearchCriteria.ByStopName -> stopRepository.findByStopNameStartingWith(criteria.stopName).map(BusStopResponse::of)
     }

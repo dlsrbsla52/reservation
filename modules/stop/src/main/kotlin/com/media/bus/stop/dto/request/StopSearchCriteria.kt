@@ -13,7 +13,7 @@ import java.util.*
 sealed interface StopSearchCriteria {
 
     /** 대리키(UUID) 기준 조회 */
-    data class ByPk(val pk: UUID) : StopSearchCriteria
+    data class ByPk(val pk: Set<UUID>) : StopSearchCriteria
 
     /** 정류소 번호(stop_id) 기준 조회 */
     data class ByStopId(val stopId: String) : StopSearchCriteria
@@ -26,7 +26,7 @@ sealed interface StopSearchCriteria {
          * query param 세 값으로부터 검색 기준을 생성한다.
          * 우선순위: pk > stopId > stopName. 모두 null이면 예외.
          */
-        fun of(pk: UUID?, stopId: String?, stopName: String?): StopSearchCriteria = when {
+        fun of(pk: Set<UUID>?, stopId: String?, stopName: String?): StopSearchCriteria = when {
             pk != null       -> ByPk(pk)
             stopId != null   -> ByStopId(stopId)
             stopName != null -> ByStopName(stopName)
