@@ -43,4 +43,5 @@ class ReservationEntity(id: EntityID<UUID>) : DateBaseEntity(id, ReservationTabl
     var stopId by ReservationTable.stopId
     var consultationRequestedAt by ReservationTable.consultationRequestedAt
     var desiredContractStartDate by ReservationTable.desiredContractStartDate
+    var assigneeId by ReservationTable.assigneeId
 }

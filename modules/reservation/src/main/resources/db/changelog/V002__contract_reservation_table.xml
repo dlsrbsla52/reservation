@@ -159,4 +159,12 @@
 
   </changeSet>
 
+  <changeSet id="V002-3" author="hig">
+    <addColumn tableName="reservation" schemaName="reservation">
+      <column name="assignee_id" type="UUID" remarks="담당 어드민 회원 ID (Nullable)">
+        <constraints nullable="true"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
 </databaseChangeLog>

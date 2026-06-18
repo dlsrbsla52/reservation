@@ -1,6 +1,7 @@
 package com.media.bus.reservation.reservation.service
 
 import com.media.bus.common.web.wrapper.PageResult
+import com.media.bus.reservation.contract.service.ContractService
 import com.media.bus.reservation.reservation.dto.response.MyReservationResponse
 import com.media.bus.reservation.reservation.dto.response.StopInfo
 import com.media.bus.reservation.reservation.entity.enums.ReservationStatus
@@ -31,6 +32,9 @@ class ReservationFacadeTest {
 
     @MockK
     private lateinit var reservationService: ReservationService
+
+    @MockK
+    private lateinit var contractService: ContractService
 
     @InjectMockKs
     private lateinit var reservationFacade: ReservationFacade

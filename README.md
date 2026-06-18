@@ -33,7 +33,7 @@
 | **API 문서** | springdoc-openapi 3.0.2 | OpenAPI 3.0 Swagger UI |
 | **마이그레이션** | Liquibase | 모듈별 changelog, 스키마 분리 |
 | **테스트** | JUnit 5 + MockK 1.13.10 | Kotlin 친화적 Mock |
-| **빌드/배포** | Gradle 8.x (Kotlin DSL) + Docker BuildKit | 멀티 스테이지 + `--mount=type=cache` 캐시 마운트 |
+| **빌드/배포** | Gradle 9.4.0 (Kotlin DSL) + Docker BuildKit | 멀티 스테이지 + `--mount=type=cache` 캐시 마운트 |
 
 ## API 문서 (Swagger UI)
 
@@ -47,6 +47,28 @@
 | `reservation` (예약) | http://localhost:8183/swagger-ui.html | http://localhost:8183/api-docs |
 
 > **참고**: Gateway(8080)를 통해서는 Swagger UI에 접근할 수 없습니다. 각 서비스 포트로 직접 접근해야 합니다.
+
+실행 중인 서비스에서 YAML 스펙을 바로 추출할 수 있습니다.
+
+```bash
+curl --fail --silent --show-error http://localhost:8181/api-docs.yaml --output openapi-iam.yaml
+curl --fail --silent --show-error http://localhost:8182/api-docs.yaml --output openapi-stop.yaml
+curl --fail --silent --show-error http://localhost:8183/api-docs.yaml --output openapi-reservation.yaml
+```
+
+PostgreSQL, Redis, Docker 없이 세 서비스의 OpenAPI YAML을 한 번에 생성하려면 다음 태스크를 실행합니다.
+
+```bash
+./gradlew generateAllOpenApiDocs
+```
+
+생성 결과는 각 모듈의 `build/docs/openapi/` 아래에 저장됩니다. 서비스별 생성도 지원합니다.
+
+```bash
+./gradlew :modules:iam:generateOpenApiDocs
+./gradlew :modules:stop:generateOpenApiDocs
+./gradlew :modules:reservation:generateOpenApiDocs
+```
 
 ---
 
@@ -277,7 +299,8 @@ AOP(`@Around`)는 내부적으로 `RequestContextHolder`(ThreadLocal 기반)를 
 // 1. 각 클래스에 Logger 선언
 private val log = LoggerFactory.getLogger(MyService::class.java)
 // 혹은 companion object에서 선언
-companion object {
+companion
+object {
     private val log = LoggerFactory.getLogger(MyService::class.java)
 }
 

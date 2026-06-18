@@ -2,11 +2,17 @@ package com.media.bus.reservation.reservation.service
 
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.security.MemberPrincipal
+import com.media.bus.reservation.contract.dto.request.CreateContractRequest
+import com.media.bus.reservation.contract.service.ContractService
+import com.media.bus.reservation.reservation.dto.request.CompleteToContractRequest
 import com.media.bus.reservation.reservation.dto.request.CreateStopReservationRequest
+import com.media.bus.reservation.reservation.dto.response.AdminReservationListResponse
 import com.media.bus.reservation.reservation.dto.response.MyReservationResponse
 import com.media.bus.reservation.reservation.dto.response.ReservationDetailResponse
+import com.media.bus.reservation.reservation.entity.enums.ReservationStatus
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -23,6 +29,7 @@ import java.util.*
 class ReservationFacade(
     private val stopResolutionService: StopResolutionService,
     private val reservationService: ReservationService,
+    private val contractService: ContractService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -103,5 +110,80 @@ class ReservationFacade(
         val raw = reservationService.getReservationDetail(principal.id, reservationId)
         val info = stopResolutionService.resolveStops(setOf(raw.stopId))[raw.stopId]
         return raw.copy(stopNumber = info?.stopId, stopName = info?.stopName)
+    }
+
+    /**
+     * 어드민용 전체 예약 목록 검색 및 정류소 정보 일괄 결합 페이징 조회.
+     * N+1 방지를 위해 정류소 정보는 1회 S2S 벌크 호출로 주입한다.
+     */
+    fun searchAdminReservations(
+        status: ReservationStatus?,
+        assigneeId: UUID?,
+        stopId: UUID?,
+        createdFrom: OffsetDateTime?,
+        createdTo: OffsetDateTime?,
+        page: Int,
+        size: Int
+    ): PageResult<AdminReservationListResponse> {
+        val (rawList, total) = reservationService.searchAdminReservations(status, assigneeId, stopId, createdFrom, createdTo, page, size)
+
+        val stopIds = rawList.map { it.first.stopId }.toSet()
+        val stopMap = stopResolutionService.resolveStops(stopIds)
+
+        val items = rawList.map { (reservation, currentStatus) ->
+            val info = stopMap[reservation.stopId]
+            AdminReservationListResponse.of(reservation, currentStatus, info?.stopId, info?.stopName)
+        }
+
+        return PageResult(
+            items = items,
+            totalCnt = total,
+            pageRows = size,
+            pageNum = page
+        )
+    }
+
+    /** 예약 담당자 지정 */
+    fun assignReservation(reservationId: UUID, assigneeId: UUID) {
+        reservationService.assignReservation(reservationId, assigneeId)
+    }
+
+    /** 예약 상태 변경 및 상담 기록 추가 */
+    fun updateReservationStatus(reservationId: UUID, targetStatus: ReservationStatus, note: String?) {
+        reservationService.updateReservationStatus(reservationId, targetStatus, note)
+    }
+
+    /** 예약 상세 및 상담 전체 이력 조회 (어드민용) */
+    fun getReservationDetailForAdmin(reservationId: UUID): ReservationDetailResponse {
+        val raw = reservationService.getReservationDetailForAdmin(reservationId)
+        val info = stopResolutionService.resolveStops(setOf(raw.stopId))[raw.stopId]
+        return raw.copy(stopNumber = info?.stopId, stopName = info?.stopName)
+    }
+
+    /**
+     * 예약을 완료 처리하고 해당 예약건을 기반으로 즉시 광고 계약을 생성한다.
+     * S2S 정류소 유효성 검증은 트랜잭션 외부에서 수행하고, 각 처리를 순차 조율한다.
+     */
+    fun completeReservationToContract(reservationId: UUID, request: CompleteToContractRequest) {
+        val detail = reservationService.getReservationDetailForAdmin(reservationId)
+        val stopInfo = stopResolutionService.resolveStop(detail.stopId)
+
+        // 1단계: 예약 상태 변경 (COMPLETED)
+        reservationService.updateReservationStatus(reservationId, ReservationStatus.COMPLETED, request.note)
+
+        // 2단계: 계약서 생성 및 연결
+        val createContractRequest = CreateContractRequest(
+            stopId = detail.stopId,
+            contractName = request.contractName,
+            totalAmount = request.totalAmount,
+            payAmount = request.payAmount,
+            paymentCycle = request.paymentCycle,
+            paymentMethod = request.paymentMethod,
+            memberId = detail.memberId,
+            note = request.note,
+            contractStartDate = request.contractStartDate,
+            contractEndDate = request.contractEndDate
+        )
+        contractService.createContract(stopInfo, createContractRequest)
     }
 }
