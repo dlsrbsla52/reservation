@@ -6,6 +6,7 @@ import com.media.bus.iam.auth.entity.RoleTable
 import com.media.bus.iam.member.entity.MemberTable
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.select
 import org.springframework.stereotype.Repository
 import java.util.*
@@ -44,4 +45,18 @@ class MemberRoleRepository {
     fun findByMemberId(memberId: UUID): MemberRoleEntity? =
         MemberRoleEntity.find { MemberRoleTable.memberId eq EntityID(memberId, MemberTable) }
             .firstOrNull()
+
+    /**
+     * 여러 회원 ID의 역할 이름을 1쿼리로 일괄 조회한다.
+     * N+1 방지용 배치 조회 — 목록 조회 서비스에서 사용한다.
+     *
+     * @return memberId → roleName 매핑 Map
+     */
+    fun findRoleMapByMemberIds(memberIds: List<UUID>): Map<UUID, String> {
+        if (memberIds.isEmpty()) return emptyMap()
+        return (MemberRoleTable innerJoin RoleTable)
+            .select(MemberRoleTable.memberId, RoleTable.name)
+            .where { MemberRoleTable.memberId inList memberIds.map { EntityID(it, MemberTable) } }
+            .associate { it[MemberRoleTable.memberId].value to it[RoleTable.name] }
+    }
 }

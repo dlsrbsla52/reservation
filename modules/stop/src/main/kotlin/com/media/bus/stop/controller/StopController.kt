@@ -29,7 +29,7 @@ class StopController(
         description = "식별자(pk/stopId/stopName) 중 하나가 있으면 해당 기준으로 단건/동명 조회한다. " +
             "식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, keyword(정류소명·번호 부분 일치)로 필터링할 수 있다.",
     )
-    @Authorize(categories = [MemberCategory.ADMIN])
+    @Authorize(categories = [MemberCategory.USER, MemberCategory.BUSINESS, MemberCategory.ADMIN])
     @GetMapping
     fun getBusStop(
         @RequestParam(required = false) pk: UUID?,

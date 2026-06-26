@@ -4,6 +4,7 @@ import com.media.bus.iam.auth.entity.MemberRoleTable
 import com.media.bus.iam.auth.entity.RoleTable
 import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.dto.MemberSearchCondition
+import com.media.bus.iam.member.dto.MemberWithRole
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.entity.MemberTable
 import org.jetbrains.exposed.v1.core.*
@@ -69,16 +70,20 @@ class MemberRepository {
             .offset((page * size).toLong())
             .map { MemberEntity.wrapRow(it) }
 
-    /** loginId, email, memberName 키워드 검색 (LIKE) */
-    fun searchByKeyword(keyword: String): List<MemberEntity> {
-        val pattern = containsPattern(keyword)
-        return MemberTable.selectAll()
+    /**
+     * loginId, email, memberName 키워드 검색 (전방 일치 LIKE — 인덱스 활용).
+     * role JOIN으로 역할 이름을 함께 반환하여 N+1 없이 1쿼리로 처리한다.
+     */
+    fun searchByKeyword(keyword: String): List<MemberWithRole> {
+        val pattern = startsWithPattern(keyword)
+        return (MemberTable innerJoin MemberRoleTable innerJoin RoleTable)
+            .selectAll()
             .where {
                 (MemberTable.loginId like pattern) or
                     (MemberTable.email like pattern) or
                     (MemberTable.memberName like pattern)
             }
-            .map { MemberEntity.wrapRow(it) }
+            .map { MemberWithRole(MemberEntity.wrapRow(it), it[RoleTable.name]) }
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -102,7 +107,7 @@ class MemberRepository {
     fun searchByCondition(
         condition: MemberSearchCondition,
         roleNames: Set<String>,
-    ): List<Pair<MemberEntity, String>> {
+    ): List<MemberWithRole> {
         // 빈 역할 집합이면 조회 자체가 무의미하므로 리포지토리 단독 호출에서도 방어한다.
         if (roleNames.isEmpty()) return emptyList()
 
@@ -112,7 +117,7 @@ class MemberRepository {
             .orderBy(MemberTable.createdAt to SortOrder.DESC)
             .limit(condition.size)
             .offset((condition.page.toLong() * condition.size))
-            .map { MemberEntity.wrapRow(it) to it[RoleTable.name] }
+            .map { MemberWithRole(MemberEntity.wrapRow(it), it[RoleTable.name]) }
     }
 
     /** [searchByCondition] 와 동일 조건의 전체 건수. 페이지네이션 메타용. */
@@ -166,5 +171,16 @@ class MemberRepository {
     private fun containsPattern(keyword: String): LikePattern {
         val escaped = LikePattern.ofLiteral(keyword).pattern
         return LikePattern("%$escaped%", escapeChar = '\\')
+    }
+
+    /**
+     * 사용자 입력 키워드로 "전방 일치" LIKE 패턴을 만든다.
+     *
+     * `keyword%` 형태로 앞 와일드카드가 없으므로 B-tree 인덱스를 활용할 수 있다.
+     * [containsPattern]과 동일한 이스케이프 처리를 적용한다.
+     */
+    private fun startsWithPattern(keyword: String): LikePattern {
+        val escaped = LikePattern.ofLiteral(keyword).pattern
+        return LikePattern("$escaped%", escapeChar = '\\')
     }
 }

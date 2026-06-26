@@ -63,11 +63,11 @@ class MemberSearchService(
         val rows = memberRepository.searchByCondition(condition, roleNames)
         val totalCnt = memberRepository.countByCondition(condition, roleNames)
 
-        val items = rows.map { (member, roleName) ->
+        val items = rows.map {
             // roleName 은 role.name = MemberType.name 이므로 항상 매핑 가능
-            val memberType = MemberType.fromName(roleName)
-                ?: error("매핑 불가능한 역할 이름: $roleName")
-            MemberSearchResponse.of(member, memberType)
+            val memberType = MemberType.fromName(it.roleName)
+                ?: error("매핑 불가능한 역할 이름: ${it.roleName}")
+            MemberSearchResponse.of(it.member, memberType)
         }
 
         return PageResult(
