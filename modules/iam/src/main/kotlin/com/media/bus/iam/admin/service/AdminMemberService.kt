@@ -102,8 +102,10 @@ class AdminMemberService(
         val members = memberRepository.findAllPaged(page, size)
         val totalCnt = memberRepository.count()
 
+        val memberTypeMap = roleResolutionService.resolveTypesForMembers(members.map { it.id.value })
         val items = members.map { member ->
-            val memberType = roleResolutionService.resolveMemberType(member.id.value)
+            val memberType = memberTypeMap[member.id.value]
+                ?: throw BusinessException(AuthResult.ROLE_NOT_FOUND)
             AdminMemberListResponse.of(member, memberType)
         }
 
@@ -240,13 +242,11 @@ class AdminMemberService(
             .map { MemberStatusHistoryResponse.of(it) }
     }
 
-    /** 키워드로 회원을 검색한다 (loginId, email, memberName LIKE 검색). */
+    /** 키워드로 회원을 검색한다 (loginId, email, memberName 전방 일치 검색). */
     @Transactional(readOnly = true)
-    fun searchMembers(keyword: String): List<AdminMemberListResponse> {
-        val members = memberRepository.searchByKeyword(keyword)
-        return members.map { member ->
-            val memberType = roleResolutionService.resolveMemberType(member.id.value)
-            AdminMemberListResponse.of(member, memberType)
+    fun searchMembers(keyword: String): List<AdminMemberListResponse> =
+        memberRepository.searchByKeyword(keyword).map {
+            val memberType = MemberType.valueOf(it.roleName)
+            AdminMemberListResponse.of(it.member, memberType)
         }
-    }
 }

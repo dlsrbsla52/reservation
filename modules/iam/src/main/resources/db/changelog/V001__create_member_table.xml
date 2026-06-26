@@ -92,4 +92,12 @@
     </addColumn>
   </changeSet>
 
+  <!-- member_name 전방 일치(keyword%) 검색 인덱스 추가
+       login_id / email 은 UNIQUE 제약으로 인덱스가 이미 존재하므로 제외 -->
+  <changeSet id="V_member_001-3" author="hig">
+    <createIndex indexName="idx_member_member_name" tableName="member" schemaName="auth">
+      <column name="member_name"/>
+    </createIndex>
+  </changeSet>
+
 </databaseChangeLog>
