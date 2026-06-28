@@ -27,7 +27,7 @@ class SecurityConfig(
 ) {
     @Bean
     fun s2sTokenFilter(): S2STokenFilter =
-        S2STokenFilter(jwtProvider, listOf("/api/v1/member/internal/"))
+        S2STokenFilter(jwtProvider, listOf("/api/v1/member/internal/", "/api/v1/commission/internal/"))
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =

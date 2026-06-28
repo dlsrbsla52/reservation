@@ -100,7 +100,7 @@ class AdminAuthorizationServiceTest {
             val role = mockRole()
             val permission = mockPermission()
             every { roleRepository.findById(testRoleId) } returns role
-            every { rolePermissionRepository.findByRoleId(testRoleId) } returns listOf(mockRolePermission(permission))
+            every { rolePermissionRepository.findPermissionsByRoleId(testRoleId) } returns listOf(permission)
 
             val result = service.findRoleDetail(testRoleId)
 
@@ -151,7 +151,7 @@ class AdminAuthorizationServiceTest {
             val role = mockRole()
             val perm = mockPermission()
             every { roleRepository.findById(testRoleId) } returns role
-            every { rolePermissionRepository.findByRoleId(testRoleId) } returns listOf(mockRolePermission(perm))
+            every { rolePermissionRepository.findPermissionsByRoleId(testRoleId) } returns listOf(perm)
 
             val result = service.findPermissionsByRoleId(testRoleId)
 
@@ -270,7 +270,7 @@ class AdminAuthorizationServiceTest {
             val memberRole = mockk<MemberRoleEntity>(relaxed = true)
             every { memberRole.role } returns role
             every { memberRoleRepository.findByMemberId(testMemberId) } returns memberRole
-            every { rolePermissionRepository.findByRoleId(any()) } returns listOf(mockRolePermission(perm))
+            every { rolePermissionRepository.findPermissionsByRoleId(any()) } returns listOf(perm)
 
             val result = service.findMemberRole(testMemberId)
 

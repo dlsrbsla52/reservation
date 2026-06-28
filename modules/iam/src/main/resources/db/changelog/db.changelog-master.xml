@@ -22,5 +22,7 @@
   <include file="/db/changelog/V007__create_member_status_history.xml"/>
   <!-- V008: 감사 로그(audit.audit_log) 테이블 생성 -->
   <include file="/db/changelog/V008__create_audit_log.xml"/>
+  <!-- V009: 영업사원 정산 비율(커미션) 관련 테이블 생성 -->
+  <include file="/db/changelog/V009__create_commission_tables.xml"/>
 
 </databaseChangeLog>
