@@ -7,7 +7,7 @@ import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.annotation.Authorize
 import com.media.bus.iam.admin.dto.*
-import com.media.bus.iam.admin.service.AdminMemberService
+import com.media.bus.iam.admin.facade.AdminMemberFacade
 import com.media.bus.iam.admin.service.MemberSearchService
 import com.media.bus.iam.member.dto.MemberSearchCondition
 import com.media.bus.iam.member.entity.enumerated.MemberStatus
@@ -30,7 +30,7 @@ import java.util.*
 @RequestMapping("/api/v1/admin")
 @Authorize(types = [MemberType.ADMIN_MASTER], permissions = [Permission.MANAGE])
 class AdminMemberController(
-    private val adminMemberService: AdminMemberService,
+    private val adminMemberFacade: AdminMemberFacade,
     private val memberSearchService: MemberSearchService,
 ) {
     /**
@@ -45,7 +45,7 @@ class AdminMemberController(
     @PostMapping("/members")
     @ResponseStatus(HttpStatus.CREATED)
     fun createAdminMember(@RequestBody @Valid request: CreateAdminMemberRequest): ApiResponse<AdminMemberResponse> =
-        ApiResponse.success(adminMemberService.createAdminMember(request))
+        ApiResponse.success(adminMemberFacade.createAdminMember(request))
 
     // ─────────────────────────────────────────────────────────────────
     // 회원 관리 (조회, 검색, 정지, 해제)
@@ -58,13 +58,13 @@ class AdminMemberController(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): ApiResponse<PageResult<AdminMemberListResponse>> =
-        ApiResponse.success(adminMemberService.findAllMembers(page, size))
+        ApiResponse.success(adminMemberFacade.findAllMembers(page, size))
 
     /** 키워드로 회원을 검색한다. `/members/{memberId}` 보다 먼저 매핑되도록 선언한다. */
     @Operation(summary = "회원 검색", description = "로그인 아이디, 이메일, 이름으로 회원을 검색합니다.")
     @GetMapping("/members/search")
     fun searchMembers(@RequestParam keyword: String): ApiResponse<List<AdminMemberListResponse>> =
-        ApiResponse.success(adminMemberService.searchMembers(keyword))
+        ApiResponse.success(adminMemberFacade.searchMembers(keyword))
 
     /**
      * 어드민 회원을 조건으로 검색한다. 조회 대상은 ADMIN 카테고리로 고정된다.
@@ -101,7 +101,7 @@ class AdminMemberController(
     @Operation(summary = "회원 상세 조회", description = "특정 회원의 상세 정보를 역할 및 권한과 함께 조회합니다.")
     @GetMapping("/members/{memberId}")
     fun findMemberDetail(@PathVariable memberId: UUID): ApiResponse<AdminMemberDetailResponse> =
-        ApiResponse.success(adminMemberService.findMemberDetail(memberId))
+        ApiResponse.success(adminMemberFacade.findMemberDetail(memberId))
 
     /** 회원 계정을 정지한다. 사유를 필수로 입력받는다. */
     @Operation(summary = "회원 정지", description = "대상 회원의 계정을 정지합니다. 정지 사유를 필수로 입력해야 합니다.")
@@ -111,7 +111,7 @@ class AdminMemberController(
         @PathVariable memberId: UUID,
         @RequestBody @Valid request: SuspendMemberRequest,
     ): ApiResponse<Unit?> {
-        adminMemberService.suspendMember(UUID.fromString(requesterId), memberId, request.reason)
+        adminMemberFacade.suspendMember(UUID.fromString(requesterId), memberId, request.reason)
         return ApiResponse.successWithMessage("회원 계정이 정지되었습니다.")
     }
 
@@ -123,7 +123,7 @@ class AdminMemberController(
         @PathVariable memberId: UUID,
         @RequestBody @Valid request: UnsuspendMemberRequest,
     ): ApiResponse<Unit?> {
-        adminMemberService.unsuspendMember(UUID.fromString(requesterId), memberId, request.reason)
+        adminMemberFacade.unsuspendMember(UUID.fromString(requesterId), memberId, request.reason)
         return ApiResponse.successWithMessage("회원 계정 정지가 해제되었습니다.")
     }
 
@@ -131,5 +131,5 @@ class AdminMemberController(
     @Operation(summary = "회원 상태 변경 이력 조회", description = "특정 회원의 정지/해제 이력을 최신순으로 조회합니다.")
     @GetMapping("/members/{memberId}/status-history")
     fun findMemberStatusHistory(@PathVariable memberId: UUID): ApiResponse<List<MemberStatusHistoryResponse>> =
-        ApiResponse.success(adminMemberService.findMemberStatusHistory(memberId))
+        ApiResponse.success(adminMemberFacade.findMemberStatusHistory(memberId))
 }

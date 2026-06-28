@@ -3,6 +3,7 @@ package com.media.bus.iam.admin.service
 import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.iam.member.dto.MemberSearchCondition
+import com.media.bus.iam.member.dto.MemberWithRole
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import com.media.bus.iam.member.repository.MemberRepository
@@ -66,7 +67,7 @@ class MemberSearchServiceTest {
         fun `정상 검색`() {
             val roleNamesSlot = slot<Set<String>>()
             every { memberRepository.searchByCondition(any(), capture(roleNamesSlot)) } returns
-                listOf(mockMember() to "MEMBER")
+                listOf(MemberWithRole(mockMember(), "MEMBER"))
             every { memberRepository.countByCondition(any(), any()) } returns 1L
 
             val result = memberSearchService.search(
@@ -122,7 +123,7 @@ class MemberSearchServiceTest {
         fun `정상 검색`() {
             val roleNamesSlot = slot<Set<String>>()
             every { memberRepository.searchByCondition(any(), capture(roleNamesSlot)) } returns
-                listOf(mockMember() to "ADMIN_USER")
+                listOf(MemberWithRole(mockMember(), "ADMIN_USER"))
             every { memberRepository.countByCondition(any(), any()) } returns 1L
 
             val result = memberSearchService.search(

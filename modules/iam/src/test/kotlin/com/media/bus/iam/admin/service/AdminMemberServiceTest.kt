@@ -16,6 +16,7 @@ import com.media.bus.iam.auth.repository.RolePermissionRepository
 import com.media.bus.iam.auth.repository.RoleRepository
 import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.auth.service.RoleResolutionService
+import com.media.bus.iam.member.dto.MemberWithRole
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import com.media.bus.iam.member.repository.MemberRepository
@@ -115,7 +116,8 @@ class AdminMemberServiceTest {
             val member = mockMember()
             every { memberRepository.findAllPaged(0, 20) } returns listOf(member)
             every { memberRepository.count() } returns 1L
-            every { roleResolutionService.resolveMemberType(targetMemberId) } returns MemberType.MEMBER
+            every { roleResolutionService.resolveTypesForMembers(listOf(targetMemberId)) } returns
+                mapOf(targetMemberId to MemberType.MEMBER)
 
             val result = adminMemberService.findAllMembers(0, 20)
 
@@ -283,8 +285,7 @@ class AdminMemberServiceTest {
     @DisplayName("키워드 검색 정상 처리")
     fun `searchMembers 정상`() {
         val member = mockMember()
-        every { memberRepository.searchByKeyword("test") } returns listOf(member)
-        every { roleResolutionService.resolveMemberType(targetMemberId) } returns MemberType.MEMBER
+        every { memberRepository.searchByKeyword("test") } returns listOf(MemberWithRole(member, "MEMBER"))
 
         val result = adminMemberService.searchMembers("test")
 

@@ -25,7 +25,7 @@ class SwaggerConfig {
         OpenAPI()
             .info(
                 Info()
-                    .title("ACT Boilerplate API")
+                    .title("API")
                     .description("API 명세서")
                     .version("v1.0.0")
             )

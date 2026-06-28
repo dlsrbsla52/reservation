@@ -30,6 +30,8 @@ enum class AuthResult(
     MEMBER_NOT_SUSPENDED("A0014", "정지 상태가 아닌 회원은 정지 해제할 수 없습니다."),
     CURRENT_PASSWORD_MISMATCH("A0015", "현재 비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED),
     NEW_PASSWORD_SAME_AS_CURRENT("A0016", "새 비밀번호가 현재 비밀번호와 동일합니다."),
+    COMMISSION_NOT_FOUND("A0017", "영업사원의 정산 비율 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    COMMISSION_ALREADY_EXISTS("A0018", "이미 정산 비율이 등록된 영업사원입니다.", HttpStatus.CONFLICT),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

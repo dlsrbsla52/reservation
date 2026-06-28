@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+
+  <!-- ================================================================
+       V009: 영업사원 정산 비율(커미션) 관련 테이블 생성
+       - manager_commission           : 영업사원 기본 정산 비율 (현재값)
+       - contract_commission_override : 계약별 정산 비율 오버라이드 (현재값)
+       - commission_rate_history      : 정산 비율 변경 이력 (append-only)
+       정산 비율의 소유권은 IAM(auth 스키마)에 단일화한다.
+       ================================================================ -->
+
+  <!-- ===========================================================
+       V009-1: 영업사원 기본 정산 비율 테이블 (PostgreSQL)
+       member_id 1:1 매핑. 가입/역할 부여 시 기본 10%로 생성한다.
+       =========================================================== -->
+  <changeSet id="V009-1" author="dlsrbsla52" dbms="postgresql">
+    <comment>영업사원 기본 정산 비율 테이블 생성</comment>
+
+    <createTable schemaName="auth" tableName="manager_commission"
+                 remarks="영업사원 기본 정산 비율(커미션) — member 당 1건">
+      <column name="id" type="uuid" remarks="PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <!-- 대상 영업사원: member 당 1건만 허용 -->
+      <column name="member_id" type="uuid" remarks="대상 영업사원 (FK → member.id, UNIQUE)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_manager_commission_member_id"/>
+      </column>
+
+      <!-- 정산 비율(%) : 10.00 = 10%. 기본값 10% -->
+      <column name="commission_rate" type="DECIMAL(5,2)" defaultValueNumeric="10.00"
+              remarks="정산 비율(%) — 예: 10.00 = 10%">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()" remarks="생성 시각">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()" remarks="최종 수정 시각">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <!-- 비율 범위 제약: 0% ~ 100% -->
+    <sql>
+      ALTER TABLE auth.manager_commission
+        ADD CONSTRAINT ck_manager_commission_rate_range
+        CHECK (commission_rate BETWEEN 0 AND 100)
+    </sql>
+    <!-- member_id 는 auth.member.id 를 논리적으로 참조한다. DB FK 미설정 (애플리케이션 레벨 관리) -->
+  </changeSet>
+
+  <!-- H2 호환: FK / CHECK 제외, UNIQUE 인덱스만 -->
+  <changeSet id="V009-1-h2" author="dlsrbsla52" dbms="h2">
+    <comment>영업사원 기본 정산 비율 테이블 생성 (H2)</comment>
+    <createTable schemaName="auth" tableName="manager_commission">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="member_id" type="uuid">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_manager_commission_member_id"/>
+      </column>
+      <column name="commission_rate" type="DECIMAL(5,2)" defaultValueNumeric="10.00">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- ===========================================================
+       V009-2: 계약별 정산 비율 오버라이드 테이블 (PostgreSQL)
+       contract_id 는 reservation 모듈 소유 → FK 없이 논리적 참조(UUID).
+       contract 당 1건(UNIQUE). Master가 특수 계약에만 등록한다.
+       =========================================================== -->
+  <changeSet id="V009-2" author="dlsrbsla52" dbms="postgresql">
+    <comment>계약별 정산 비율 오버라이드 테이블 생성</comment>
+
+    <createTable schemaName="auth" tableName="contract_commission_override"
+                 remarks="계약별 정산 비율 오버라이드 — contract 당 1건. 없으면 영업사원 기본율 적용">
+      <column name="id" type="uuid" remarks="PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <!-- 대상 계약: reservation 모듈 소유 UUID. 모듈 경계상 FK 미설정 -->
+      <column name="contract_id" type="uuid" remarks="대상 계약 ID (reservation.contract.id, 논리적 참조, UNIQUE)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_contract_commission_override_contract_id"/>
+      </column>
+
+      <!-- 계약 담당 영업사원 (감사/조회 편의용 비정규화) -->
+      <column name="member_id" type="uuid" remarks="계약 담당 영업사원 (FK → member.id)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 오버라이드된 정산 비율(%) -->
+      <column name="commission_rate" type="DECIMAL(5,2)" remarks="오버라이드 정산 비율(%) — 예: 15.00 = 15%">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 수정한 Master 회원 -->
+      <column name="updated_by" type="uuid" remarks="수정한 Master 회원 ID">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()" remarks="생성 시각">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()" remarks="최종 수정 시각">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <!-- 영업사원별 오버라이드 목록 조회 인덱스 -->
+    <createIndex schemaName="auth" tableName="contract_commission_override"
+                 indexName="idx_contract_commission_override_member_id">
+      <column name="member_id"/>
+    </createIndex>
+
+    <!-- 비율 범위 제약: 0% ~ 100% -->
+    <sql>
+      ALTER TABLE auth.contract_commission_override
+        ADD CONSTRAINT ck_contract_commission_override_rate_range
+        CHECK (commission_rate BETWEEN 0 AND 100)
+    </sql>
+    <!-- member_id 는 auth.member.id 를, contract_id 는 reservation.contract.id 를 논리적으로 참조한다. DB FK 미설정 (애플리케이션 레벨 관리) -->
+  </changeSet>
+
+  <!-- H2 호환: FK / CHECK 제외 -->
+  <changeSet id="V009-2-h2" author="dlsrbsla52" dbms="h2">
+    <comment>계약별 정산 비율 오버라이드 테이블 생성 (H2)</comment>
+    <createTable schemaName="auth" tableName="contract_commission_override">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="contract_id" type="uuid">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uq_contract_commission_override_contract_id"/>
+      </column>
+      <column name="member_id" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="commission_rate" type="DECIMAL(5,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_by" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex schemaName="auth" tableName="contract_commission_override"
+                 indexName="idx_contract_commission_override_member_id">
+      <column name="member_id"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- ===========================================================
+       V009-3: 정산 비율 변경 이력 테이블 (PostgreSQL)
+       기본율 변경 / 계약 오버라이드를 하나의 이력으로 통합 기록한다.
+       contract_id 가 NULL 이면 기본율 변경, NOT NULL 이면 계약 오버라이드.
+       =========================================================== -->
+  <changeSet id="V009-3" author="dlsrbsla52" dbms="postgresql">
+    <comment>정산 비율 변경 이력 테이블 생성</comment>
+
+    <createTable schemaName="auth" tableName="commission_rate_history"
+                 remarks="정산 비율 변경 이력 — 기본율/계약 오버라이드 통합, append-only">
+      <column name="id" type="uuid" remarks="이력 PK (UUID)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+
+      <!-- 대상 영업사원 -->
+      <column name="member_id" type="uuid" remarks="대상 영업사원 (FK → member.id)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 계약 오버라이드일 때만 채워짐. NULL이면 기본율 변경 -->
+      <column name="contract_id" type="uuid" remarks="계약 ID (오버라이드 시에만 채워짐, NULL=기본율 변경)"/>
+
+      <!-- 변경 유형: DEFAULT_RATE(기본율) / CONTRACT_OVERRIDE(계약 오버라이드) -->
+      <column name="change_type" type="varchar(20)" remarks="변경 유형 (DEFAULT_RATE, CONTRACT_OVERRIDE)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 변경 전 비율(%) : 최초 생성 시 NULL -->
+      <column name="previous_rate" type="DECIMAL(5,2)" remarks="변경 전 정산 비율(%) — 최초 생성 시 NULL"/>
+
+      <!-- 변경 후 비율(%) -->
+      <column name="new_rate" type="DECIMAL(5,2)" remarks="변경 후 정산 비율(%)">
+        <constraints nullable="false"/>
+      </column>
+
+      <!-- 변경 사유 (Master 입력, 선택) -->
+      <column name="reason" type="varchar(500)" remarks="변경 사유 (Master 입력, 선택)"/>
+
+      <!-- 처리한 Master 회원 -->
+      <column name="changed_by" type="uuid" remarks="변경한 Master 회원 ID">
+        <constraints nullable="false"/>
+      </column>
+
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()" remarks="이력 생성 시각">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <!-- 영업사원별 이력 조회 -->
+    <createIndex schemaName="auth" tableName="commission_rate_history"
+                 indexName="idx_commission_rate_history_member_id">
+      <column name="member_id"/>
+    </createIndex>
+
+    <!-- 계약별 이력 조회 -->
+    <createIndex schemaName="auth" tableName="commission_rate_history"
+                 indexName="idx_commission_rate_history_contract_id">
+      <column name="contract_id"/>
+    </createIndex>
+    <!-- member_id 는 auth.member.id 를, contract_id 는 reservation.contract.id 를 논리적으로 참조한다. DB FK 미설정 (애플리케이션 레벨 관리) -->
+  </changeSet>
+
+  <!-- H2 호환: FK 제외 -->
+  <changeSet id="V009-3-h2" author="dlsrbsla52" dbms="h2">
+    <comment>정산 비율 변경 이력 테이블 생성 (H2)</comment>
+    <createTable schemaName="auth" tableName="commission_rate_history">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="member_id" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="contract_id" type="uuid"/>
+      <column name="change_type" type="varchar(20)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="previous_rate" type="DECIMAL(5,2)"/>
+      <column name="new_rate" type="DECIMAL(5,2)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="reason" type="varchar(500)"/>
+      <column name="changed_by" type="uuid">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex schemaName="auth" tableName="commission_rate_history"
+                 indexName="idx_commission_rate_history_member_id">
+      <column name="member_id"/>
+    </createIndex>
+    <createIndex schemaName="auth" tableName="commission_rate_history"
+                 indexName="idx_commission_rate_history_contract_id">
+      <column name="contract_id"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>

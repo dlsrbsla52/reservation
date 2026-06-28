@@ -101,9 +101,9 @@ class MemberSearchRepositoryTest {
             // 일반/비즈니스 회원(m1,m2,m3,m5,m6) 5건만 조회되고 m4(admin)는 제외된다
             assertThat(rows).hasSize(5)
             assertThat(total).isEqualTo(5L)
-            assertThat(rows.map { it.first.loginId }).doesNotContain("admin_choi")
+            assertThat(rows.map { it.member.loginId }).doesNotContain("admin_choi")
             // 반환된 역할 이름은 허용 집합 내에 있어야 한다
-            assertThat(rows.map { it.second }).allMatch { it in generalRoleNames }
+            assertThat(rows.map { it.roleName }).allMatch { it in generalRoleNames }
         }
     }
 
@@ -116,8 +116,8 @@ class MemberSearchRepositoryTest {
                 setOf("ADMIN_USER", "ADMIN_MASTER", "ADMIN_DEVELOPER"),
             )
             assertThat(rows).hasSize(1)
-            assertThat(rows[0].first.loginId).isEqualTo("admin_choi")
-            assertThat(rows[0].second).isEqualTo("ADMIN_USER")
+            assertThat(rows[0].member.loginId).isEqualTo("admin_choi")
+            assertThat(rows[0].roleName).isEqualTo("ADMIN_USER")
         }
     }
 
@@ -130,7 +130,7 @@ class MemberSearchRepositoryTest {
                 generalRoleNames,
             )
             assertThat(rows).hasSize(1)
-            assertThat(rows[0].first.loginId).isEqualTo("user_park")
+            assertThat(rows[0].member.loginId).isEqualTo("user_park")
         }
     }
 
@@ -143,7 +143,7 @@ class MemberSearchRepositoryTest {
                 generalRoleNames,
             )
             assertThat(rows).hasSize(1)
-            assertThat(rows[0].first.loginId).isEqualTo("user_park")
+            assertThat(rows[0].member.loginId).isEqualTo("user_park")
         }
     }
 
@@ -156,7 +156,7 @@ class MemberSearchRepositoryTest {
                 generalRoleNames,
             )
             assertThat(rows).hasSize(1)
-            assertThat(rows[0].first.loginId).isEqualTo("biz_lee")
+            assertThat(rows[0].member.loginId).isEqualTo("biz_lee")
         }
     }
 
@@ -204,7 +204,7 @@ class MemberSearchRepositoryTest {
                 generalRoleNames,
             )
             assertThat(rows).hasSize(1)
-            assertThat(rows[0].first.loginId).isEqualTo("promo%end")
+            assertThat(rows[0].member.loginId).isEqualTo("promo%end")
         }
     }
 }
