@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.ContentCachingRequestWrapper
 import org.springframework.web.util.ContentCachingResponseWrapper
-import java.nio.charset.Charset
 
 /**
  * ## HTTP 요청/응답 액세스 로그 필터
@@ -172,11 +171,11 @@ class AccessLoggingFilter : OncePerRequestFilter() {
      * 바이트 본문을 한 줄 + 마스킹 + 길이 제한된 로그 스니펫으로 변환하는 공통 로직.
      * 요청/응답 본문이 동일한 규칙으로 처리되도록 하나로 모았다.
      */
-    private fun snippetOf(bytes: ByteArray, encoding: String?): String {
+    private fun snippetOf(bytes: ByteArray, @Suppress("UNUSED_PARAMETER") encoding: String?): String {
         if (bytes.isEmpty()) return ""
 
-        val charset = runCatching { Charset.forName(encoding) }.getOrDefault(Charsets.UTF_8)
-        val raw = String(bytes, charset)
+        // Content-Type에 charset이 없으면 서블릿 기본값(ISO-8859-1)이 반환되어 한글이 깨지므로 항상 UTF-8로 고정
+        val raw = String(bytes, Charsets.UTF_8)
 
         // 줄바꿈/탭은 한 줄 로그로 흡수되어야 가독성이 좋음
         val singleLine = raw.replace(Regex("\\s+"), " ").trim()
