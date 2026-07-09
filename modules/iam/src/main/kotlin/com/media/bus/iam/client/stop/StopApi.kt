@@ -1,12 +1,10 @@
 package com.media.bus.iam.client.stop
 
-import com.media.bus.iam.client.stop.dto.BulkStopLookupRequest
-import com.media.bus.iam.client.stop.dto.StopPageResponse
+import com.media.bus.iam.client.stop.dto.*
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.service.annotation.GetExchange
-import org.springframework.web.service.annotation.HttpExchange
-import org.springframework.web.service.annotation.PostExchange
+import org.springframework.web.service.annotation.*
 import java.util.*
 
 /**
@@ -35,4 +33,20 @@ interface StopApi {
     /** pk(UUID) 복수 기반 일괄 조회 — 내부 전용 POST /bulk */
     @PostExchange("/bulk")
     fun getStopsByPks(@RequestBody request: BulkStopLookupRequest): StopPageResponse?
+
+    /** 정류소 단가 조회 (내부 전용) */
+    @GetExchange("/price/{stopId}")
+    fun getStopPrice(@PathVariable stopId: UUID): StopPriceApiResponse?
+
+    /** 정류소 단가 등록 (내부 전용) */
+    @PostExchange("/price")
+    fun createStopPrice(@RequestBody request: CreateStopPriceRequest): StopPriceApiResponse?
+
+    /** 정류소 단가 수정 (내부 전용) */
+    @PutExchange("/price/{stopId}")
+    fun updateStopPrice(@PathVariable stopId: UUID, @RequestBody request: UpdateStopPriceRequest): StopPriceApiResponse?
+
+    /** 정류소 단가 삭제 (내부 전용) */
+    @DeleteExchange("/price/{stopId}")
+    fun deleteStopPrice(@PathVariable stopId: UUID, @RequestParam("changedById") changedById: UUID?)
 }

@@ -12,5 +12,7 @@
   <!-- V002: stop version 컬럼 + stop_update_history 테이블 -->
   <include file="/db/changelog/V002_stop_version_and_history.xml"/>
 
+  <!-- V003: 정류소 단가 테이블 + 단가 변경 이력 테이블 -->
+  <include file="/db/changelog/V003_stop_price_table.xml"/>
 
 </databaseChangeLog>
