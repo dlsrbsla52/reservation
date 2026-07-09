@@ -1,10 +1,9 @@
 package com.media.bus.iam.client.stop
 
-import com.media.bus.iam.client.stop.dto.BulkStopLookupRequest
-import com.media.bus.iam.client.stop.dto.StopInfo
-import com.media.bus.iam.client.stop.dto.StopPageResponse
+import com.media.bus.iam.client.stop.dto.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.math.BigDecimal
 import java.util.*
 
 /**
@@ -51,4 +50,30 @@ class StopServiceClient(
 
     private fun extractList(response: StopPageResponse?): List<StopInfo> =
         response?.data?.list ?: emptyList()
+
+    /** 정류소 단가를 조회한다. 등록된 단가가 없으면 null을 반환한다. */
+    fun getStopPrice(stopId: UUID): StopPriceInfo? {
+        log.debug("[StopServiceClient] 정류소 단가 조회: stopId={}", stopId)
+        return stopApi.getStopPrice(stopId)?.data
+    }
+
+    /** 정류소 단가를 신규 등록한다. */
+    fun createStopPrice(stopId: UUID, unitPrice: BigDecimal, registeredById: UUID): StopPriceInfo {
+        log.debug("[StopServiceClient] 정류소 단가 등록: stopId={}", stopId)
+        val response = stopApi.createStopPrice(CreateStopPriceRequest(stopId, unitPrice, registeredById))
+        return response?.data ?: throw IllegalStateException("정류소 단가 등록에 실패했습니다.")
+    }
+
+    /** 정류소 단가를 수정한다. */
+    fun updateStopPrice(stopId: UUID, unitPrice: BigDecimal, changedById: UUID): StopPriceInfo {
+        log.debug("[StopServiceClient] 정류소 단가 수정: stopId={}", stopId)
+        val response = stopApi.updateStopPrice(stopId, UpdateStopPriceRequest(unitPrice, changedById))
+        return response?.data ?: throw IllegalStateException("정류소 단가 수정에 실패했습니다.")
+    }
+
+    /** 정류소 단가를 삭제한다. */
+    fun deleteStopPrice(stopId: UUID, changedById: UUID) {
+        log.debug("[StopServiceClient] 정류소 단가 삭제: stopId={}", stopId)
+        stopApi.deleteStopPrice(stopId, changedById)
+    }
 }

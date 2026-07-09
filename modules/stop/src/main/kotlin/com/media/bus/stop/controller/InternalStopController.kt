@@ -3,8 +3,12 @@ package com.media.bus.stop.controller
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.response.ListData
 import com.media.bus.stop.dto.request.BulkStopLookupRequest
+import com.media.bus.stop.dto.request.CreateStopPriceRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
+import com.media.bus.stop.dto.request.UpdateStopPriceRequest
 import com.media.bus.stop.dto.response.BusStopResponse
+import com.media.bus.stop.dto.response.StopPriceResponse
+import com.media.bus.stop.service.StopPriceService
 import com.media.bus.stop.service.StopService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -29,6 +33,7 @@ import java.util.*
 @RequestMapping("/api/v1/internal/stop")
 class InternalStopController(
     private val stopService: StopService,
+    private val stopPriceService: StopPriceService,
 ) {
 
     @Operation(
@@ -56,4 +61,54 @@ class InternalStopController(
         @RequestBody @Valid request: BulkStopLookupRequest,
     ): ApiResponse<ListData<BusStopResponse>> =
         ApiResponse.page(stopService.getBusStopsByIds(request.ids))
+
+    // ─────────────────────────────────────────────────────────────────
+    // 정류소 단가 (내부 전용)
+    // ─────────────────────────────────────────────────────────────────
+
+    @Operation(
+        summary = "정류소 단가 조회 (내부 전용)",
+        description = "정류소 pk(UUID) 기준 현재 단가를 조회합니다. 등록된 단가가 없으면 data가 null인 성공 응답을 반환합니다.",
+    )
+    @GetMapping("/price/{stopId}")
+    fun getStopPrice(@PathVariable stopId: UUID): ApiResponse<StopPriceResponse?> =
+        ApiResponse.success(stopPriceService.getPrice(stopId))
+
+    @Operation(
+        summary = "정류소 단가 등록 (내부 전용)",
+        description = "정류소당 단가 1건을 신규 등록합니다. 이미 등록된 정류소는 409 CONFLICT를 반환합니다.",
+    )
+    @PostMapping("/price")
+    fun createStopPrice(
+        @RequestBody @Valid request: CreateStopPriceRequest,
+    ): ApiResponse<StopPriceResponse> =
+        ApiResponse.success(
+            stopPriceService.createPrice(request.stopId, request.unitPrice, request.registeredById),
+        )
+
+    @Operation(
+        summary = "정류소 단가 수정 (내부 전용)",
+        description = "등록된 정류소 단가를 변경합니다. 등록된 단가가 없으면 404 NOT_FOUND를 반환합니다.",
+    )
+    @PutMapping("/price/{stopId}")
+    fun updateStopPrice(
+        @PathVariable stopId: UUID,
+        @RequestBody @Valid request: UpdateStopPriceRequest,
+    ): ApiResponse<StopPriceResponse> =
+        ApiResponse.success(
+            stopPriceService.updatePrice(stopId, request.unitPrice, request.changedById),
+        )
+
+    @Operation(
+        summary = "정류소 단가 삭제 (내부 전용)",
+        description = "등록된 정류소 단가를 삭제합니다. 등록된 단가가 없으면 404 NOT_FOUND를 반환합니다.",
+    )
+    @DeleteMapping("/price/{stopId}")
+    fun deleteStopPrice(
+        @PathVariable stopId: UUID,
+        @RequestParam(required = false) changedById: UUID?,
+    ): ApiResponse<Unit?> {
+        stopPriceService.deletePrice(stopId, changedById)
+        return ApiResponse.successWithMessage("정류소 단가가 삭제되었습니다.")
+    }
 }
