@@ -24,6 +24,13 @@ x-local-app-common: &local-app-common
     IAM_SERVICE_URL: http://iam-service:8181
     STOP_SERVICE_URL: http://stop-service:8182
     RESERVATION_SERVICE_URL: http://reservation-service:8183
+    # APM(OTLP) — 컨테이너 내부에서는 alloy 서비스명으로 push
+    OTLP_TRACES_ENDPOINT: http://alloy:4318/v1/traces
+    OTLP_METRICS_ENDPOINT: http://alloy:4318/v1/metrics
+    # 로컬은 전량 수집(1.0)해 모든 트레이스 확인
+    OTLP_TRACE_SAMPLING: ${OTLP_TRACE_SAMPLING:-1.0}
+    # 관측성 스택 미가동 시 OTEL_ENABLED=false로 export 시도/로그 노이즈 제거
+    OTEL_ENABLED: ${OTEL_ENABLED:-true}
 
 services:
   database:
@@ -147,6 +154,8 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: msa-loki
+    # 관측성 스택은 opt-in — 기본 `up`에서는 뜨지 않는다. 켜기: --profile observability
+    profiles: ["observability"]
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -160,9 +169,43 @@ services:
       retries: 10
     logging: *default-logging
 
+  # 분산 트레이스 백엔드 (monolithic). 3200 포트를 호스트에 노출해 디버깅 편의 제공.
+  tempo:
+    image: grafana/tempo:2.7.0
+    container_name: msa-tempo
+    profiles: ["observability"]
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "${TEMPO_HOST_PORT:-3200}:3200"
+    depends_on:
+      prometheus:
+        condition: service_started
+    logging: *default-logging
+
+  # 메트릭 백엔드. 9090 포트를 호스트에 노출해 PromQL 직접 확인 가능.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: msa-prometheus
+    profiles: ["observability"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver # OTLP push 경로(/api/v1/write) 활성화
+      - --enable-feature=exemplar-storage # 메트릭↔트레이스 exemplar 연결
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+    logging: *default-logging
+
   alloy:
     image: grafana/alloy:v1.16.3
     container_name: msa-alloy
+    profiles: ["observability"]
     command:
       - run
       - /etc/alloy/config.alloy
@@ -171,6 +214,11 @@ services:
       - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy_data:/var/lib/alloy/data
+    ports:
+      # 호스트(IntelliJ 등)에서 앱을 직접 실행할 때 localhost:4318로 OTLP push 가능하도록 노출
+      - "${ALLOY_OTLP_GRPC_PORT:-4317}:4317"
+      - "${ALLOY_OTLP_HTTP_PORT:-4318}:4318"
+    # tempo/prometheus는 하드 의존에서 제외 — "로그만" 부분 기동을 위해.
     depends_on:
       loki:
         condition: service_healthy
@@ -179,6 +227,7 @@ services:
   grafana:
     image: grafana/grafana:11.0.0
     container_name: msa-grafana
+    profiles: ["observability"]
     ports:
       - "${GRAFANA_HOST_PORT:-3300}:3000"
     environment:
@@ -199,3 +248,5 @@ volumes:
   loki_data:
   grafana_data:
   alloy_data:
+  tempo_data:
+  prometheus_data:

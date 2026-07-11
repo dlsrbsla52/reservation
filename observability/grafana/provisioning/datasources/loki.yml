@@ -4,9 +4,17 @@ apiVersion: 1
 datasources:
   - name: Loki
     type: loki
+    uid: loki
     access: proxy
     url: http://loki:3100
     isDefault: true
     jsonData:
       # 컨테이너 로그의 JSON 필드(requestId/traceId)를 Grafana에서 파생 필드로 인식하기 쉽게
       maxLines: 1000
+      # 로그 → 트레이스: JSON 로그의 traceId 값을 추출해 Tempo 트레이스로 이동하는 링크 생성
+      derivedFields:
+        - name: TraceID
+          matcherType: regex
+          matcherRegex: '"traceId":"(\w+)"'
+          url: '${__value.raw}'
+          datasourceUid: tempo

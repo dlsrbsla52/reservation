@@ -10,7 +10,15 @@ x-logging: &default-logging
 x-app-common: &app-common
   restart: unless-stopped
   logging: *default-logging
+  # 컨테이너 메모리 상한 — 단일 EC2에서 한 서비스가 호스트를 잠식하지 못하도록 캡.
+  # (docker compose v2는 deploy.resources.limits.memory를 up에도 적용)
+  deploy:
+    resources:
+      limits:
+        memory: 768M # heap는 MaxRAMPercentage=75 → 약 560M, 나머지는 metaspace/thread/direct
   environment: &app-env
+    # 컨테이너 메모리의 75%를 힙 상한으로 (고정 -Xmx 대신 컨테이너 인지 방식)
+    JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
     DB_HOST: database
     DB_PORT: 5432
     DB_NAME: ${POSTGRES_DB:-default}
@@ -24,12 +32,23 @@ x-app-common: &app-common
     IAM_SERVICE_URL: http://iam-service:8181
     STOP_SERVICE_URL: http://stop-service:8182
     RESERVATION_SERVICE_URL: http://reservation-service:8183
+    # APM(OTLP) — 앱이 트레이스/메트릭을 Alloy로 push. Alloy가 Tempo/Prometheus로 팬아웃.
+    OTLP_TRACES_ENDPOINT: http://alloy:4318/v1/traces
+    OTLP_METRICS_ENDPOINT: http://alloy:4318/v1/metrics
+    # 운영 샘플링 비율 — 성능/비용을 위해 기본 10%. 전량 수집이 필요하면 1.0으로 override.
+    OTLP_TRACE_SAMPLING: ${OTLP_TRACE_SAMPLING:-0.1}
+    # 관측성 스택을 띄우지 않는 lean 배포에서는 .env에 OTEL_ENABLED=false로 두어 export 시도를 끈다.
+    OTEL_ENABLED: ${OTEL_ENABLED:-true}
 
 services:
   database:
     image: postgres:18.3
     container_name: msa-postgres
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1024M # PostgreSQL — shared_buffers/커넥션 고려 (프로드는 Aurora 권장)
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -48,6 +67,10 @@ services:
     image: valkey/valkey:8.1.6
     container_name: msa-valkey
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     command: ["valkey-server", "--appendonly", "yes"]
     volumes:
       - valkey_data:/data
@@ -125,7 +148,13 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: msa-loki
+    # 관측성 스택은 opt-in — 기본 `up`에서는 뜨지 않는다. 켜기: --profile observability
+    profiles: ["observability"]
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -139,10 +168,59 @@ services:
       retries: 10
     logging: *default-logging
 
+  # 분산 트레이스 백엔드 (monolithic). 앱 OTLP → Alloy → Tempo.
+  tempo:
+    image: grafana/tempo:2.7.0
+    container_name: msa-tempo
+    profiles: ["observability"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    expose:
+      - "3200" # Grafana 쿼리 API
+      - "4317" # OTLP gRPC (Alloy → Tempo)
+    depends_on:
+      prometheus:
+        condition: service_started
+    logging: *default-logging
+
+  # 메트릭 백엔드. remote-write receiver로 Alloy/Tempo가 push한 메트릭 수신.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: msa-prometheus
+    profiles: ["observability"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver # OTLP push 경로(/api/v1/write) 활성화
+      - --enable-feature=exemplar-storage # 메트릭↔트레이스 exemplar 연결
+      - --storage.tsdb.retention.time=7d # 단일 호스트 디스크 보호 (7일 보존)
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    logging: *default-logging
+
   alloy:
     image: grafana/alloy:v1.16.3
     container_name: msa-alloy
+    profiles: ["observability"]
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     command:
       - run
       - /etc/alloy/config.alloy
@@ -151,6 +229,11 @@ services:
       - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - alloy_data:/var/lib/alloy/data
+    expose:
+      - "4317" # OTLP gRPC (앱 → Alloy)
+      - "4318" # OTLP HTTP (앱 → Alloy)
+    # tempo/prometheus는 하드 의존에서 제외 — 미기동 시 OTLP export만 재시도(무해).
+    # 덕분에 "로그만" 부분 기동(up -d loki alloy grafana)이 트레이스/메트릭 백엔드를 끌어오지 않는다.
     depends_on:
       loki:
         condition: service_healthy
@@ -159,7 +242,12 @@ services:
   grafana:
     image: grafana/grafana:11.0.0
     container_name: msa-grafana
+    profiles: ["observability"]
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     ports:
       - "${GRAFANA_PORT:-3300}:3000"
     environment:
@@ -170,6 +258,7 @@ services:
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
+    # 백엔드가 없어도 Grafana는 기동됨(데이터소스만 unreachable 표시) → 하드 의존 최소화
     depends_on:
       loki:
         condition: service_healthy
@@ -181,3 +270,5 @@ volumes:
   loki_data:
   grafana_data:
   alloy_data:
+  tempo_data:
+  prometheus_data:

@@ -1,0 +1,15 @@
+# Grafana 기동 시 Prometheus 데이터소스를 자동 등록.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    jsonData:
+      httpMethod: POST
+      # 메트릭에 붙은 exemplar(trace_id)를 클릭하면 Tempo 트레이스로 이동
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
