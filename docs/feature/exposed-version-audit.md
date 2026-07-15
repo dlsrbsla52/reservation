@@ -73,7 +73,7 @@ import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 |---|---|---|
 | 1.1.0 | coroutine 취소 시 `suspendTransaction` 연결 누수 수정, `SELECT FOR UPDATE`의 stale entity 수정 | JDBC coroutine 또는 DAO 동시성 경로가 있으면 유의미 |
 | 1.2.0 | 컬럼 comment, Oracle `FOR UPDATE SKIP LOCKED`, check constraint 변경 감지 강화 | Liquibase 중심인 현재 구조에는 직접 영향이 작음 |
-| 1.3.0 | Exposed Gradle migration plugin, UUID v4/v7 자동 생성, VECTOR 타입 | DB-first 코드 생성 기능은 제공하지 않음. DB 변경은 기존 원칙대로 Liquibase 유지 |
+| 1.3.0 | Exposed Gradle migration plugin, Kotlin `Uuid`의 V4/V7 생성 버전 선택, VECTOR 타입 | DB-first 코드 생성 기능은 제공하지 않음. Java UUID 기반 현재 모델에는 직접 적용되지 않음 |
 | 1.3.1 | `ResultRow` 캐시 성능 개선 및 Spring Native/nullable type 수정 | DSL 조회량이 많다면 성능·안정성 이점 가능 |
 
 > [!important]
@@ -85,6 +85,73 @@ import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 - 새 기능 사용, 성능 개선, 1.x bug fix 반영을 원하면 `1.3.1`로 올리는 것을 권장한다.
 - 업그레이드는 루트 `build.gradle.kts`의 `exposedVersion` 한 곳을 변경하는 방식으로 시작할 수 있다.
 - Java UUID API는 유지한다. Kotlin `Uuid`로 바꾸는 작업은 별도 타입 마이그레이션으로 취급한다.
+
+## 현재 `UuidV7` 구현과 Kotlin 표준 생성기
+
+프로젝트의 `modules/common/.../UuidV7.kt`는 모든 Entity 생성 경로에서 `java.util.UUID` UUIDv7을 미리 할당하는 facade다. 현재 비트 구성은 RFC 9562 UUIDv7 형식에 맞는다.
+
+```kotlin
+fun generate(): UUID {
+    val timestamp = Instant.now().toEpochMilli()
+    val msb = (timestamp shl 16) or (7L shl 12) or (random.nextLong() and 0xFFFL)
+    val lsb = (random.nextLong() and 0x3FFFFFFFFFFFFFFFL) or Long.MIN_VALUE
+    return UUID(msb, lsb)
+}
+```
+
+| 구성 | 현재 구현 |
+|---|---|
+| 상위 48 bit | Unix epoch milliseconds |
+| version | UUIDv7 (`0111`) |
+| variant | RFC 9562 variant (`10`) |
+| 나머지 bit | `SecureRandom` 난수 |
+| Exposed 호환 | `javaUUID()`, `UUIDTable`, `UUIDEntity`와 직접 호환 |
+
+### 동일 밀리초의 단조성
+
+현재 구현의 timestamp는 밀리초 단위이고 나머지 74 bit는 난수다.
+
+```text
+같은 1ms
+UUID #1 = [timestamp][random suffix A]
+UUID #2 = [timestamp][random suffix B]
+```
+
+따라서 같은 밀리초에 생성한 두 값의 순서는 보장되지 않는다. 시간이 바뀌면 timestamp prefix가 커지므로 장기적으로는 B-tree 오른쪽 시간 영역에 집중되지만, 주석의 `monotonically increasing`은 엄밀히 성립하지 않는다.
+
+Kotlin `2.3.20` 표준 라이브러리의 `Uuid.generateV7()`은 같은 프로세스 생명주기에서 counter를 사용해 **엄격한 단조 증가**를 보장한다. 단일 JVM에서 생성한 PK라면 B-tree 정렬 기준으로 계속 오른쪽 끝에 삽입된다.
+
+다만 여러 Pod/JVM 사이의 전역 단조 증가는 보장하지 않는다. clock skew, 재시작, 과거 데이터 backfill이 있으면 일부 중간 삽입은 발생할 수 있다. 그래도 UUIDv4나 현재 구현보다 index locality가 좋다.
+
+### 권장 교체안
+
+호출부와 DB schema를 바꾸지 않고 `UuidV7` 내부만 표준 구현으로 교체한다.
+
+```kotlin
+package com.media.bus.common.entity.common
+
+import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlin.uuid.toJavaUuid
+
+object UuidV7 {
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun generate(): UUID =
+        Uuid.generateV7().toJavaUuid()
+}
+```
+
+| 항목 | 현재 직접 구현 | Kotlin `Uuid.generateV7()` |
+|---|---|---|
+| 동일 ms 정렬 | 랜덤 순서 | 같은 프로세스 내 엄격한 단조 증가 |
+| 난수 | `SecureRandom` | JVM에서 `SecureRandom` |
+| 호출부/DB schema | 유지 | `toJavaUuid()`로 그대로 유지 |
+| 상태·시계 처리 | 직접 책임 | 표준 라이브러리에 위임 |
+
+> [!important]
+> `Uuid.generateV7()`은 아직 `ExperimentalUuidApi` opt-in이 필요하다. 그러나 이 프로젝트의 Kotlin `2.3.20`에는 API와 `toJavaUuid()` 변환 함수가 포함되어 있어, Java UUID 기반 Exposed DAO 구조를 유지할 수 있다.
 
 ## 업그레이드 검증 절차
 
@@ -107,3 +174,5 @@ import org.jetbrains.exposed.v1.dao.java.UUIDEntity
 - [Exposed 1.0 정식 출시](https://blog.jetbrains.com/kotlin/2026/01/exposed-1-0-is-now-available/)
 - [0.61.0 → 1.0.0 마이그레이션 가이드](https://www.jetbrains.com/help/exposed/migration-guide-1-0-0.html)
 - [공식 변경 이력](https://github.com/JetBrains/Exposed/blob/main/CHANGELOG.md)
+- [Kotlin `Uuid.generateV7()` API](https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.uuid/-uuid/-companion/generate-v7.html)
+- [RFC 9562 UUIDv7](https://datatracker.ietf.org/doc/html/rfc9562#section-5.7)
