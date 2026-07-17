@@ -2,14 +2,11 @@ server:
   port: 8182
 
 spring:
-  application:
-    name: stop-service # OTel service.name + 로그 service 라벨 (compose 서비스명과 일치)
   main:
     allow-bean-definition-overriding: true
   datasource:
     hikari:
-      # 단일 EC2/Aurora 커넥션 절약 — 기존 20 → 10 (env로 override 가능)
-      maximum-pool-size: ${DB_POOL_SIZE:10}
+      maximum-pool-size: 20
     url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}?schema=stop"
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
@@ -38,30 +35,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, loggers, metrics
+        include: health, loggers
   endpoint:
     loggers:
       access: unrestricted # POST 레벨 변경 허용 (기본값이지만 명시)
-  # APM(에이전트리스 OpenTelemetry) — Micrometer Observation 방식.
-  # -javaagent 미사용 → Java 25(JEP 491)에서 Virtual Thread pinning 없음.
-  tracing:
-    # OTEL_ENABLED=false → 트레이싱 자체 비활성(관측성 미가동 시 export 시도/로그 노이즈 제거).
-    # 이 경우에도 requestId(MdcLoggingFilter)는 유지되어 로그 상관관계는 가능하다.
-    enabled: ${OTEL_ENABLED:true}
-    sampling:
-      probability: ${OTLP_TRACE_SAMPLING:1.0} # 운영은 0.1 등으로 하향(환경변수 주입)
-  # 트레이스 OTLP 익스포터 — Boot 4.0 속성 경로(management.opentelemetry.tracing.export.otlp.*)
-  opentelemetry:
-    tracing:
-      export:
-        otlp:
-          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces} # → Alloy OTLP 리시버
-  otlp:
-    metrics:
-      export:
-        enabled: ${OTEL_ENABLED:true} # 메트릭 OTLP push 토글
-        url: ${OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
-        step: 30s # 메트릭 push 주기
 
 hig:
   bulkhead:
