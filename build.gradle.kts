@@ -4,7 +4,7 @@ buildscript {
 
     extra["springBootVersion"] = springBootVersion
     extra["kotlinVersion"] = kotlinVersion
-    extra["exposedVersion"] = "1.3.1"
+    extra["exposedVersion"] = "1.0.0"
 
     repositories {
         mavenCentral()
