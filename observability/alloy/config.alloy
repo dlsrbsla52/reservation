@@ -1,15 +1,8 @@
-// Grafana Alloy — 관측성 신호(로그/트레이스/메트릭)의 단일 수집 게이트웨이.
-// (Promtail + OpenTelemetry Collector를 대체하는 통합 컴포넌트)
+// Grafana Alloy — Docker 컨테이너 stdout 로그를 수집해 Loki로 전송한다.
+// (Promtail 후속 컴포넌트. Docker 소켓으로 컨테이너를 자동 발견하고 로그를 tail 한다.)
 //
-// 1) 로그: Docker 컨테이너 stdout(JSON 구조화 로그)을 tail → Loki
-// 2) 트레이스/메트릭: 앱이 OTLP(HTTP 4318 / gRPC 4317)로 push → Tempo(트레이스) / Prometheus(메트릭)
-//
-// 앱은 -javaagent 없이 Micrometer Observation(에이전트리스)으로 OTLP를 내보내므로
-// Java 25(JEP 491) 환경에서 Virtual Thread pinning이 발생하지 않는다.
-
-// =====================================================================
-// [로그] Docker stdout → Loki
-// =====================================================================
+// 우리 앱은 운영 프로파일에서 JSON 구조화 로그(JsonTemplateLayout)를 stdout으로 내보내므로,
+// 여기서 JSON을 파싱해 level/logger를 라벨로, 나머지(requestId/traceId 등)는 쿼리시 `| json` 으로 다룬다.
 
 // 1) Docker 데몬에서 실행 중인 컨테이너 목록을 발견
 discovery.docker "containers" {
@@ -66,53 +59,5 @@ loki.process "parse" {
 loki.write "default" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
-  }
-}
-
-// =====================================================================
-// [트레이스/메트릭] 앱 OTLP → Tempo / Prometheus
-// =====================================================================
-
-// 6) 앱이 보내는 OTLP 신호 수신 (HTTP 4318 / gRPC 4317)
-otelcol.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317"
-  }
-  http {
-    endpoint = "0.0.0.0:4318"
-  }
-
-  output {
-    traces  = [otelcol.processor.batch.default.input]
-    metrics = [otelcol.processor.batch.default.input]
-  }
-}
-
-// 7) 배치 처리로 다운스트림 부하 완화
-otelcol.processor.batch "default" {
-  output {
-    traces  = [otelcol.exporter.otlp.tempo.input]
-    metrics = [otelcol.exporter.prometheus.default.input]
-  }
-}
-
-// 8) 트레이스 → Tempo (OTLP gRPC)
-otelcol.exporter.otlp "tempo" {
-  client {
-    endpoint = "tempo:4317"
-    tls {
-      insecure = true // 내부 Docker 네트워크 — TLS 미사용
-    }
-  }
-}
-
-// 9) 메트릭 → Prometheus (OTLP 메트릭을 Prometheus 포맷으로 변환 후 remote_write)
-otelcol.exporter.prometheus "default" {
-  forward_to = [prometheus.remote_write.default.receiver]
-}
-
-prometheus.remote_write "default" {
-  endpoint {
-    url = "http://prometheus:9090/api/v1/write"
   }
 }

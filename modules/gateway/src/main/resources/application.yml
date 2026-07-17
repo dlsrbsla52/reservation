@@ -68,28 +68,3 @@ jwt:
 rest:
   service:
     apply-patterns: /health-check
-
-# APM(에이전트리스 OpenTelemetry) — WebFlux(Netty)에서도 Micrometer Observation으로 서버 span 생성.
-# 게이트웨이가 트레이스 진입점 → traceparent 헤더로 하위 서비스에 컨텍스트 전파(분산 트레이스 연결).
-# -javaagent 미사용 + Reactor 논블로킹 → Virtual Thread pinning 무관.
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, metrics
-  tracing:
-    enabled: ${OTEL_ENABLED:true} # 관측성 미가동 시 false로 트레이싱/ export 비활성
-    sampling:
-      probability: ${OTLP_TRACE_SAMPLING:1.0} # 운영은 0.1 등으로 하향(환경변수 주입)
-  # 트레이스 OTLP 익스포터 — Boot 4.0 속성 경로(management.opentelemetry.tracing.export.otlp.*)
-  opentelemetry:
-    tracing:
-      export:
-        otlp:
-          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces} # → Alloy OTLP 리시버
-  otlp:
-    metrics:
-      export:
-        enabled: ${OTEL_ENABLED:true} # 메트릭 OTLP push 토글
-        url: ${OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
-        step: 30s # 메트릭 push 주기

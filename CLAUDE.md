@@ -43,8 +43,6 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 
 인프라: PostgreSQL 18.3 (port **15433**), Valkey 8.1.6 / Redis (port **6379**)
 
-관측성/APM: 에이전트리스 OpenTelemetry + Grafana LGTM(Loki/Tempo/Prometheus/Grafana), 수집은 Alloy. docker-compose `observability` 프로파일로 opt-in. 상세 → `docs/infra/APM 및 관측성 스택.md`, 설정 → `observability/`
-
 라우팅: `/api/v1/auth/**`, `/api/v1/admin/**` → 8181 / `/api/v1/stop/**` → 8182 / `/api/v1/reservation/**` → 8183
 
 ## Code Conventions (MUST FOLLOW)
