@@ -1,5 +1,5 @@
 # EC2 같은 단일 서버 배포용 compose.
-# DB/Valkey/하위 서비스는 Docker 내부망에 두고, 외부 노출은 Gateway/Grafana 및 별도 프론트 컨테이너로 제한한다.
+# DB/Valkey/하위 서비스는 Docker 내부망에 두고, 외부 노출은 Gateway 및 별도 프론트 컨테이너로 제한한다.
 
 x-logging: &default-logging
   driver: json-file
@@ -122,62 +122,6 @@ services:
       reservation-service:
         condition: service_started
 
-  loki:
-    image: grafana/loki:3.0.0
-    container_name: msa-loki
-    restart: unless-stopped
-    command: -config.file=/etc/loki/loki-config.yml
-    volumes:
-      - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
-      - loki_data:/loki
-    expose:
-      - "3100"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --tries=1 -O- http://localhost:3100/ready | grep -q ready || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    logging: *default-logging
-
-  alloy:
-    image: grafana/alloy:v1.16.3
-    container_name: msa-alloy
-    restart: unless-stopped
-    command:
-      - run
-      - /etc/alloy/config.alloy
-      - --storage.path=/var/lib/alloy/data
-    volumes:
-      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - alloy_data:/var/lib/alloy/data
-    depends_on:
-      loki:
-        condition: service_healthy
-    logging: *default-logging
-
-  grafana:
-    image: grafana/grafana:11.0.0
-    container_name: msa-grafana
-    restart: unless-stopped
-    ports:
-      - "${GRAFANA_PORT:-3300}:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-}
-    volumes:
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      loki:
-        condition: service_healthy
-    logging: *default-logging
-
 volumes:
   postgres_data:
   valkey_data:
-  loki_data:
-  grafana_data:
-  alloy_data:

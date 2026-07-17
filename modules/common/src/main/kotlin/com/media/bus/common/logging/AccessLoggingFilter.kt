@@ -43,7 +43,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper
  *   주의: 응답 본문은 (기록 여부와 무관하게) 요청 처리 동안 메모리에 버퍼링된다 — in-flight 요청당 일시적이며
  *   `copyBodyToResponse()` 직후 해제된다. 알려진 대용량/스트리밍 엔드포인트는 [shouldNotFilter]에 추가해 제외할 것.
  *
- * MDC(`requestId`, `memberId`, `traceId`/`spanId`)는 [MdcLoggingFilter]가 먼저 주입한 값을
+ * MDC(`requestId`, `memberId`)는 [MdcLoggingFilter]가 먼저 주입한 값을
  * 그대로 사용한다. 따라서 본 필터의 order는 [MdcLoggingFilter]보다 커야 한다.
  *
  * 헬스체크/Actuator 트래픽은 로그 노이즈를 줄이기 위해 제외한다.

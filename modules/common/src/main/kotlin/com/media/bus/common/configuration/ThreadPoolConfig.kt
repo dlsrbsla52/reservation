@@ -27,7 +27,7 @@ class ThreadPoolConfig {
     private val log = LoggerFactory.getLogger(ThreadPoolConfig::class.java)
 
     /**
-     * `@Async` 실행기에 MDC 컨텍스트(requestId, traceId, memberId 등)를 전파하는 TaskDecorator.
+     * `@Async` 실행기에 MDC 컨텍스트(requestId, memberId 등)를 전파하는 TaskDecorator.
      *
      * Spring Boot 4가 이 빈을 자동으로 기본 async 실행기(`applicationTaskExecutor`)에 적용한다.
      * 태스크 제출 시점에 호출 스레드의 MDC 스냅샷을 캡처하고,

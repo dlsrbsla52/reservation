@@ -254,7 +254,7 @@ dependencies {
 
     api(platform("software.amazon.awssdk:bom:2.39.2"))
     api("io.github.resilience4j:resilience4j-spring-boot3:2.4.0")
-    api("io.micrometer:micrometer-tracing-bridge-otel")
+    api("org.springframework.boot:spring-boot-starter-actuator")
 }
 ```
 
