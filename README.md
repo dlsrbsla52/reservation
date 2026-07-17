@@ -1,6 +1,6 @@
 # 예약 시스템 개발 프로젝트
 
-> **`Java 25 (LTS)`** · **`Spring Boot 4.0.5`** · **`Kotlin 2.3.20 (K2)`** 기반 MSA(Microservices Architecture) 보일러플레이트
+> **`Java 25 (LTS)`** · **`Spring Boot 4.1.0`** · **`Kotlin 2.3.20 (K2)`** 기반 MSA(Microservices Architecture) 보일러플레이트
 
 ## 시스템 아키텍처 (MSA Multi-Module 구조)
 본 프로젝트는 **MSA(Microservices Architecture)** 구조를 지향하며, 단일 프로젝트(Monorepo) 내에서 멀티 모듈 기반으로 구성됩니다. 각 서브 모듈은 도메인 특성에 맞게 독립적인 웹 애플리케이션으로 동작합니다.
@@ -20,9 +20,9 @@
 |--------|------|-----------|
 | **언어** | Kotlin 2.3.20 (K2 컴파일러) | Null 안전성, `data class`, `sealed interface`, JDK API 직접 호출 가능 |
 | **런타임/타깃** | JDK 25 (LTS, 2025-09) | Virtual Thread 핀닝 해소(JEP 491, JDK 24) + `ScopedValue` 정식 표준화(JEP 506, JDK 25) |
-| **프레임워크** | Spring Boot 4.0.5 (Spring Framework 7) | Boot 4 BOM 통합, 최신 Auto-Configuration |
-| **API Gateway** | Spring Cloud Gateway 5.x (WebFlux/Netty) | Reactive 라우팅, Spring Cloud `2025.1.1 Oakwood` Boot 4 공식 호환 |
-| **ORM** | Exposed 1.0.0 (DAO + DSL) | Kotlin 친화적 type-safe SQL, JPA 대비 가벼움 |
+| **프레임워크** | Spring Boot 4.1.0 (Spring Framework 7) | Boot 4 BOM 통합, 최신 Auto-Configuration |
+| **API Gateway** | Spring Cloud Gateway 5.x (WebFlux/Netty) | Reactive 라우팅, Spring Cloud `2025.1.2 Oakwood` Boot 4.1 공식 호환 |
+| **ORM** | Exposed 1.3.1 (DAO + DSL) | Kotlin 친화적 type-safe SQL, JPA 대비 가벼움 |
 | **DB** | PostgreSQL 18.3 | 모듈별 schema 격리 (`auth` / `stop` / `reservation`) |
 | **캐시/세션** | Valkey 8.1.6 (Redis 호환) | Redis BSL 라이선스 회피, BSD-3-Clause |
 | **인증** | JWT (jjwt 0.13.0, HS256) | 단일 조직 내부망 MSA에 적합한 대칭키 |

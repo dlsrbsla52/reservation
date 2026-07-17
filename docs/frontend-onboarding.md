@@ -9,7 +9,7 @@
 ## 1. 프로젝트 한눈에 보기
 
 본 프로젝트는 **버스 정류소 광고 예약 시스템**입니다.
-Spring Boot 4.0.5 + Kotlin 2.3.20 기반의 **MSA(Microservices Architecture)** 로, 단일 Repo(Monorepo) 안에 다음 5개 모듈이 독립적인 마이크로서비스로 배포됩니다.
+Spring Boot 4.1.0 + Kotlin 2.3.20 기반의 **MSA(Microservices Architecture)** 로, 단일 Repo(Monorepo) 안에 다음 5개 모듈이 독립적인 마이크로서비스로 배포됩니다.
 
 | 서비스 | 포트 | 역할 |
 |--------|------|------|

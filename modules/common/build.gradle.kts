@@ -56,6 +56,17 @@ dependencies {
     // Micrometer Tracing + OpenTelemetry — traceId/spanId MDC 자동 주입
     api("org.springframework.boot:spring-boot-starter-actuator")
     api("io.micrometer:micrometer-tracing-bridge-otel")
+
+    // APM(에이전트리스 OpenTelemetry) — OTLP로 트레이스/메트릭을 Alloy → Tempo/Prometheus에 전송.
+    // -javaagent를 붙이지 않으므로 Java 25(JEP 491) 환경에서 Virtual Thread pinning이 없다.
+    // 버전은 Spring Boot 4.1 BOM(OpenTelemetry BOM 포함)이 관리하므로 명시하지 않는다.
+    //
+    // ⚠️ Spring Boot 4.x는 actuator 자동구성을 모듈로 분리했다. 트레이싱 OTLP 자동구성
+    // (OpenTelemetryTracingAutoConfiguration, OtlpTracingAutoConfiguration)은 아래 전용 모듈에 있으며
+    // 이게 없으면 Tracer가 생성되지 않아 스팬이 만들어지지 않는다(로그 traceId도 비어 있음).
+    api("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry") // 트레이싱 OTLP 자동구성
+    api("io.opentelemetry:opentelemetry-exporter-otlp")   // 트레이스 span OTLP export 구현
+    api("io.micrometer:micrometer-registry-otlp")         // 메트릭 OTLP export (management.otlp.metrics.*)
 }
 
 // MdcLoggingFilter 동작 시각화 데모

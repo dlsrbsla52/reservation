@@ -19,7 +19,7 @@ dependencies {
 
 dependencyManagement {
     imports {
-        // Spring Cloud 2025.1.1 (Oakwood) — Spring Boot 4.0.x 공식 지원 Release Train
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.1")
+        // Spring Cloud 2025.1.2 (Oakwood) — Spring Boot 4.1.x 지원이 시작된 Release Train
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.2")
     }
 }
