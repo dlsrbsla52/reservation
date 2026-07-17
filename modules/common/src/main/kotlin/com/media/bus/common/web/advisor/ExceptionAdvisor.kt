@@ -35,7 +35,7 @@ class ExceptionAdvisor {
      */
     @ExceptionHandler(BulkheadFullException::class)
     fun bulkheadFullHandler(request: HttpServletRequest, error: BulkheadFullException): ResponseEntity<ErrorView> {
-        log.warn("bulkheadFullHandler: Bulkhead 동시 요청 한도 초과. uri={}", request.requestURI)
+        log.error("bulkheadFullHandler: Bulkhead 동시 요청 한도 초과. uri={}", request.requestURI)
         val headers = HttpHeaders()
         headers.set(HttpHeaders.RETRY_AFTER, "1")
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)

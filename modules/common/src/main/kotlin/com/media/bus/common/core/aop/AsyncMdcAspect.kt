@@ -21,7 +21,7 @@ import org.slf4j.MDC
  *
  * ### 커버 범위
  *
- *   - HTTP 요청 컨텍스트 내 `@Async` -- requestId, traceId, memberId 전파
+ *   - HTTP 요청 컨텍스트 내 `@Async` -- requestId, memberId 전파
  *   - `@Scheduled`, 이벤트 리스너 등 HTTP 컨텍스트 없는 환경 -- 빈 Map으로 안전 처리
  */
 @Aspect

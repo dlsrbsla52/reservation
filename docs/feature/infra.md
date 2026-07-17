@@ -41,15 +41,16 @@
 | API 통합 테스트 | Testcontainers로 PostgreSQL 실제 연결, JWT 인증 포함 E2E |
 | JaCoCo 커버리지 | 모듈별 커버리지 리포트 (`./gradlew jacocoTestReport`) |
 
-### 3. 모니터링/관찰 가능성 (우선순위: 중간)
+### 3. 운영 진단 (현재 범위)
 
 | 기능 | 설명 |
 |------|------|
-| Spring Boot Actuator | `/actuator/health`, `/actuator/metrics` 엔드포인트 활성화 |
-| Micrometer + Prometheus | 요청 수, 레이턴시, JVM 메트릭 수집 |
-| 분산 추적 | Micrometer Tracing (Brave/OpenTelemetry) — MSA 간 요청 추적 |
-| 구조화 로깅 | MDC 기반 `traceId`, `userId`, `module` 필드 포함 JSON 로그 |
-| 로그 수집 | CloudWatch Logs 또는 ELK 스택 연동 |
+| Spring Boot Actuator | `/actuator/health` 헬스체크와 런타임 로그 레벨 조정 |
+| 요청 식별 | `X-Request-ID` / MDC `requestId`로 단일 요청 로그 상관관계 확인 |
+| 로그 조회 | 사람이 읽기 쉬운 stdout 패턴 + `docker compose logs` |
+| 로그 보존 | Docker `json-file` 로테이션으로 단일 EC2 디스크 사용량 제한 |
+
+별도 메트릭·추적·로그 검색 스택은 단일 EC2 자원을 고려해 현재 범위에서 제외한다. 운영 규모가 커지면 CloudWatch 같은 관리형 서비스를 우선 검토한다.
 
 ### 4. AWS 인프라 연동 (우선순위: 중간)
 

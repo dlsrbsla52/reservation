@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch
  *   5. 새 스레드를 만들면 MDC가 전파되지 않고, 명시적 복사로 해결한다
  *
  * **핵심:** 개발자는 MDC를 직접 건드리지 않는다.
- * 로거를 평소처럼 쓰기만 하면 필터와 Micrometer Tracing이 모든 context 필드를 채운다.
+ * 로거를 평소처럼 쓰기만 하면 필터가 요청 context 필드를 채운다.
  */
 object MdcLoggingFilterDemo {
 
@@ -117,7 +117,6 @@ object MdcLoggingFilterDemo {
         Thread.ofVirtual().name("vt-request-handler").start {
             ThreadContext.put("requestId", "vt-park-resume-req-001")
             ThreadContext.put("memberId", "vt-user-park")
-            ThreadContext.put("traceId", "parktrace00001a")
 
             service.info("VT 실행 — IO 호출 직전 (carrier thread 점유 중)")
 
@@ -139,12 +138,10 @@ object MdcLoggingFilterDemo {
 
         for (i in 1..vtCount) {
             val reqId = "vt-$i-req-concurrent"
-            val traceId = "conctrace0000$i"
             Thread.ofVirtual().name("vt-concurrent-$i").start {
                 try {
                     startGate.await()
                     ThreadContext.put("requestId", reqId)
-                    ThreadContext.put("traceId", traceId)
 
                     Thread.sleep((Math.random() * 30).toLong())
 
@@ -167,7 +164,6 @@ object MdcLoggingFilterDemo {
 
         Thread.ofVirtual().name("vt-parent").start {
             ThreadContext.put("requestId", "vt-parent-req-9999")
-            ThreadContext.put("traceId", "parenttrace0001")
 
             service.info("부모 VT — 자식 VT 2개 생성 직전")
 
@@ -209,7 +205,6 @@ object MdcLoggingFilterDemo {
         if (memberId != null) {
             ThreadContext.put("memberId", memberId)
         }
-        ThreadContext.put("traceId", UUID.randomUUID().toString().replace("-", "").substring(0, 16))
 
         filter.info("── 요청 진입 ── MDC 주입 완료: requestId={}, memberId={}", resolvedId, memberId)
 
@@ -219,7 +214,6 @@ object MdcLoggingFilterDemo {
             filter.info("── 요청 종료 ── MDC 정리")
             ThreadContext.remove("requestId")
             ThreadContext.remove("memberId")
-            ThreadContext.remove("traceId")
         }
     }
 
@@ -256,17 +250,14 @@ object MdcLoggingFilterDemo {
                 │                                                                              │
                 └──────────────────────────────────────────────────────────────────────────────┘
 
-                ┌─ CloudWatch Logs Insights 쿼리 예시 ───────────────────────────────────────┐
+                ┌─ Docker 로그 조회 예시 ───────────────────────────────────────┐
                 │                                                                              │
-                │  # 특정 요청의 전체 로그 추적                                              │
-                │  fields @timestamp, level, message, memberId                                  │
-                │  | filter requestId = "front-abc-123-def-456-789"                           │
-                │  | sort @timestamp asc                                                       │
+                │  # 특정 요청의 최근 로그 확인                                              │
+                │  docker compose logs --since=30m stop-service                                │
+                │  docker compose logs stop-service | grep "front-abc-123-def-456-789"        │
                 │                                                                              │
-                │  # 에러 로그에서 traceId로 분산 추적                                      │
-                │  fields @timestamp, level, message, requestId, service                      │
-                │  | filter level = "ERROR"                                                    │
-                │  | filter traceId = "a1b2c3d4e5f60001"                                     │
+                │  # 실시간 로그 확인                                                        │
+                │  docker compose logs -f --tail=200 gateway-service                           │
                 │                                                                              │
                 └──────────────────────────────────────────────────────────────────────────────┘
         """.trimIndent())

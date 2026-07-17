@@ -28,7 +28,6 @@
 | **인증** | JWT (jjwt 0.13.0, HS256) | 단일 조직 내부망 MSA에 적합한 대칭키 |
 | **회복성** | Resilience4j 2.4.0 (Bulkhead, Semaphore) | DB connection pool 고갈 사전 차단 |
 | **로깅** | Log4j2 + LMAX Disruptor 4.0 | 비동기 락프리 로깅, Virtual Thread 핀닝 회피 |
-| **추적** | Micrometer Tracing + OpenTelemetry API | `traceId`/`spanId` MDC 자동 주입 |
 | **에러** | Sentry 4.11.0 | 운영 환경 예외 수집 |
 | **API 문서** | springdoc-openapi 3.0.2 | OpenAPI 3.0 Swagger UI |
 | **마이그레이션** | Liquibase | 모듈별 changelog, 스키마 분리 |
@@ -74,7 +73,7 @@ PostgreSQL, Redis, Docker 없이 세 서비스의 OpenAPI YAML을 한 번에 생
 
 ## Docker Compose 배포 및 로컬 통합 테스트
 
-단일 서버 Docker Compose 배포, 로컬 전체 스택 실행, Next.js 프론트엔드 배포 기준, 하이브리드 개발 방식은 [Docker Compose 단일 서버 배포 가이드](docs/infra/docker-compose-deployment.md)를 참고합니다.
+단일 서버 Docker Compose 배포, 로컬 전체 스택 실행, 하이브리드 개발 및 향후 프론트엔드 확장 기준은 [Docker Compose 단일 서버 배포 가이드](docs/infra/docker-compose-deployment.md)를 참고합니다.
 
 로컬 전체 스택은 다음 명령으로 실행합니다.
 
@@ -94,10 +93,6 @@ docker compose up --build -d
 |----------|------|------|------|
 | PostgreSQL | 18.3 | 15433 | 주 데이터베이스 (모듈별 schema 격리) |
 | Valkey (Redis 호환) | 8.1.6 | 6379 | 캐시 / 세션 / 분산 락 |
-| Next.js | 프로젝트별 | 3000 | 웹 프론트엔드 |
-| Loki | 3.0.0 | 내부망 | 로그 저장소 |
-| Alloy | 1.16.3 | 내부망 | 컨테이너 stdout 로그 수집 |
-| Grafana | 11.0.0 | 3300 | 로그 조회 UI |
 
 
 ## MSA 내부 통신 (RestClient)
@@ -280,18 +275,15 @@ AOP(`@Around`)는 내부적으로 `RequestContextHolder`(ThreadLocal 기반)를 
 ---
 
 ## 로깅 (Logging & MDC 전파)
-> 본 프로젝트는 **Log4j2 + LMAX Disruptor** 비동기 로거와 **Micrometer Tracing(OTel 브릿지)**를 통해
-> 모든 로그에 분산 추적 컨텍스트(MDC)를 자동으로 주입합니다.
+> 본 프로젝트는 **Log4j2 + LMAX Disruptor** 비동기 로거를 사용합니다.
+> 모든 환경에서 사람이 바로 읽을 수 있는 패턴 로그를 stdout으로 출력하며, Docker 로그 회전으로 디스크 사용량을 제한합니다.
 
 ### MDC 자동 주입 필드
 
 | 필드 | 주입 주체 | 설명 |
 |------|-----------|------|
-| `traceId` | Micrometer Tracing | 분산 트레이스 ID (OpenTelemetry) |
-| `spanId` | Micrometer Tracing | 현재 Span ID |
 | `requestId` | `MdcLoggingFilter` | HTTP 요청 단위 고유 ID (`X-Request-ID` 헤더 또는 UUID 자동 생성) |
-| `memberId` | `MdcLoggingFilter` | 인증된 사용자 Principal name |
-| `service` | `log4j2-spring.xml` | `spring.application.name` 값 |
+| `memberId` | `MdcLoggingFilter` | Gateway가 전달한 `X-User-Id` 헤더 값 |
 
 ### 실제 사용법
 
@@ -304,7 +296,7 @@ object {
     private val log = LoggerFactory.getLogger(MyService::class.java)
 }
 
-// 2. 로그 호출만 하면 requestId, traceId, memberId가 자동으로 붙는다
+// 2. 로그 호출만 하면 requestId, memberId가 자동으로 붙는다
 log.info("처리 시작 — itemId={}", itemId)
 log.error("처리 실패", exception)
 ```
@@ -312,17 +304,17 @@ log.error("처리 실패", exception)
 ### `@Async` 비동기 MDC 자동 전파
 
 `@Async` 메서드는 별도 스레드에서 실행되어 MDC가 전파되지 않습니다.
-본 프로젝트는 이를 두 레이어에서 자동 처리합니다:
+본 프로젝트는 이를 세 레이어에서 자동 처리합니다:
 
 1. **`AsyncMdcAspect`** — `@Async` 메서드 호출 시 호출 스레드 MDC 스냅샷을 캡처·복원
 2. **`ThreadPoolConfig.mdcTaskDecorator`** — Executor 제출 시점 MDC를 실행 스레드에 주입
 3. **`AsyncConfigurer.getAsyncExecutor()`** — executor 미지정 `@Async`도 위 두 레이어가 적용된 `IoBoundExecutor`를 기본으로 사용
 
 ```kotlin
-// executor 지정하거나 생략하거나 — 모두 requestId, traceId 등이 자동 전파된다
+// executor 지정하거나 생략하거나 — 모두 requestId, memberId 등이 자동 전파된다
 @Async("IoBoundExecutor")
 fun sendNotification(memberId: String): CompletableFuture<Void> {
-    log.info("알림 전송 — memberId={}", memberId)  // requestId, traceId 자동 포함
+    log.info("알림 전송 — memberId={}", memberId)  // requestId 자동 포함
     return CompletableFuture.completedFuture(null)
 }
 ```
@@ -346,15 +338,12 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap {
 })
 ```
 
-### 환경별 로그 포맷
+### 로그 포맷
 
-| 프로파일 | 포맷 | 용도 |
-|----------|------|------|
-| `local` | 컬러 패턴 로그 | 개발 가독성 |
-| 운영/스테이징 | JSON 구조화 로그 | CloudWatch Logs Insights 쿼리 최적화 |
+`local`, `dev`, `prod` 모두 동일한 패턴 포맷을 사용한다. 운영 서버에서도 `docker compose logs -f <service>`로 바로 읽을 수 있다.
 
-```json
-{"@timestamp":"...","level":"INFO","traceId":"...","spanId":"...","requestId":"...","memberId":"...","service":"stop","message":"..."}
+```text
+2026-07-18 12:34:56.789 INFO  [http-nio-8182-exec-1] [req:...] [user:...] c.m.b.stop.StopService - 처리 시작
 ```
 
 ### 참조 파일
@@ -369,18 +358,18 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap {
 
 ## 관측성(Observability) 현황
 
-> 코드 측에서 노출되는 신호와 수집 백엔드를 분리해 정직하게 기록합니다.
-> 현재는 **신호 노출까지는 완비**, **수집 백엔드는 로컬 미구성** 상태입니다.
+> 단일 EC2의 메모리와 디스크 사용량을 우선해 별도 관측성 스택을 운영하지 않습니다.
 
-| 영역 | 코드 측 준비 | 수집 백엔드 |
-|------|--------------|-------------|
-| **메트릭** | Spring Boot Actuator + Micrometer | ⚠️ Prometheus 미구성 |
-| **추적** | Micrometer Tracing + OpenTelemetry API | ⚠️ OTel Collector / Tempo 미구성 |
-| **로그** | Log4j2 JSON Layout (운영 프로파일) | ⚠️ Loki / CloudWatch Logs Insights 미연동 |
-| **에러** | Sentry SDK | ✅ Sentry DSN 환경변수만 주입하면 동작 |
-| **Bulkhead 메트릭** | Resilience4j Micrometer 바인더 | Actuator `/metrics` 엔드포인트로 노출 |
+| 영역 | 현재 운영 방식 |
+|------|------------------|
+| **로그** | Log4j2 패턴 stdout + Docker `json-file` 로테이션 |
+| **요청 상관관계** | `X-Request-ID` / `requestId` MDC (클라이언트가 헤더를 제공하면 서비스 간 유지) |
+| **헬스체크** | Spring Boot Actuator `/actuator/health` |
+| **에러** | Sentry SDK (DSN 주입 시 활성화) |
 
-> 💡 로컬에서 빠르게 관측성 백엔드를 띄우려면 `grafana/otel-lgtm` 단일 컨테이너를 `docker-compose-local.yml`에 추가하는 방식이 가장 가볍습니다(Grafana + Loki + Tempo + Mimir 일체형).
+Prometheus, Tempo, Loki, Alloy, Grafana는 현재 Compose 구성에 포함하지 않는다. 서비스 규모와 운영 요구가 커진 뒤 별도 인스턴스 또는 관리형 서비스로 재검토한다.
+
+현재 Gateway는 헤더가 없는 요청에 새 `X-Request-ID`를 생성하지 않는다. 따라서 클라이언트가 해당 헤더를 제공하지 않으면 각 하위 서비스의 requestId는 독립적으로 생성된다.
 
 ## 디버깅 (Remote JVM Debug)
 > 본 프로젝트는 Docker Compose로 구동되는 각 마이크로서비스에 대해 원격 디버깅(Remote JVM Debug) 환경을 기본 제공합니다.
@@ -495,7 +484,7 @@ CompletableFuture.supplyAsync(MdcContextUtil.wrap {
 1. `reservation` 모듈 동시성 보강 — `pg_try_advisory_xact_lock` 도입 + 동시 호출 통합 테스트
 2. `reservation` / `gateway` 단위·통합 테스트 충원 (상태 머신 + 라우팅 필터)
 3. **GitHub Actions 1장** — build + test + docker build 검증을 PR 게이트로
-4. **관측성 백엔드 compose 추가** — `grafana/otel-lgtm` 단일 컨테이너 연동
+4. **운영 로그 외부화 재검토** — 트래픽 증가 시 CloudWatch/S3 등 관리형 저장소 검토
 5. **어드민 토큰 TTL 단축** 또는 `jti` 블랙리스트 — 권한 회수 지연 완화
 6. **Testcontainers 전환** — H2 → PostgreSQL 18 (PostgreSQL 전용 기능 검증)
 7. **AWS 시크릿 관리 PoC** — Secrets Manager + Aurora IAM 인증

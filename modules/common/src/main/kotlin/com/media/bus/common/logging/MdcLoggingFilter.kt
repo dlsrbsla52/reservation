@@ -5,19 +5,14 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.MDC
 import org.springframework.web.filter.OncePerRequestFilter
-import java.util.UUID
+import java.util.*
 
 /**
  * ## HTTP 요청 단위로 MDC(Mapped Diagnostic Context) 필드를 주입하는 필터
  *
  * 주입 필드:
  *   - `requestId` -- X-Request-ID 요청 헤더 값, 없으면 UUID v4 생성
- *   - `memberId` -- 인증된 사용자의 Principal name (비인증 요청은 생략)
- *
- * traceId / spanId 는 Micrometer Tracing(OTel 브릿지)이 자동으로 주입한다.
- *
- * 필터 순서(order=0): Spring Security(-100) 이후 실행되므로
- * SecurityContextHolder에서 인증 정보를 읽을 수 있다.
+ *   - `memberId` -- Gateway가 전달한 X-User-Id 헤더 값 (비인증 요청은 생략)
  *
  * **Virtual Thread 주의:** MDC는 ThreadLocal 기반이다.
  * `@Async` 등으로 새 스레드를 생성할 경우 `MDC.getCopyOfContextMap()`으로
@@ -45,7 +40,6 @@ class MdcLoggingFilter : OncePerRequestFilter() {
 
             filterChain.doFilter(request, response)
         } finally {
-            // traceId/spanId는 Micrometer Tracing이 관리하므로 제거하지 않는다
             MDC.remove(MDC_REQUEST_ID)
             MDC.remove(MDC_USER_ID)
         }

@@ -265,15 +265,13 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("Micrometer Tracing이 주입한 traceId/spanId는 필터가 제거하지 않는다")
-        fun shouldNotRemoveMicrometerTracingFields() {
-            MDC.put("traceId", "otel-trace-id-123")
-            MDC.put("spanId", "otel-span-id-456")
+        @DisplayName("필터가 관리하지 않는 외부 MDC 필드는 제거하지 않는다")
+        fun shouldNotRemoveExternalMdcFields() {
+            MDC.put("externalKey", "external-value")
 
             filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse(), filterChain)
 
-            assertThat(MDC.get("traceId")).isEqualTo("otel-trace-id-123")
-            assertThat(MDC.get("spanId")).isEqualTo("otel-span-id-456")
+            assertThat(MDC.get("externalKey")).isEqualTo("external-value")
         }
     }
 

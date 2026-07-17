@@ -12,14 +12,11 @@ import org.springframework.core.Ordered
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 class CommonLoggingAutoConfiguration {
 
-    /**
-     * MDC 로깅 필터를 Spring Security(order=-100) 이후에 등록한다.
-     * order=0 이므로 SecurityContextHolder에서 인증 정보를 읽을 수 있다.
-     */
+    /** Gateway가 전달한 요청 헤더를 MDC에 주입하는 필터를 등록한다. */
     @Bean
     fun mdcLoggingFilter(): FilterRegistrationBean<MdcLoggingFilter> =
         FilterRegistrationBean(MdcLoggingFilter()).apply {
-            order = Ordered.HIGHEST_PRECEDENCE + 200 // Security(-100) 이후
+            order = Ordered.HIGHEST_PRECEDENCE + 200
             addUrlPatterns("/*")
         }
 
