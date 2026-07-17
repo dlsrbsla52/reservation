@@ -1,7 +1,7 @@
 # Kotlin 마이그레이션 소스코드 품질 리뷰 보고서
 
-> **프로젝트:** bus MSA (Spring Boot 4.0.5)
-> **마이그레이션:** Java 25 → Kotlin 2.3.20, JPA/QueryDSL → Exposed 1.0.0
+> **프로젝트:** bus MSA (검토 당시 Spring Boot 4.0.5, 현재 4.1.0)
+> **마이그레이션:** Java 25 → Kotlin 2.3.20, JPA/QueryDSL → Exposed 1.0.0 (검토 당시, 현재 1.3.1)
 > **검토일:** 2026-04-09
 > **검토 파일 수:** ~140개 (Kotlin 소스 + build.gradle.kts + 설정 파일)
 

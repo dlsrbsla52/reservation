@@ -4,6 +4,7 @@
 > **작성일**: 2026-04-09  
 > **기준 스택**: Spring Boot 4.0.5 · JDK 25 · Kotlin 2.3.20 · Exposed 1.0.0
 > **변경 이력**: [kotlin-migration-changelog.md](kotlin-migration-changelog.md) 참조
+> **현재 런타임**: 2026-07-18 기준 Spring Boot 4.1.0. 아래 4.0.5 표기는 Kotlin 전환 당시의 기준을 보존한다.
 
 ---
 

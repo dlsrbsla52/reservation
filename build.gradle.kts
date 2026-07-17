@@ -1,10 +1,10 @@
 buildscript {
-    val springBootVersion = "4.0.5"
+    val springBootVersion = "4.1.0"
     val kotlinVersion = "2.3.20"
 
     extra["springBootVersion"] = springBootVersion
     extra["kotlinVersion"] = kotlinVersion
-    extra["exposedVersion"] = "1.0.0"
+    extra["exposedVersion"] = "1.3.1"
 
     repositories {
         mavenCentral()
@@ -43,7 +43,7 @@ subprojects {
 
     val springBootVersion: String by rootProject.extra
 
-    // Spring Boot 4.0.5 BOM — 모든 하위 모듈에 버전 통일 강제
+    // Spring Boot 4.1.0 BOM — 모든 하위 모듈에 버전 통일 강제
     // buildscript classpath로 로드된 플러그인은 Kotlin DSL 타입 안전 확장이 자동 생성되지 않으므로
     // configure<>()로 명시적 타입 캐스팅을 통해 dependencyManagement 확장에 접근한다.
     configure<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension> {
