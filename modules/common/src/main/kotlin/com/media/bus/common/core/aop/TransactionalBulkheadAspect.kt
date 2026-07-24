@@ -51,9 +51,9 @@ class TransactionalBulkheadAspect(
         private val HAS_PERMIT: ScopedValue<Boolean> = ScopedValue.newInstance()
     }
 
+    // Exposed 사용. Spring Data 타입(Repository) 참조 시 클래스패스 부재로 advisor 전체가 비활성화되므로 제외한다.
     @Pointcut(
-        "target(org.springframework.data.repository.Repository) || " +
-            "@within(org.springframework.stereotype.Repository) || " +
+        "@within(org.springframework.stereotype.Repository) || " +
             "@annotation(org.springframework.transaction.annotation.Transactional) || " +
             "@within(org.springframework.transaction.annotation.Transactional)"
     )
