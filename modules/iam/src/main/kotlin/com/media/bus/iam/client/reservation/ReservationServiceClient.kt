@@ -3,6 +3,7 @@ package com.media.bus.iam.client.reservation
 import com.media.bus.iam.client.reservation.dto.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -18,6 +19,42 @@ class ReservationServiceClient(
     private val reservationApi: ReservationApi,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    /** 전체 계약을 선택 조건으로 검색한다. */
+    fun searchContracts(
+        memberId: UUID?,
+        stopId: UUID?,
+        status: String?,
+        keyword: String?,
+        contractStartFrom: OffsetDateTime?,
+        contractStartTo: OffsetDateTime?,
+        page: Int,
+        size: Int,
+    ): AdminContractPageResponse.AdminContractPage {
+        val data = reservationApi.searchContracts(
+            memberId, stopId, status, keyword, contractStartFrom, contractStartTo, page, size,
+        )?.data
+        return AdminContractPageResponse.AdminContractPage(
+            items = data?.items ?: emptyList(),
+            totalCnt = data?.totalCnt ?: 0L,
+            pageRows = data?.pageRows ?: size,
+            pageNum = data?.pageNum ?: page,
+        )
+    }
+
+    /** 관리자 요청으로 계약을 생성한다. */
+    fun createContract(request: CreateContractRequest): ContractView {
+        log.debug("[ReservationServiceClient] 관리자 계약 생성 요청: stopId={}, memberId={}", request.stopId, request.memberId)
+        return reservationApi.createContract(request)?.data
+            ?: throw IllegalStateException("생성된 계약 정보를 가져올 수 없습니다.")
+    }
+
+    /** 관리자 권한으로 소유자 제한 없이 계약 상세를 조회한다. */
+    fun getContractDetail(contractId: UUID): AdminContractView {
+        log.debug("[ReservationServiceClient] 관리자 계약 상세 조회 요청: contractId={}", contractId)
+        return reservationApi.getContractDetail(contractId)?.data
+            ?: throw IllegalStateException("계약 상세 정보를 가져올 수 없습니다.")
+    }
 
     /**
      * 매니저(memberId)의 계약 목록을 페이지 단위로 조회한다.

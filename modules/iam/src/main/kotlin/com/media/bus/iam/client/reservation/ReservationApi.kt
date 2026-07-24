@@ -9,6 +9,7 @@ import org.springframework.web.service.annotation.GetExchange
 import org.springframework.web.service.annotation.HttpExchange
 import org.springframework.web.service.annotation.PostExchange
 import org.springframework.web.service.annotation.PutExchange
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -25,12 +26,34 @@ import java.util.*
 @HttpExchange(url = "/api/v1/internal/reservation")
 interface ReservationApi {
 
+    @GetExchange("/contract")
+    fun searchContracts(
+        @RequestParam("memberId") memberId: UUID?,
+        @RequestParam("stopId") stopId: UUID?,
+        @RequestParam("status") status: String?,
+        @RequestParam("keyword") keyword: String?,
+        @RequestParam("contractStartFrom") contractStartFrom: OffsetDateTime?,
+        @RequestParam("contractStartTo") contractStartTo: OffsetDateTime?,
+        @RequestParam("page") page: Int,
+        @RequestParam("size") size: Int,
+    ): AdminContractPageResponse?
+
+    @PostExchange("/contract")
+    fun createContract(
+        @RequestBody request: CreateContractRequest,
+    ): ContractResponse?
+
     @GetExchange("/contract/member/{memberId}")
     fun getContractsByMember(
         @PathVariable memberId: UUID,
         @RequestParam("page") page: Int,
         @RequestParam("size") size: Int,
     ): AdminContractPageResponse?
+
+    @GetExchange("/contract/{contractId}")
+    fun getContractDetail(
+        @PathVariable contractId: UUID,
+    ): AdminContractDetailResponse?
 
     @GetExchange("/reservations")
     fun searchAdminReservations(

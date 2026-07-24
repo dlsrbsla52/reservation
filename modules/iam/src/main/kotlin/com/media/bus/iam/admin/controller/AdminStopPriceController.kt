@@ -1,6 +1,7 @@
 package com.media.bus.iam.admin.controller
 
 import com.media.bus.common.web.response.ApiResponse
+import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.annotation.Authorize
@@ -32,19 +33,41 @@ class AdminStopPriceController(
     private val adminStopPriceFacade: AdminStopPriceFacade,
 ) {
 
-    /** 정류소를 조회한다. pk(UUID) > stopId(정류소 번호) > stopName(이름) 순으로 우선 적용되며, 셋 중 하나는 필수다. */
+    /**
+     * 정류소를 조회한다.
+     * pk(UUID)/stopId(정류소 번호)/stopName(이름) 중 하나가 있으면 해당 기준으로 단건·동명 조회한다.
+     * 식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, keyword(정류소명·번호 부분 일치)로 필터링할 수 있다.
+     */
     @Operation(
         summary = "정류소 조회",
-        description = "pk(UUID), stopId(정류소 번호), stopName(이름) 중 하나를 쿼리 파라미터로 전달합니다. " +
-            "우선순위: pk > stopId > stopName. stopName은 동명 정류소 시 다건 반환합니다.",
+        description = "식별자(pk/stopId/stopName) 중 하나가 있으면 해당 기준으로 단건/동명 조회한다. " +
+            "식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, keyword(정류소명·번호 부분 일치)로 필터링할 수 있다.",
     )
     @GetMapping
     fun getStop(
         @RequestParam(required = false) pk: UUID?,
         @RequestParam(required = false) stopId: String?,
         @RequestParam(required = false) stopName: String?,
-    ): ApiResponse<List<StopResponse>> =
-        ApiResponse.success(adminStopPriceFacade.getStop(pk, stopId, stopName).map(StopResponse::of))
+        @RequestParam(required = false) keyword: String?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): ApiResponse<PageResult<StopResponse>> {
+        val hasCriteria = pk != null || stopId != null || stopName != null
+        return if (hasCriteria) {
+            val list = adminStopPriceFacade.getStop(pk, stopId, stopName).map(StopResponse::of)
+            ApiResponse.success(PageResult(items = list, totalCnt = list.size.toLong(), pageRows = size, pageNum = 0))
+        } else {
+            val result = adminStopPriceFacade.getStopPage(page, size, keyword)
+            ApiResponse.success(
+                PageResult(
+                    items = result.items.map(StopResponse::of),
+                    totalCnt = result.totalCnt,
+                    pageRows = result.pageRows,
+                    pageNum = result.pageNum,
+                ),
+            )
+        }
+    }
 
     /** 정류소 단가를 조회한다. 등록된 단가가 없으면 data가 null인 성공 응답을 반환한다. */
     @Operation(summary = "정류소 단가 조회", description = "특정 정류소의 현재 단가를 조회합니다.")

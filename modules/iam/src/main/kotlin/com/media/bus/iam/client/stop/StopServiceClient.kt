@@ -1,5 +1,6 @@
 package com.media.bus.iam.client.stop
 
+import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.iam.client.stop.dto.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -50,6 +51,21 @@ class StopServiceClient(
 
     private fun extractList(response: StopPageResponse?): List<StopInfo> =
         response?.data?.list ?: emptyList()
+
+    /**
+     * 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다 (어드민 목록 화면용).
+     * keyword가 있으면 정류소명/번호 부분 일치로 필터링한다.
+     */
+    fun getStopPage(page: Int, size: Int, keyword: String?): PageResult<StopInfo> {
+        log.debug("[StopServiceClient] 정류소 페이지 조회: page={}, size={}, keyword={}", page, size, keyword)
+        val data = stopApi.getStopPage(page, size, keyword)?.data
+        return PageResult(
+            items = data?.items ?: emptyList(),
+            totalCnt = data?.totalCnt ?: 0,
+            pageRows = data?.pageRows ?: size,
+            pageNum = data?.pageNum ?: page,
+        )
+    }
 
     /** 정류소 단가를 조회한다. 등록된 단가가 없으면 null을 반환한다. */
     fun getStopPrice(stopId: UUID): StopPriceInfo? {

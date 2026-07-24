@@ -2,6 +2,7 @@ package com.media.bus.stop.controller
 
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.response.ListData
+import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.stop.dto.request.BulkStopLookupRequest
 import com.media.bus.stop.dto.request.CreateStopPriceRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
@@ -61,6 +62,23 @@ class InternalStopController(
         @RequestBody @Valid request: BulkStopLookupRequest,
     ): ApiResponse<ListData<BusStopResponse>> =
         ApiResponse.page(stopService.getBusStopsByIds(request.ids))
+
+    /**
+     * 검색 조건 없이 전체 정류소를 페이지네이션으로 조회 — 어드민 목록 화면용.
+     * keyword가 있으면 정류소명/번호 부분 일치로 필터링한다.
+     */
+    @Operation(
+        summary = "정류소 페이지 조회 (내부 전용)",
+        description = "검색 조건(pk/stopId/stopName) 없이 전체 정류소를 페이지네이션으로 조회합니다. " +
+            "keyword가 있으면 정류소명/번호 부분 일치로 필터링합니다.",
+    )
+    @GetMapping("/page")
+    fun getBusStopPage(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+        @RequestParam(required = false) keyword: String?,
+    ): ApiResponse<PageResult<BusStopResponse>> =
+        ApiResponse.success(stopService.getBusStopPage(page, size, keyword))
 
     // ─────────────────────────────────────────────────────────────────
     // 정류소 단가 (내부 전용)

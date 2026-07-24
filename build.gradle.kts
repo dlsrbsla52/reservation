@@ -99,6 +99,20 @@ subprojects {
         // 공식 지원 범위 초과 우회 — best-effort experimental 모드
         jvmArgs("-Dnet.bytebuddy.experimental=true")
     }
+
+    // openapi-gradle-plugin이 적용된 모듈(iam/stop/reservation)에만 적용.
+    // generateOpenApiDocs는 outputDir 산출물 존재 여부만 보고 UP-TO-DATE를 판단하므로
+    // 소스가 바뀌어도 재실행을 건너뛴다. 매번 output을 지우고 재생성해 최신 스펙을 보장한다.
+    pluginManager.withPlugin("org.springdoc.openapi-gradle-plugin") {
+        // 각 모듈의 openApi { outputDir } 설정과 동일한 규칙(build/docs/openapi)을 따른다.
+        val cleanOpenApiDocs by tasks.registering(Delete::class) {
+            description = "생성된 OpenAPI YAML 산출물을 삭제해 generateOpenApiDocs가 항상 재실행되도록 한다."
+            delete(layout.buildDirectory.dir("docs/openapi"))
+        }
+        tasks.named("generateOpenApiDocs") {
+            dependsOn(cleanOpenApiDocs)
+        }
+    }
 }
 
 tasks.register("generateAllOpenApiDocs") {

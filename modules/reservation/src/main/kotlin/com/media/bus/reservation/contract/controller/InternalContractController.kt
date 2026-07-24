@@ -1,13 +1,22 @@
 package com.media.bus.reservation.contract.controller
 
+import com.media.bus.common.exceptions.BusinessException
+import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
+import com.media.bus.reservation.contract.dto.request.AdminContractSearchCondition
+import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.dto.response.AdminContractView
+import com.media.bus.reservation.contract.dto.response.ContractResponse
+import com.media.bus.reservation.contract.entity.enums.ContractStatus
 import com.media.bus.reservation.contract.service.InternalContractFacade
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.*
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -29,6 +38,58 @@ import java.util.*
 class InternalContractController(
     private val internalContractFacade: InternalContractFacade,
 ) {
+    companion object {
+        private const val MAX_PAGE_SIZE = 100
+        private const val MAX_KEYWORD_LENGTH = 100
+    }
+
+    /** 전체 계약을 선택 조건으로 검색한다. 조건이 없으면 비회원 계약을 포함한 전체 목록을 반환한다. */
+    @Operation(summary = "계약 전체 검색 (내부 전용)")
+    @GetMapping
+    fun searchContracts(
+        @RequestParam(required = false) memberId: UUID?,
+        @RequestParam(required = false) stopId: UUID?,
+        @RequestParam(required = false) status: ContractStatus?,
+        @RequestParam(required = false) keyword: String?,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        contractStartFrom: OffsetDateTime?,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        contractStartTo: OffsetDateTime?,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): ApiResponse<PageResult<AdminContractView>> {
+        validateSearchCondition(keyword, contractStartFrom, contractStartTo)
+        val safePage = page.coerceAtLeast(0)
+        val safeSize = size.coerceIn(1, MAX_PAGE_SIZE)
+        val condition = AdminContractSearchCondition(
+            memberId, stopId, status, keyword, contractStartFrom, contractStartTo,
+        )
+        return ApiResponse.success(internalContractFacade.searchContracts(condition, safePage, safeSize))
+    }
+
+    private fun validateSearchCondition(
+        keyword: String?,
+        contractStartFrom: OffsetDateTime?,
+        contractStartTo: OffsetDateTime?,
+    ) {
+        if (keyword != null && keyword.length > MAX_KEYWORD_LENGTH) {
+            throw BusinessException(CommonResult.VALIDATION_FAIL, "keyword는 ${MAX_KEYWORD_LENGTH}자 이하여야 합니다.")
+        }
+        if (contractStartFrom != null && contractStartTo != null && contractStartFrom > contractStartTo) {
+            throw BusinessException(CommonResult.VALIDATION_FAIL, "contractStartFrom은 contractStartTo 이후일 수 없습니다.")
+        }
+    }
+
+    /** 어드민에서 요청한 계약을 생성한다. 회원·정류소 유효성은 facade에서 재검증한다. */
+    @Operation(
+        summary = "계약 생성 (내부 전용)",
+        description = "어드민이 요청한 정류소 광고 계약을 생성한다. memberId가 있으면 IAM DB에서 회원을 검증한다.",
+    )
+    @PostMapping
+    fun createContractForAdmin(
+        @RequestBody @Valid request: CreateContractRequest,
+    ): ApiResponse<ContractResponse> =
+        ApiResponse.success(internalContractFacade.createContract(request))
 
     /**
      * 매니저(memberId)의 계약 목록을 페이지 단위로 조회한다.
@@ -46,5 +107,22 @@ class InternalContractController(
         @Parameter(description = "0-base 페이지 번호") @RequestParam(defaultValue = "0") page: Int,
         @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") size: Int,
     ): ApiResponse<PageResult<AdminContractView>> =
-        ApiResponse.success(internalContractFacade.getContractsByMemberId(memberId, page, size))
+        ApiResponse.success(
+            internalContractFacade.getContractsByMemberId(
+                memberId,
+                page.coerceAtLeast(0),
+                size.coerceIn(1, MAX_PAGE_SIZE),
+            ),
+        )
+
+    /** 어드민이 소유자 제한 없이 계약 상세를 조회한다. */
+    @Operation(
+        summary = "계약 단건 상세 조회 (내부 전용)",
+        description = "계약 ID로 계약과 계약 상세 정보를 조회한다. 정류소 정보가 결합되어 반환된다.",
+    )
+    @GetMapping("/{contractId}")
+    fun getContractDetailForAdmin(
+        @PathVariable contractId: UUID,
+    ): ApiResponse<AdminContractView> =
+        ApiResponse.success(internalContractFacade.getContractDetail(contractId))
 }

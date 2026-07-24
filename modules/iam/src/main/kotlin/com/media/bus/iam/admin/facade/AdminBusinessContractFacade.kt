@@ -2,11 +2,15 @@ package com.media.bus.iam.admin.facade
 
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.iam.admin.dto.AdminBusinessContractResponse
+import com.media.bus.iam.admin.dto.AdminContractResponse
 import com.media.bus.iam.admin.dto.AdminMemberContractListResponse
+import com.media.bus.iam.admin.dto.CreateAdminContractRequest
 import com.media.bus.iam.client.reservation.ReservationServiceClient
+import com.media.bus.iam.client.reservation.dto.CreateContractRequest
 import com.media.bus.iam.member.service.MemberService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -33,6 +37,39 @@ class AdminBusinessContractFacade(
     private val memberService: MemberService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    /** 전체 계약 검색 결과를 IAM 공개 응답으로 변환한다. */
+    fun searchContracts(
+        memberId: UUID?,
+        stopId: UUID?,
+        status: String?,
+        keyword: String?,
+        contractStartFrom: OffsetDateTime?,
+        contractStartTo: OffsetDateTime?,
+        page: Int,
+        size: Int,
+    ): PageResult<AdminBusinessContractResponse> {
+        val raw = reservationServiceClient.searchContracts(
+            memberId, stopId, status, keyword, contractStartFrom, contractStartTo, page, size,
+        )
+        val items = raw.items.orEmpty().map(AdminBusinessContractResponse::from)
+        return PageResult(
+            items = items,
+            totalCnt = raw.totalCnt ?: items.size.toLong(),
+            pageRows = raw.pageRows ?: size,
+            pageNum = raw.pageNum ?: page,
+        )
+    }
+
+    /** reservation 내부 API를 통해 관리자 계약을 생성한다. */
+    fun createContract(request: CreateAdminContractRequest): AdminContractResponse =
+        AdminContractResponse.from(
+            reservationServiceClient.createContract(CreateContractRequest.from(request)),
+        )
+
+    /** reservation 내부 API를 통해 계약 상세를 조회한다. */
+    fun getContractDetail(contractId: UUID): AdminBusinessContractResponse =
+        AdminBusinessContractResponse.from(reservationServiceClient.getContractDetail(contractId))
 
     /**
      * 특정 매니저의 계약 목록을 매니저 정보와 함께 페이지 단위로 조회한다.

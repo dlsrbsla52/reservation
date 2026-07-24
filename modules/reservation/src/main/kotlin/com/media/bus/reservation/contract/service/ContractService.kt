@@ -41,6 +41,11 @@ class ContractService(
         stopInfo: StopInfo,
         request: CreateContractRequest,
     ): ContractEntity {
+        // 계약 기간 무결성 검증: 회원/어드민 생성 경로가 모두 이 지점을 통과하므로 단일 지점에서 보장한다.
+        // 종료일이 시작일보다 같거나 빠르면 잘못된 계약이므로 저장 전에 차단한다.
+        if (!request.contractEndDate.isAfter(request.contractStartDate)) {
+            throw BusinessException(ContractResult.CONTRACT_INVALID_PERIOD)
+        }
         val contract = ContractEntity.create(stopInfo, request)
         ContractDetailEntity.create(contract, request)
 
