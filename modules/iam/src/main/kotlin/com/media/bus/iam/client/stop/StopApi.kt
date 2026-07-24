@@ -34,6 +34,14 @@ interface StopApi {
     @PostExchange("/bulk")
     fun getStopsByPks(@RequestBody request: BulkStopLookupRequest): StopPageResponse?
 
+    /** 검색 조건 없이 전체 정류소 페이지 조회 — keyword로 이름/번호 부분 일치 필터링 가능 */
+    @GetExchange("/page")
+    fun getStopPage(
+        @RequestParam("page") page: Int,
+        @RequestParam("size") size: Int,
+        @RequestParam("keyword") keyword: String?,
+    ): StopPagedApiResponse?
+
     /** 정류소 단가 조회 (내부 전용) */
     @GetExchange("/price/{stopId}")
     fun getStopPrice(@PathVariable stopId: UUID): StopPriceApiResponse?

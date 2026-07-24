@@ -2,6 +2,7 @@ package com.media.bus.iam.admin.facade
 
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.type.CommonResult
+import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.iam.client.stop.StopServiceClient
 import com.media.bus.iam.client.stop.dto.StopInfo
 import com.media.bus.iam.client.stop.dto.StopPriceInfo
@@ -30,6 +31,10 @@ class AdminStopPriceFacade(
         stopName != null -> stopServiceClient.getStopByStopName(stopName)
         else -> throw BusinessException(CommonResult.REQUEST_FAIL, "pk, stopId, stopName 중 하나는 필수입니다.")
     }
+
+    /** 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다. keyword가 있으면 이름/번호 부분 일치로 필터링한다. */
+    fun getStopPage(page: Int, size: Int, keyword: String?): PageResult<StopInfo> =
+        stopServiceClient.getStopPage(page, size, keyword)
 
     fun getStopPrice(stopId: UUID): StopPriceInfo? = stopServiceClient.getStopPrice(stopId)
 

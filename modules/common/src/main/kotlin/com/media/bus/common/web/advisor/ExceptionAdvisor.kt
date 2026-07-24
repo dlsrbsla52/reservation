@@ -1,5 +1,6 @@
 package com.media.bus.common.web.advisor
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException
 import com.media.bus.common.exceptions.*
 import com.media.bus.common.result.Result
 import com.media.bus.common.result.type.CommonResult
@@ -11,10 +12,12 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import java.time.Instant
 
 /**
@@ -51,6 +54,48 @@ class ExceptionAdvisor {
         }
         log.warn("validationHandler: {} {} -> {}", request.method, request.requestURI, fieldErrors)
         return buildErrorResponse(HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, null, request, fieldErrors)
+    }
+
+    /**
+     * 요청 본문 역직렬화 실패(400)를 처리한다.
+     *
+     * 잘못된 enum 값, 숫자/날짜/UUID 형식 오류, 깨진 JSON 등 클라이언트가 보낸 본문을 해석할 수 없을 때 발생한다.
+     * 명백한 클라이언트 입력 오류이므로 500이 아닌 400으로 응답하고 `log.warn`으로 기록한다
+     * (기술적 오류가 아니므로 모니터링 알람을 발동시키지 않는다).
+     * Jackson `InvalidFormatException`이 원인이면 문제 필드와 거부된 값을 함께 안내한다.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun messageNotReadableHandler(
+        request: HttpServletRequest,
+        error: HttpMessageNotReadableException,
+    ): ResponseEntity<ErrorView> {
+        // 원인이 특정 필드의 형식 오류(InvalidFormatException)면 해당 필드/값을 추출해 안내한다.
+        val fieldErrors = (error.cause as? InvalidFormatException)?.let { ife ->
+            val field = ife.path.joinToString(".") { it.fieldName ?: "?" }
+            listOf(ErrorView.FieldErrorDetail(field, "허용되지 않는 값입니다: ${ife.value}"))
+        }
+        log.warn("messageNotReadableHandler: {} {} -> {}", request.method, request.requestURI, fieldErrors)
+        return buildErrorResponse(
+            HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, "요청 본문을 해석할 수 없습니다.", request, fieldErrors,
+        )
+    }
+
+    /**
+     * 요청 파라미터 타입 변환 실패(400)를 처리한다.
+     *
+     * `@RequestParam`/`@PathVariable`에 잘못된 enum·숫자·UUID 값이 전달될 때 발생한다.
+     * 명백한 클라이언트 입력 오류이므로 400으로 응답하고 `log.warn`으로 기록한다.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun typeMismatchHandler(
+        request: HttpServletRequest,
+        error: MethodArgumentTypeMismatchException,
+    ): ResponseEntity<ErrorView> {
+        val fieldErrors = listOf(ErrorView.FieldErrorDetail(error.name, "허용되지 않는 값입니다: ${error.value}"))
+        log.warn("typeMismatchHandler: {} {} -> {}", request.method, request.requestURI, fieldErrors)
+        return buildErrorResponse(
+            HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, "요청 파라미터 값이 올바르지 않습니다.", request, fieldErrors,
+        )
     }
 
     @ExceptionHandler(StorageException::class)

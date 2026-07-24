@@ -28,8 +28,8 @@ data class AdminBusinessContractResponse(
     @param:Schema(description = "정류소 이름 — stop 서비스 장애 또는 삭제된 정류소일 경우 null", nullable = true)
     val stopName: String?,
 
-    @param:Schema(description = "매니저 회원 ID")
-    val memberId: UUID,
+    @param:Schema(description = "매니저 회원 ID (비회원 계약 시 null)", nullable = true)
+    val memberId: UUID?,
 
     @param:Schema(description = "계약명")
     val contractName: String,

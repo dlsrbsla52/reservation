@@ -1,7 +1,10 @@
 package com.media.bus.reservation.contract.service
 
 import com.media.bus.common.web.wrapper.PageResult
+import com.media.bus.reservation.contract.dto.request.AdminContractSearchCondition
+import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.dto.response.AdminContractView
+import com.media.bus.reservation.contract.dto.response.ContractResponse
 import com.media.bus.reservation.reservation.service.StopResolutionService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -24,9 +27,26 @@ import java.util.*
 @Service
 class InternalContractFacade(
     private val internalContractService: InternalContractService,
+    private val memberVerificationService: MemberVerificationService,
     private val stopResolutionService: StopResolutionService,
+    private val contractService: ContractService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+
+    /** 검색된 계약 페이지에 정류소 정보를 bulk 결합한다. */
+    fun searchContracts(
+        condition: AdminContractSearchCondition,
+        page: Int,
+        size: Int,
+    ): PageResult<AdminContractView> = enrichStops(internalContractService.searchContracts(condition, page, size))
+
+    /** 회원과 정류소를 S2S로 검증한 뒤 계약을 단일 트랜잭션으로 저장한다. */
+    fun createContract(request: CreateContractRequest): ContractResponse {
+        memberVerificationService.verifyMemberIfPresent(request.memberId)
+        val stopInfo = stopResolutionService.resolveStop(request.stopId)
+        val contract = contractService.createContract(stopInfo, request)
+        return ContractResponse.from(contract, stopNumber = stopInfo.stopId, stopName = stopInfo.stopName)
+    }
 
     /**
      * 매니저(memberId) 기준 계약 목록을 정류소 정보와 결합하여 반환한다.
@@ -37,7 +57,13 @@ class InternalContractFacade(
      */
     fun getContractsByMemberId(memberId: UUID, page: Int, size: Int): PageResult<AdminContractView> {
         val raw = internalContractService.getContractsByMemberId(memberId, page, size)
+        return enrichStops(raw, memberId)
+    }
 
+    private fun enrichStops(
+        raw: PageResult<AdminContractView>,
+        memberId: UUID? = null,
+    ): PageResult<AdminContractView> {
         val stopIds = raw.items.map { it.stopId }.toSet()
         val stopMap = stopResolutionService.resolveStops(stopIds)
         val enriched = raw.items.map { row ->
@@ -54,5 +80,12 @@ class InternalContractFacade(
             pageRows = raw.pageRows,
             pageNum = raw.pageNum,
         )
+    }
+
+    /** 계약 상세에 정류소 정보를 결합하여 반환한다. */
+    fun getContractDetail(contractId: UUID): AdminContractView {
+        val raw = internalContractService.getContractDetail(contractId)
+        val info = stopResolutionService.resolveStops(setOf(raw.stopId))[raw.stopId]
+        return raw.copy(stopNumber = info?.stopId, stopName = info?.stopName)
     }
 }

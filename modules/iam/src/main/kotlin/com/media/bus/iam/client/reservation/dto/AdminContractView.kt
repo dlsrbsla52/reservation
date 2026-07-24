@@ -19,7 +19,7 @@ data class AdminContractView(
     val stopId: UUID,
     val stopNumber: String?,
     val stopName: String?,
-    val memberId: UUID,
+    val memberId: UUID?,
     val contractName: String,
     val status: String,
     val contractStartDate: OffsetDateTime,
