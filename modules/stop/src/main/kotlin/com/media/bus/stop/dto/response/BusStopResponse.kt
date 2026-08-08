@@ -2,6 +2,7 @@ package com.media.bus.stop.dto.response
 
 import com.media.bus.stop.entity.StopEntity
 import io.swagger.v3.oas.annotations.media.Schema
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -36,10 +37,21 @@ data class BusStopResponse(
 
     @param:Schema(description = "수정일시", example = "2026-03-15 08:03:28.405709 +00:00")
     val updatedAt: OffsetDateTime,
+
+    @param:Schema(
+        description = "정류소 현재 단가. 단가 미등록 정류소는 null (0원과 구분됨)",
+        example = "1500.00",
+        nullable = true,
+    )
+    val unitPrice: BigDecimal? = null,
 ) {
     companion object {
-        /** StopEntity -> BusStopResponse 변환 팩토리 */
-        fun of(stop: StopEntity): BusStopResponse = BusStopResponse(
+        /**
+         * StopEntity -> BusStopResponse 변환 팩토리.
+         *
+         * @param unitPrice 배치 조회한 단가. 미등록이면 null을 그대로 전달한다(0으로 대체 금지).
+         */
+        fun of(stop: StopEntity, unitPrice: BigDecimal? = null): BusStopResponse = BusStopResponse(
             id = stop.id.value,
             stopId = stop.stopId,
             stopName = stop.stopName,
@@ -49,6 +61,7 @@ data class BusStopResponse(
             stopsType = stop.stopsType.name,
             createdAt = stop.createdAt,
             updatedAt = stop.updatedAt,
+            unitPrice = unitPrice,
         )
     }
 }
