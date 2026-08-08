@@ -1,5 +1,6 @@
 package com.media.bus.iam.client.stop.dto
 
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -19,4 +20,6 @@ data class StopInfo(
     val stopsType: String,
     val createdAt: OffsetDateTime,
     val updatedAt: OffsetDateTime,
+    /** 정류소 현재 단가. 단가 미등록 정류소는 null (0원과 구분). 기본값은 구버전 stop 응답 호환용. */
+    val unitPrice: BigDecimal? = null,
 )
