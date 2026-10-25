@@ -1,0 +1,71 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew *)",
+      "Bash(docker compose *)",
+      "Bash(docker-compose *)",
+      "Bash(docker ps *)",
+      "Bash(docker logs *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "WebSearch",
+      "WebFetch(domain:www.data.go.kr)",
+      "WebFetch(domain:data.seoul.go.kr)",
+      "WebFetch(domain:openapi.seoul.go.kr)",
+      "WebFetch(domain:developers.seoul.go.kr)",
+      "WebFetch(domain:datafile.seoul.go.kr)",
+      "WebFetch(domain:topis.seoul.go.kr)",
+      "WebFetch(domain:ws.bus.go.kr)",
+      "WebFetch(domain:api.bus.go.kr)",
+      "WebFetch(domain:developers.kakao.com)",
+      "WebFetch(domain:map.naver.com)",
+      "WebFetch(domain:springdoc.org)",
+      "WebFetch(domain:www.jetbrains.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/ddl-guard.sh",
+            "args": [],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/compile-gate.sh",
+            "args": ["record"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/compile-gate.sh",
+            "args": ["check"],
+            "timeout": 300,
+            "statusMessage": "변경 모듈 컴파일 확인 중"
+          }
+        ]
+      }
+    ]
+  }
+}
