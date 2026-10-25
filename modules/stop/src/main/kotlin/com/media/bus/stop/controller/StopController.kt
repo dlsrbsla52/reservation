@@ -27,7 +27,8 @@ class StopController(
     @Operation(
         summary = "정류소 목록/조회",
         description = "식별자(pk/stopId/stopName) 중 하나가 있으면 해당 기준으로 단건/동명 조회한다. " +
-            "식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, keyword(정류소명·번호 부분 일치)로 필터링할 수 있다.",
+            "식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, " +
+            "keyword(정류소명·번호 부분 일치)와 stopsType(정류소 유형)으로 필터링할 수 있다.",
     )
     @Authorize(categories = [MemberCategory.USER, MemberCategory.BUSINESS, MemberCategory.ADMIN])
     @GetMapping
@@ -36,17 +37,19 @@ class StopController(
         @RequestParam(required = false) stopId: String?,
         @RequestParam(required = false) stopName: String?,
         @RequestParam(required = false) keyword: String?,
+        @RequestParam(required = false) stopsType: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): ApiResponse<PageResult<BusStopResponse>> {
         val hasCriteria = pk != null || stopId != null || stopName != null
         return if (hasCriteria) {
+            // 식별자 조회는 단건성이라 유형 필터를 적용하지 않는다(적용하면 pk 조회가 빈 결과가 될 수 있다).
             val list = stopService.getBusStop(StopSearchCriteria.of(pk?.let { setOf(it) }, stopId, stopName))
             ApiResponse.success(
                 PageResult(items = list, totalCnt = list.size.toLong(), pageRows = size, pageNum = 0),
             )
         } else {
-            ApiResponse.success(stopService.getBusStopPage(page, size, keyword))
+            ApiResponse.success(stopService.getBusStopPage(page, size, keyword, stopsType))
         }
     }
 

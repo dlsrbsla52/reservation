@@ -15,4 +15,7 @@
   <!-- V003: 정류소 단가 테이블 + 단가 변경 이력 테이블 -->
   <include file="/db/changelog/V003_stop_price_table.xml"/>
 
+  <!-- V004: 좌표 컬럼 NUMERIC 전환 + bbox 조회용 복합 인덱스 -->
+  <include file="/db/changelog/V004_stop_coordinate_numeric.xml"/>
+
 </databaseChangeLog>
