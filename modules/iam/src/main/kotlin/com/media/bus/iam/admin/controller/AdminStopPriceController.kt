@@ -36,12 +36,14 @@ class AdminStopPriceController(
     /**
      * 정류소를 조회한다.
      * pk(UUID)/stopId(정류소 번호)/stopName(이름) 중 하나가 있으면 해당 기준으로 단건·동명 조회한다.
-     * 식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, keyword(정류소명·번호 부분 일치)로 필터링할 수 있다.
+     * 식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며,
+     * keyword(정류소명·번호 부분 일치)와 stopsType(정류소 유형)으로 필터링할 수 있다.
      */
     @Operation(
         summary = "정류소 조회",
         description = "식별자(pk/stopId/stopName) 중 하나가 있으면 해당 기준으로 단건/동명 조회한다. " +
-            "식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, keyword(정류소명·번호 부분 일치)로 필터링할 수 있다.",
+            "식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며, " +
+            "keyword(정류소명·번호 부분 일치)와 stopsType(정류소 유형)으로 필터링할 수 있다.",
     )
     @GetMapping
     fun getStop(
@@ -49,6 +51,8 @@ class AdminStopPriceController(
         @RequestParam(required = false) stopId: String?,
         @RequestParam(required = false) stopName: String?,
         @RequestParam(required = false) keyword: String?,
+        // stop 모듈의 StopType enum 은 모듈 경계상 참조하지 않는다. 검증은 stop 모듈이 수행한다.
+        @RequestParam(required = false) stopsType: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): ApiResponse<PageResult<StopResponse>> {
@@ -57,7 +61,7 @@ class AdminStopPriceController(
             val list = adminStopPriceFacade.getStop(pk, stopId, stopName).map(StopResponse::of)
             ApiResponse.success(PageResult(items = list, totalCnt = list.size.toLong(), pageRows = size, pageNum = 0))
         } else {
-            val result = adminStopPriceFacade.getStopPage(page, size, keyword)
+            val result = adminStopPriceFacade.getStopPage(page, size, keyword, stopsType)
             ApiResponse.success(
                 PageResult(
                     items = result.items.map(StopResponse::of),

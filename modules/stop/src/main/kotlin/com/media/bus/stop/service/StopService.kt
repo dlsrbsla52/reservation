@@ -6,6 +6,7 @@ import com.media.bus.stop.dto.request.SimpleStopCreateRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
 import com.media.bus.stop.dto.response.BusStopResponse
 import com.media.bus.stop.entity.StopEntity
+import com.media.bus.stop.entity.enums.StopType
 import com.media.bus.stop.guard.StopCommandGuard
 import com.media.bus.stop.repository.StopPriceRepository
 import com.media.bus.stop.repository.StopRepository
@@ -51,19 +52,25 @@ class StopService(
 
     /**
      * 전체 정류소를 페이지네이션으로 조회한다 (관리자 목록 화면용).
-     * keyword가 주어지면 정류소명/정류소번호 부분 일치로 필터링한다.
+     * keyword가 주어지면 정류소명/정류소번호 부분 일치로, stopsType이 주어지면 해당 유형으로 필터링한다.
+     * 두 조건은 AND로 결합된다.
      *
      * 단가는 현재 페이지의 정류소 pk 집합으로 **1회 배치 조회**하여 붙인다(정류소당 1회 호출 금지).
+     *
+     * @param stopsType 유형 필터 문자열. 알 수 없는 값이면 [StopType.parseFilter]가 400을 던진다.
      */
     @Transactional(readOnly = true)
-    fun getBusStopPage(page: Int, size: Int, keyword: String?): PageResult<BusStopResponse> {
+    fun getBusStopPage(
+        page: Int,
+        size: Int,
+        keyword: String?,
+        stopsType: String? = null,
+    ): PageResult<BusStopResponse> {
         val kw = keyword?.trim()?.takeIf { it.isNotEmpty() }
-        val entities = if (kw != null) stopRepository.findByKeywordPaged(kw, page, size)
-                       else stopRepository.findAllPaged(page, size)
-        val totalCnt = if (kw != null) stopRepository.countByKeyword(kw) else stopRepository.countAll()
+        val type = StopType.parseFilter(stopsType)
         return PageResult(
-            items = withUnitPrice(entities),
-            totalCnt = totalCnt,
+            items = withUnitPrice(stopRepository.findListPaged(kw, type, page, size)),
+            totalCnt = stopRepository.countList(kw, type),
             pageRows = size,
             pageNum = page,
         )
