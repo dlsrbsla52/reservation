@@ -2,6 +2,7 @@ package com.media.bus.stop.repository
 
 import com.media.bus.stop.entity.StopEntity
 import com.media.bus.stop.entity.StopTable
+import com.media.bus.stop.entity.enums.StopType
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
@@ -43,31 +44,35 @@ class StopRepository {
         return StopEntity.find { StopTable.id inList pks.toList() }.toList()
     }
 
-    /** 전체 정류소 수. */
-    @Transactional(readOnly = true)
-    fun countAll(): Long = StopTable.selectAll().count()
+    /**
+     * 목록 조회 술어를 한 곳에서 만든다.
+     *
+     * 조건 조합마다(keyword 유무 × stopsType 유무) 메서드를 따로 두면 개수가 배로 늘고,
+     * 무엇보다 **목록 쿼리와 카운트 쿼리의 조건이 어긋나** 총 건수가 실제 결과와 달라지기 쉽다.
+     * 두 쿼리가 반드시 같은 술어를 쓰도록 여기로 모은다.
+     *
+     * 조건이 하나도 없으면 `Op.TRUE` 라 `selectAll()` 과 동일한 실행 계획이 나온다.
+     */
+    private fun listPredicate(keyword: String?, stopsType: StopType?): Op<Boolean> {
+        val conditions = mutableListOf<Op<Boolean>>()
+        keyword?.let {
+            conditions += (StopTable.stopName like "%$it%") or (StopTable.stopId like "%$it%")
+        }
+        // 유형은 enum 컬럼이라 동등 비교 한 번이면 된다.
+        stopsType?.let { conditions += StopTable.stopsType eq it }
+        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
+    }
 
-    /** 오프셋 기반 페이지네이션으로 전체 정류소 조회 (이름 오름차순). */
+    /** 목록 조건에 맞는 정류소 수. [findListPaged] 와 동일한 술어를 쓴다. */
     @Transactional(readOnly = true)
-    fun findAllPaged(page: Int, size: Int): List<StopEntity> =
-        StopTable.selectAll()
-            .orderBy(StopTable.stopName to SortOrder.ASC)
-            .limit(size)
-            .offset((page.toLong()) * size)
-            .map { StopEntity.wrapRow(it) }
+    fun countList(keyword: String?, stopsType: StopType?): Long =
+        StopTable.selectAll().where { listPredicate(keyword, stopsType) }.count()
 
-    /** 키워드(정류소명 또는 정류소번호 부분 일치) 매칭 정류소 수. */
+    /** 목록 조건에 맞는 정류소를 페이지네이션으로 조회 (이름 오름차순). */
     @Transactional(readOnly = true)
-    fun countByKeyword(keyword: String): Long =
+    fun findListPaged(keyword: String?, stopsType: StopType?, page: Int, size: Int): List<StopEntity> =
         StopTable.selectAll()
-            .where { (StopTable.stopName like "%$keyword%") or (StopTable.stopId like "%$keyword%") }
-            .count()
-
-    /** 키워드 매칭 정류소를 페이지네이션으로 조회 (이름 오름차순). */
-    @Transactional(readOnly = true)
-    fun findByKeywordPaged(keyword: String, page: Int, size: Int): List<StopEntity> =
-        StopTable.selectAll()
-            .where { (StopTable.stopName like "%$keyword%") or (StopTable.stopId like "%$keyword%") }
+            .where { listPredicate(keyword, stopsType) }
             .orderBy(StopTable.stopName to SortOrder.ASC)
             .limit(size)
             .offset((page.toLong()) * size)

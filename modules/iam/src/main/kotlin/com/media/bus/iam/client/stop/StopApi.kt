@@ -34,12 +34,18 @@ interface StopApi {
     @PostExchange("/bulk")
     fun getStopsByPks(@RequestBody request: BulkStopLookupRequest): StopPageResponse?
 
-    /** 검색 조건 없이 전체 정류소 페이지 조회 — keyword로 이름/번호 부분 일치 필터링 가능 */
+    /**
+     * 검색 조건 없이 전체 정류소 페이지 조회 — keyword로 이름/번호 부분 일치, stopsType으로 유형 필터링 가능.
+     *
+     * `stopsType`이 `String`인 이유: 모듈 경계 원칙상 iam은 stop 모듈의 `StopType` enum을 참조하지 않는다.
+     * 유효성 검증은 stop 모듈이 수행하며, 알 수 없는 값이면 400을 반환한다.
+     */
     @GetExchange("/page")
     fun getStopPage(
         @RequestParam("page") page: Int,
         @RequestParam("size") size: Int,
         @RequestParam("keyword") keyword: String?,
+        @RequestParam("stopsType") stopsType: String?,
     ): StopPagedApiResponse?
 
     /** 정류소 단가 조회 (내부 전용) */

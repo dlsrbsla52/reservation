@@ -65,20 +65,24 @@ class InternalStopController(
 
     /**
      * 검색 조건 없이 전체 정류소를 페이지네이션으로 조회 — 어드민 목록 화면용.
-     * keyword가 있으면 정류소명/번호 부분 일치로 필터링한다.
+     * keyword가 있으면 정류소명/번호 부분 일치로, stopsType이 있으면 해당 유형으로 필터링한다.
+     *
+     * `stopsType`을 enum이 아닌 `String`으로 받는 이유: 호출자인 iam은 모듈 경계 원칙상
+     * stop 모듈의 `StopType`을 참조할 수 없어 문자열로 전달한다. 변환·검증은 `StopType.parseFilter`가 맡는다.
      */
     @Operation(
         summary = "정류소 페이지 조회 (내부 전용)",
         description = "검색 조건(pk/stopId/stopName) 없이 전체 정류소를 페이지네이션으로 조회합니다. " +
-            "keyword가 있으면 정류소명/번호 부분 일치로 필터링합니다.",
+            "keyword가 있으면 정류소명/번호 부분 일치로, stopsType이 있으면 해당 유형으로 필터링합니다.",
     )
     @GetMapping("/page")
     fun getBusStopPage(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
         @RequestParam(required = false) keyword: String?,
+        @RequestParam(required = false) stopsType: String?,
     ): ApiResponse<PageResult<BusStopResponse>> =
-        ApiResponse.success(stopService.getBusStopPage(page, size, keyword))
+        ApiResponse.success(stopService.getBusStopPage(page, size, keyword, stopsType))
 
     // ─────────────────────────────────────────────────────────────────
     // 정류소 단가 (내부 전용)

@@ -10,6 +10,8 @@ x-logging: &default-logging
 x-local-app-common: &local-app-common
   logging: *default-logging
   environment: &local-app-env
+    TZ: ${TZ:-Asia/Seoul}
+    JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul}"
     SPRING_PROFILES_ACTIVE: local
     DB_HOST: database
     DB_PORT: 5432
@@ -30,6 +32,7 @@ services:
     image: postgres:18.3
     container_name: msa-postgres
     environment:
+      TZ: ${TZ:-Asia/Seoul}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-default}
@@ -48,6 +51,8 @@ services:
   valkey:
     image: valkey/valkey:8.1.6
     container_name: msa-valkey
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
     command: ["valkey-server", "--appendonly", "yes"]
     ports:
       - "${VALKEY_HOST_PORT:-6379}:6379"
@@ -73,7 +78,7 @@ services:
       - "${IAM_DEBUG_PORT:-18181}:18181"
     environment:
       <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181"
       LOGGING_LEVEL_COM_HIG_AUTH: DEBUG
     depends_on:
       database:
@@ -94,7 +99,7 @@ services:
       - "${STOP_DEBUG_PORT:-18182}:18182"
     environment:
       <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182"
       LOGGING_LEVEL_COM_HIG_RESERVATION: DEBUG
     depends_on:
       database:
@@ -113,7 +118,7 @@ services:
       - "${RESERVATION_DEBUG_PORT:-18183}:18183"
     environment:
       <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18183"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18183"
       LOGGING_LEVEL_COM_HIG_RESERVATION: DEBUG
     depends_on:
       database:
@@ -132,7 +137,7 @@ services:
       - "${GATEWAY_DEBUG_PORT:-18080}:18080"
     environment:
       <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080"
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080"
       LOGGING_LEVEL_COM_HIG_GATEWAY: DEBUG
     depends_on:
       valkey:

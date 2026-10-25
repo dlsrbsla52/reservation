@@ -1,5 +1,6 @@
 package com.media.bus.stop.service
 
+import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.stop.dto.request.SimpleStopCreateRequest
@@ -15,6 +16,7 @@ import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -83,8 +85,8 @@ class StopServiceTest {
         val withoutPrice = stopEntity("12345", "강남역")
         val pks = listOf(withPrice.id.value, withoutPrice.id.value)
 
-        every { stopRepository.findAllPaged(0, 20) } returns listOf(withPrice, withoutPrice)
-        every { stopRepository.countAll() } returns 2L
+        every { stopRepository.findListPaged(null, null, 0, 20) } returns listOf(withPrice, withoutPrice)
+        every { stopRepository.countList(null, null) } returns 2L
         // 단가가 등록된 정류소만 Map에 존재 — 미등록 정류소는 키 자체가 없다
         every { stopPriceRepository.findUnitPriceMapByStopIds(pks) } returns
             mapOf(pks[0] to BigDecimal("1500.00"))
@@ -100,13 +102,34 @@ class StopServiceTest {
 
     @Test
     fun `getBusStopPage_정류소가_없으면_단가_조회를_생략한다`() {
-        every { stopRepository.findByKeywordPaged("없는역", 0, 20) } returns emptyList()
-        every { stopRepository.countByKeyword("없는역") } returns 0L
+        every { stopRepository.findListPaged("없는역", null, 0, 20) } returns emptyList()
+        every { stopRepository.countList("없는역", null) } returns 0L
 
         val result = stopService.getBusStopPage(0, 20, "없는역")
 
         assertThat(result.items).isEmpty()
         verify(exactly = 0) { stopPriceRepository.findUnitPriceMapByStopIds(any()) }
+    }
+
+    /**
+     * 유형 필터 문자열이 enum 으로 변환되어 Repository 까지 전달되는지 확인한다.
+     * 여기서 끊기면 화면에서는 필터가 걸린 것처럼 보이는데 결과는 전체가 나온다.
+     */
+    @Test
+    fun `getBusStopPage_유형_필터는_enum으로_변환되어_전달된다`() {
+        every { stopRepository.findListPaged(null, StopType.VILLAGE_BUS, 0, 20) } returns emptyList()
+        every { stopRepository.countList(null, StopType.VILLAGE_BUS) } returns 0L
+
+        val result = stopService.getBusStopPage(0, 20, null, "VILLAGE_BUS")
+
+        assertThat(result.items).isEmpty()
+        verify(exactly = 1) { stopRepository.findListPaged(null, StopType.VILLAGE_BUS, 0, 20) }
+    }
+
+    @Test
+    fun `getBusStopPage_알_수_없는_유형은_400을_던진다`() {
+        assertThatThrownBy { stopService.getBusStopPage(0, 20, null, "NOT_A_TYPE") }
+            .isInstanceOf(BusinessException::class.java)
     }
 
     @Test
@@ -132,8 +155,8 @@ class StopServiceTest {
             every { id } returns EntityID(UUID.randomUUID(), StopTable)
             every { this@mockk.stopId } returns stopId
             every { this@mockk.stopName } returns stopName
-            every { xCrd } returns "127.0"
-            every { yCrd } returns "37.0"
+            every { xCrd } returns BigDecimal("127.0000000")
+            every { yCrd } returns BigDecimal("37.0000000")
             every { nodeId } returns "NODE001"
             every { stopsType } returns StopType.CENTER_LANE
             every { createdAt } returns now
