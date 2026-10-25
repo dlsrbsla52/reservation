@@ -54,11 +54,14 @@ class StopServiceClient(
 
     /**
      * 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다 (어드민 목록 화면용).
-     * keyword가 있으면 정류소명/번호 부분 일치로 필터링한다.
+     * keyword가 있으면 정류소명/번호 부분 일치로, stopsType이 있으면 해당 유형으로 필터링한다.
      */
-    fun getStopPage(page: Int, size: Int, keyword: String?): PageResult<StopInfo> {
-        log.debug("[StopServiceClient] 정류소 페이지 조회: page={}, size={}, keyword={}", page, size, keyword)
-        val data = stopApi.getStopPage(page, size, keyword)?.data
+    fun getStopPage(page: Int, size: Int, keyword: String?, stopsType: String?): PageResult<StopInfo> {
+        log.debug(
+            "[StopServiceClient] 정류소 페이지 조회: page={}, size={}, keyword={}, stopsType={}",
+            page, size, keyword, stopsType,
+        )
+        val data = stopApi.getStopPage(page, size, keyword, stopsType)?.data
         return PageResult(
             items = data?.items ?: emptyList(),
             totalCnt = data?.totalCnt ?: 0,

@@ -32,9 +32,12 @@ class AdminStopPriceFacade(
         else -> throw BusinessException(CommonResult.REQUEST_FAIL, "pk, stopId, stopName 중 하나는 필수입니다.")
     }
 
-    /** 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다. keyword가 있으면 이름/번호 부분 일치로 필터링한다. */
-    fun getStopPage(page: Int, size: Int, keyword: String?): PageResult<StopInfo> =
-        stopServiceClient.getStopPage(page, size, keyword)
+    /**
+     * 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다.
+     * keyword가 있으면 이름/번호 부분 일치로, stopsType이 있으면 해당 유형으로 필터링한다.
+     */
+    fun getStopPage(page: Int, size: Int, keyword: String?, stopsType: String?): PageResult<StopInfo> =
+        stopServiceClient.getStopPage(page, size, keyword, stopsType)
 
     fun getStopPrice(stopId: UUID): StopPriceInfo? = stopServiceClient.getStopPrice(stopId)
 

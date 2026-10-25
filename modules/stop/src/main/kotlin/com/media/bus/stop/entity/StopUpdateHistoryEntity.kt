@@ -7,6 +7,7 @@ import com.media.bus.stop.entity.enums.ChangeSource
 import com.media.bus.stop.entity.enums.StopType
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
+import java.math.BigDecimal
 import java.util.*
 
 /**
@@ -22,10 +23,16 @@ class StopUpdateHistoryEntity(id: EntityID<UUID>) : DateBaseEntity(id, StopUpdat
         /**
          * 정류소 변경 이력 생성 팩토리.
          * 변경 전 값은 기존 `stop`에서, 변경 후 값은 `newRow`에서 추출한다.
+         *
+         * 좌표만은 문자열 원본이 아니라 **파싱을 마친 [BigDecimal]** 을 전달받는다.
+         * `StopEntity.applyUpdate` 가 변경 감지를 위해 이미 파싱한 값을 재사용해
+         * 이중 파싱과 감지값·기록값 불일치를 방지하기 위함이다.
          */
         fun create(
             stop: StopEntity,
             newRow: SeoulBusStopRow,
+            newXCrd: BigDecimal,
+            newYCrd: BigDecimal,
             newType: StopType,
             changeSource: ChangeSource,
         ): StopUpdateHistoryEntity = new(UuidV7.generate()) {
@@ -33,9 +40,9 @@ class StopUpdateHistoryEntity(id: EntityID<UUID>) : DateBaseEntity(id, StopUpdat
             this.oldStopName = stop.stopName
             this.newStopName = newRow.stopsName
             this.oldXCrd = stop.xCrd
-            this.newXCrd = newRow.xCrd
+            this.newXCrd = newXCrd
             this.oldYCrd = stop.yCrd
-            this.newYCrd = newRow.yCrd
+            this.newYCrd = newYCrd
             this.oldNodeId = stop.nodeId
             this.newNodeId = newRow.nodeId
             this.oldStopsType = stop.stopsType

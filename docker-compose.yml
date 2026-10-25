@@ -11,6 +11,8 @@ x-app-common: &app-common
   restart: unless-stopped
   logging: *default-logging
   environment: &app-env
+    TZ: ${TZ:-Asia/Seoul}
+    JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul}"
     DB_HOST: database
     DB_PORT: 5432
     DB_NAME: ${POSTGRES_DB:-default}
@@ -31,6 +33,7 @@ services:
     container_name: msa-postgres
     restart: unless-stopped
     environment:
+      TZ: ${TZ:-Asia/Seoul}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-default}
@@ -48,6 +51,8 @@ services:
     image: valkey/valkey:8.1.6
     container_name: msa-valkey
     restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
     command: ["valkey-server", "--appendonly", "yes"]
     volumes:
       - valkey_data:/data

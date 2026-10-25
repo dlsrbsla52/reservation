@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+
+  <!-- ============================================================
+       V004. 좌표 컬럼 VARCHAR -> NUMERIC 전환 및 bbox 인덱스 추가
+
+       배경:
+         지도(카카오맵) 연동을 위해 화면 영역(bounding box) 기반 범위 조회가 필요하다.
+         좌표가 VARCHAR인 상태에서는 BETWEEN 비교가 사전식(lexicographic)으로 동작해
+         "9.9" > "10.1" 같은 오판이 발생하고, 인덱스도 범위 스캔에 활용되지 않는다.
+
+       타입 선택 근거:
+         NUMERIC(10, 7) — 정수부 3자리(경도 최대 180), 소수부 7자리(약 1.1cm 해상도).
+         DOUBLE PRECISION 대신 고정 소수점을 택한 이유는 공공 API 재동기화 시
+         부동소수점 반올림 오차로 인해 변경 없는 정류소가 매번 "변경됨"으로
+         오탐지되는 것을 막기 위함이다.
+       ============================================================ -->
+
+  <!-- V004-1. 변환 전 데이터 정합성 사전 검증 (숫자로 파싱 불가능한 값 차단) -->
+  <changeSet id="V004-1" author="hig">
+    <preConditions onFail="HALT"
+                   onFailMessage="stop.stop 좌표 컬럼에 숫자로 변환할 수 없는 값이 존재합니다. 해당 행을 정리한 뒤 다시 배포하십시오.">
+      <sqlCheck expectedResult="0"><![CDATA[
+        SELECT COUNT(*)
+          FROM stop.stop
+         WHERE TRIM(x_crd) !~ '^-?[0-9]+(\.[0-9]+)?$'
+            OR TRIM(y_crd) !~ '^-?[0-9]+(\.[0-9]+)?$'
+      ]]></sqlCheck>
+    </preConditions>
+
+    <comment>좌표 문자열이 전부 숫자 형식인지 확인한다 (변환 실패로 인한 배포 중단 방지)</comment>
+
+    <!-- 검증 전용 changeSet — 실제 DDL 없음 -->
+    <sql>SELECT 1</sql>
+  </changeSet>
+
+  <!-- V004-2. stop.stop 좌표 컬럼 타입 변경 -->
+  <changeSet id="V004-2" author="hig">
+    <comment>x_crd / y_crd 를 NUMERIC(10,7) 로 변환한다</comment>
+
+    <!--
+      PostgreSQL 은 varchar -> numeric 암묵 캐스팅을 허용하지 않으므로
+      Liquibase modifyDataType 대신 USING 절을 포함한 raw SQL 을 사용한다.
+    -->
+    <sql><![CDATA[
+      ALTER TABLE stop.stop
+        ALTER COLUMN x_crd TYPE NUMERIC(10, 7) USING TRIM(x_crd)::NUMERIC(10, 7),
+        ALTER COLUMN y_crd TYPE NUMERIC(10, 7) USING TRIM(y_crd)::NUMERIC(10, 7)
+    ]]></sql>
+
+    <rollback>
+      <sql><![CDATA[
+        ALTER TABLE stop.stop
+          ALTER COLUMN x_crd TYPE VARCHAR(50) USING x_crd::TEXT,
+          ALTER COLUMN y_crd TYPE VARCHAR(50) USING y_crd::TEXT
+      ]]></sql>
+    </rollback>
+  </changeSet>
+
+  <!-- V004-3. 이력 테이블 좌표 컬럼 타입 변경 (본 테이블과 타입 일관성 유지) -->
+  <changeSet id="V004-3" author="hig">
+    <comment>stop_update_history 의 좌표 컬럼도 NUMERIC(10,7) 로 통일한다</comment>
+
+    <!-- 이력 컬럼은 nullable 이므로 빈 문자열/비정상 값은 NULL 로 흡수한다 -->
+    <sql><![CDATA[
+      ALTER TABLE stop.stop_update_history
+        ALTER COLUMN old_x_crd TYPE NUMERIC(10, 7)
+          USING NULLIF(TRIM(COALESCE(old_x_crd, '')), '')::NUMERIC(10, 7),
+        ALTER COLUMN new_x_crd TYPE NUMERIC(10, 7)
+          USING NULLIF(TRIM(COALESCE(new_x_crd, '')), '')::NUMERIC(10, 7),
+        ALTER COLUMN old_y_crd TYPE NUMERIC(10, 7)
+          USING NULLIF(TRIM(COALESCE(old_y_crd, '')), '')::NUMERIC(10, 7),
+        ALTER COLUMN new_y_crd TYPE NUMERIC(10, 7)
+          USING NULLIF(TRIM(COALESCE(new_y_crd, '')), '')::NUMERIC(10, 7)
+    ]]></sql>
+
+    <rollback>
+      <sql><![CDATA[
+        ALTER TABLE stop.stop_update_history
+          ALTER COLUMN old_x_crd TYPE VARCHAR(50) USING old_x_crd::TEXT,
+          ALTER COLUMN new_x_crd TYPE VARCHAR(50) USING new_x_crd::TEXT,
+          ALTER COLUMN old_y_crd TYPE VARCHAR(50) USING old_y_crd::TEXT,
+          ALTER COLUMN new_y_crd TYPE VARCHAR(50) USING new_y_crd::TEXT
+      ]]></sql>
+    </rollback>
+  </changeSet>
+
+  <!-- V004-4. bbox 범위 조회용 복합 인덱스 -->
+  <changeSet id="V004-4" author="hig">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists schemaName="stop" tableName="stop" indexName="idx_stop_coord"/>
+      </not>
+    </preConditions>
+
+    <comment>
+      지도 영역 조회는 위도(y_crd) 범위로 먼저 좁히는 것이 선택도가 높으므로
+      (y_crd, x_crd) 순서의 복합 인덱스를 생성한다.
+      PostGIS 도입 시에는 geometry 컬럼 + GIST 인덱스로 대체를 검토한다.
+    </comment>
+
+    <createIndex indexName="idx_stop_coord" tableName="stop" schemaName="stop">
+      <column name="y_crd"/>
+      <column name="x_crd"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- V004-5. 변경된 컬럼 주석 갱신 -->
+  <changeSet id="V004-5" author="hig">
+    <setColumnRemarks schemaName="stop" tableName="stop" columnName="x_crd"
+        remarks="경도 WGS84 (XCRD, 공공 API 제공). NUMERIC(10,7) — 약 1.1cm 해상도"/>
+    <setColumnRemarks schemaName="stop" tableName="stop" columnName="y_crd"
+        remarks="위도 WGS84 (YCRD, 공공 API 제공). NUMERIC(10,7) — 약 1.1cm 해상도"/>
+  </changeSet>
+
+</databaseChangeLog>
