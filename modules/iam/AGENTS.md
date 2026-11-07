@@ -54,6 +54,10 @@ modules/iam/src/main/kotlin/com/media/bus/iam/
 | GET  | `/api/v1/auth/verify-email` | 이메일 인증 (Redis 1회성 토큰) |
 | POST | `/api/v1/auth/token/refresh` | Refresh Token으로 Access Token 재발급 (Token Rotation) |
 | POST | `/api/v1/auth/logout` | 로그아웃 (Redis Refresh Token 삭제) |
+| POST | `/api/v1/auth/admin/login` | 관리자 사이트 로그인. 관리자 계정만 허용, `aud=ADMIN` 토큰 + `admin_refresh_token` 쿠키 |
+| POST | `/api/v1/auth/admin/token/refresh` | 관리자 토큰 재발급 (`admin_refresh_token` 쿠키, Path `/api/v1/auth/admin`) |
+| POST | `/api/v1/auth/admin/logout` | 관리자 세션 로그아웃 |
+| POST | `/api/v1/auth/admin/reactivate` | INACTIVE 관리자 계정 재활성화 (일반 재활성화는 관리자 계정을 받지 않음) |
 | POST | `/api/v1/member/jwt` | JWT 기반 회원 조회 (S2S 전용) |
 | POST | `/api/v1/member/id` | memberId 기반 회원 조회 (S2S 전용) |
 
@@ -65,6 +69,11 @@ modules/iam/src/main/kotlin/com/media/bus/iam/
 - Migration: Liquibase (`src/main/resources/db/changelog/`)
 
 ## 토큰 정책
+
+- 관리자 계정은 일반 로그인(`/api/v1/auth/login`)과 재활성화를 쓸 수 없다(403 `A0019`). 관리자 로그인은 관리자 계정만 받는다(403 `A0020`).
+- 갱신 API는 refresh 토큰의 `aud`가 자기 사이트와 다르거나, 세션 중 역할이 바뀌어 사이트 규칙에 어긋나면 401 `A0021`로 재로그인시킨다.
+- 로그아웃은 호출한 사이트의 refresh 쿠키로 세션 id를 찾아 그 세션만 지운다. 쿠키가 없으면 **세션을 지우지 않는다**(전체 삭제는 `revokeOtherSessions`나 관리자 강제 로그아웃 경로).
+- `/api/v1/admin` 하위 컨트롤러는 `@Authorize`가 필수다. `AdminControllerAuthorizeCoverageTest`가 누락을 막는다.
 
 토큰 상세(TTL, 검증 방식, 알려진 제약) → `modules/auth-contract/AGENTS.md` 참조.
 

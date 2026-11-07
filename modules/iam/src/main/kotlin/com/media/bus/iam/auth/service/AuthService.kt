@@ -3,9 +3,12 @@ package com.media.bus.iam.auth.service
 import com.media.bus.common.exceptions.BaseException
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.exceptions.NoAuthenticationException
+import com.media.bus.common.exceptions.NoAuthorizationException
 import com.media.bus.common.result.type.CommonResult
+import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.security.JwtProvider
 import com.media.bus.contract.security.MemberPrincipal
+import com.media.bus.contract.security.TokenAudience
 import com.media.bus.iam.admin.entity.MemberStatusHistoryEntity
 import com.media.bus.iam.audit.AuditAction
 import com.media.bus.iam.audit.AuditTargetType
@@ -117,9 +120,15 @@ class AuthService(
      *
      * @param deviceInfo User-Agent 등 기기 정보 — 다중 디바이스 세션 목록 노출용 (선택)
      * @param ip         클라이언트 IP — 세션 관리 UI용 (선택)
+     * @param audience   로그인한 사이트. 계정 유형과 맞지 않으면 403 ([validateLoginAudience])
      */
     @Transactional(readOnly = true)
-    fun login(request: LoginRequest, deviceInfo: String? = null, ip: String? = null): AuthTokenResult {
+    fun login(
+        request: LoginRequest,
+        deviceInfo: String? = null,
+        ip: String? = null,
+        audience: TokenAudience = TokenAudience.USER,
+    ): AuthTokenResult {
         val member = memberRepository.findByLoginId(request.loginId)
             ?: throw NoAuthenticationException(CommonResult.BAD_CREDENTIAL_FAIL)
 
@@ -137,6 +146,8 @@ class AuthService(
         }
 
         val memberType = roleResolutionService.resolveMemberType(member.id.value)
+        // 비밀번호 검증 이후에 확인하므로, 이 응답으로 계정 유형이 노출되는 것은 비밀번호를 아는 본인뿐이다.
+        validateLoginAudience(memberType, audience)
 
         val principal = MemberPrincipal(
             id = member.id.value,
@@ -150,7 +161,7 @@ class AuthService(
         // DB에서 역할에 매핑된 권한 목록을 조회하여 JWT claim에 포함
         val permissionNames = rolePermissionRepository.findPermissionNamesByRoleName(memberType.name)
 
-        val accessToken = jwtProvider.generateAccessToken(principal, permissionNames)
+        val accessToken = jwtProvider.generateAccessToken(principal, permissionNames, audience)
         // 신규 로그인은 항상 새 세션으로 취급 — 다중 디바이스 병행 로그인을 허용한다.
         val sessionId = UUID.randomUUID().toString()
         val refreshToken = jwtProvider.generateRefreshToken(
@@ -158,16 +169,20 @@ class AuthService(
             sessionId = sessionId,
             deviceInfo = deviceInfo,
             ip = ip,
+            audience = audience,
         )
 
-        log.info("[AuthService.login] 로그인 성공. memberId={}, sessionId={}", member.id.value, sessionId)
+        log.info(
+            "[AuthService.login] 로그인 성공. memberId={}, sessionId={}, audience={}",
+            member.id.value, sessionId, audience,
+        )
         auditLogService.success(
             actorId = member.id.value,
             actorType = resolveActorType(memberType),
             action = AuditAction.LOGIN,
             targetType = AuditTargetType.MEMBER,
             targetId = member.id.value.toString(),
-            detail = """{"sessionId":"$sessionId"}""",
+            detail = """{"sessionId":"$sessionId","audience":"${audience.name}"}""",
         )
         return AuthTokenResult(accessToken, refreshToken)
     }
@@ -194,12 +209,22 @@ class AuthService(
     /**
      * Refresh Token을 검증하고 새로운 Access Token을 발급한다.
      * Redis에 저장된 토큰과 요청 토큰을 비교하여 탈취 여부를 검증한다.
+     *
+     * 발급처는 **refresh 토큰의 `aud` 클레임을 이어받는다.** 클라이언트가 고를 수 없으므로
+     * 일반 사이트 세션이 갱신을 통해 관리자 토큰으로 바뀌지 않는다.
+     *
+     * @param expectedAudience 호출된 갱신 API의 발급처. 토큰의 발급처와 다르면 401
      */
     @Transactional(readOnly = true)
-    fun refreshAccessToken(refreshToken: String): AuthTokenResult {
+    fun refreshAccessToken(refreshToken: String, expectedAudience: TokenAudience): AuthTokenResult {
         // 서명/만료 검증 + 파싱을 tryParseClaims() 단일 호출로 통합
         val claims = jwtProvider.tryParseClaims(refreshToken)
             ?: throw NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL)
+        // aud 가 없는 구버전 토큰은 USER 로 간주된다 — 관리자는 배포 후 한 번 다시 로그인해야 한다.
+        val audience = TokenAudience.fromClaims(claims)
+        if (audience != expectedAudience) {
+            throw NoAuthenticationException(AuthResult.TOKEN_AUDIENCE_MISMATCH)
+        }
         val memberId = claims.subject
         // sid claim은 신규 세션 구조에서만 존재한다. 없는 경우(하위 호환 토큰) 전체 조회로 fallback 한다.
         val sessionId = claims[JwtProvider.SESSION_ID_CLAIM] as? String
@@ -219,6 +244,12 @@ class AuthService(
 
         // 최신 역할 정보 반영
         val memberType = roleResolutionService.resolveMemberType(member.id.value)
+        // 세션 도중 역할이 바뀐 경우(관리자 해임, 일반 회원의 관리자 승격) 갱신을 막아 재로그인시킨다.
+        // 세션도 지운다 — 남겨 두면 다시 승격됐을 때 같은 refresh 토큰이 되살아난다.
+        if (!isAudienceAllowed(memberType, audience)) {
+            sessionId?.let { jwtProvider.deleteSession(memberId, it) }
+            throw NoAuthenticationException(AuthResult.TOKEN_AUDIENCE_MISMATCH)
+        }
 
         val principal = MemberPrincipal(
             id = member.id.value,
@@ -232,7 +263,7 @@ class AuthService(
         // 토큰 재발급 시에도 DB에서 최신 권한을 조회하여 갱신된 권한이 즉시 반영되도록 함
         val permissionNames = rolePermissionRepository.findPermissionNamesByRoleName(memberType.name)
 
-        val newAccessToken = jwtProvider.generateAccessToken(principal, permissionNames)
+        val newAccessToken = jwtProvider.generateAccessToken(principal, permissionNames, audience)
         // Token Rotation: 동일 sessionId를 유지하여 기기 추적을 보존한다.
         // sid가 없는 레거시 토큰에서는 새 sid를 발급한다 (점진 이관).
         val newRefreshToken = jwtProvider.generateRefreshToken(
@@ -240,6 +271,7 @@ class AuthService(
             sessionId = sessionId ?: UUID.randomUUID().toString(),
             deviceInfo = null,
             ip = null,
+            audience = audience,
         )
 
         return AuthTokenResult(newAccessToken, newRefreshToken)
@@ -297,15 +329,18 @@ class AuthService(
 
     /**
      * 로그아웃 처리. 특정 세션만 삭제하여 다른 디바이스는 유지한다.
-     * sessionId가 null이면(레거시 호출) 모든 세션을 삭제한다.
+     *
+     * sessionId가 null이면(호출한 사이트의 refresh 쿠키가 없음) **세션을 지우지 않는다.**
+     * 사이트별로 쿠키를 나눈 뒤로는 관리자가 일반 로그아웃을 부르는 것만으로도 null이 되는데,
+     * 예전처럼 전체 삭제로 처리하면 다른 기기 세션까지 강제 로그아웃된다.
+     * 전체 로그아웃이 필요하면 `revokeOtherSessions`나 관리자 강제 로그아웃 경로를 쓴다.
      */
-    fun logout(memberId: String, sessionId: String? = null) {
+    fun logout(memberId: String, sessionId: String?) {
         if (sessionId != null) {
             jwtProvider.deleteSession(memberId, sessionId)
             log.info("[AuthService.logout] 세션 로그아웃 처리. memberId={}, sessionId={}", memberId, sessionId)
         } else {
-            jwtProvider.deleteRefreshToken(memberId)
-            log.info("[AuthService.logout] 전체 세션 로그아웃. memberId={}", memberId)
+            log.info("[AuthService.logout] refresh 쿠키 없음 — 세션 삭제 없이 쿠키만 만료. memberId={}", memberId)
         }
         auditLogService.success(
             actorId = runCatching { UUID.fromString(memberId) }.getOrNull(),
@@ -465,7 +500,12 @@ class AuthService(
      * - 비밀번호가 틀린 경우 `BAD_CREDENTIAL_FAIL`을 던져 계정 존재 여부를 노출하지 않는다.
      */
     @Transactional
-    fun reactivate(request: LoginRequest, deviceInfo: String? = null, ip: String? = null): AuthTokenResult {
+    fun reactivate(
+        request: LoginRequest,
+        deviceInfo: String? = null,
+        ip: String? = null,
+        audience: TokenAudience = TokenAudience.USER,
+    ): AuthTokenResult {
         val member = memberRepository.findByLoginId(request.loginId)
             ?: throw NoAuthenticationException(CommonResult.BAD_CREDENTIAL_FAIL)
 
@@ -476,6 +516,11 @@ class AuthService(
         if (member.status != MemberStatus.INACTIVE) {
             throw BusinessException(CommonResult.ACCOUNT_NOT_INACTIVE_FAIL)
         }
+
+        // 로그인과 같은 사이트 규칙을 적용한다(관리자는 관리자 재활성화 API로).
+        // 상태를 바꾸기 전에 확인해 거부 시 부작용이 없게 한다.
+        val memberType = roleResolutionService.resolveMemberType(member.id.value)
+        validateLoginAudience(memberType, audience)
 
         val previousStatus = member.status
         member.reactivate()
@@ -490,7 +535,6 @@ class AuthService(
         )
 
         // 토큰 발급 — 로그인과 동일 절차
-        val memberType = roleResolutionService.resolveMemberType(member.id.value)
         val principal = MemberPrincipal(
             id = member.id.value,
             loginId = member.loginId,
@@ -500,13 +544,14 @@ class AuthService(
             permissions = emptySet(),
         )
         val permissionNames = rolePermissionRepository.findPermissionNamesByRoleName(memberType.name)
-        val accessToken = jwtProvider.generateAccessToken(principal, permissionNames)
+        val accessToken = jwtProvider.generateAccessToken(principal, permissionNames, audience)
         val sessionId = UUID.randomUUID().toString()
         val refreshToken = jwtProvider.generateRefreshToken(
             memberId = member.id.value.toString(),
             sessionId = sessionId,
             deviceInfo = deviceInfo,
             ip = ip,
+            audience = audience,
         )
 
         log.info("[AuthService.reactivate] 계정 재활성화 완료. memberId={}, sessionId={}", member.id.value, sessionId)
@@ -519,6 +564,28 @@ class AuthService(
         )
         return AuthTokenResult(accessToken, refreshToken)
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 발급처(사이트) 검증
+    // ─────────────────────────────────────────────────────────────────
+
+    /**
+     * 계정 유형과 로그인한 사이트가 맞는지 확인한다.
+     * - 관리자 계정은 관리자 사이트에서만 로그인한다. 일반 사이트 토큰이 관리자 계정으로 발급되면
+     *   덜 보호된 사이트에서 새어도 관리자 계정의 권한을 그대로 쓸 수 있기 때문이다.
+     * - 관리자 사이트는 관리자 계정만 로그인할 수 있다.
+     */
+    private fun validateLoginAudience(memberType: MemberType, audience: TokenAudience) {
+        if (isAudienceAllowed(memberType, audience)) return
+        throw when (audience) {
+            TokenAudience.USER -> NoAuthorizationException(AuthResult.ADMIN_SITE_LOGIN_REQUIRED)
+            TokenAudience.ADMIN -> NoAuthorizationException(AuthResult.ADMIN_ACCOUNT_REQUIRED)
+        }
+    }
+
+    /** 관리자 계정 ⇔ 관리자 사이트, 그 외 계정 ⇔ 일반 사이트만 허용한다. */
+    private fun isAudienceAllowed(memberType: MemberType, audience: TokenAudience): Boolean =
+        memberType.isAdmin == (audience == TokenAudience.ADMIN)
 
     // ─────────────────────────────────────────────────────────────────
     // 세션 관리 — 다중 디바이스 로그인 지원

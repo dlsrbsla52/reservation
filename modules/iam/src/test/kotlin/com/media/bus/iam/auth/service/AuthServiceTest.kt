@@ -2,8 +2,10 @@ package com.media.bus.iam.auth.service
 
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.exceptions.NoAuthenticationException
+import com.media.bus.common.exceptions.NoAuthorizationException
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.security.JwtProvider
+import com.media.bus.contract.security.TokenAudience
 import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.guard.PasswordResetValidator
 import com.media.bus.iam.auth.guard.RegisterRequestValidator
@@ -142,6 +144,50 @@ class AuthServiceTest {
             assertThatThrownBy { authService.login(loginRequest) }
                 .isInstanceOf(NoAuthenticationException::class.java)
         }
+
+        private fun givenValidCredential(memberType: MemberType) {
+            every { memberRepository.findByLoginId("testuser") } returns mockMember()
+            every { passwordEncoder.matches("Password123!", "encodedPassword") } returns true
+            every { roleResolutionService.resolveMemberType(testMemberId) } returns memberType
+        }
+
+        @Test
+        @DisplayName("관리자 계정은 일반 사이트에서 로그인할 수 없다")
+        fun `관리자 계정의 일반 사이트 로그인 거부`() {
+            givenValidCredential(MemberType.ADMIN_MASTER)
+
+            assertThatThrownBy { authService.login(loginRequest, audience = TokenAudience.USER) }
+                .isInstanceOf(NoAuthorizationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.ADMIN_SITE_LOGIN_REQUIRED)
+            verify(exactly = 0) { jwtProvider.generateAccessToken(any(), any(), any()) }
+        }
+
+        @Test
+        @DisplayName("관리자 사이트는 관리자 계정만 로그인할 수 있다")
+        fun `일반 계정의 관리자 사이트 로그인 거부`() {
+            givenValidCredential(MemberType.BUSINESS)
+
+            assertThatThrownBy { authService.login(loginRequest, audience = TokenAudience.ADMIN) }
+                .isInstanceOf(NoAuthorizationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.ADMIN_ACCOUNT_REQUIRED)
+            verify(exactly = 0) { jwtProvider.generateAccessToken(any(), any(), any()) }
+        }
+
+        @Test
+        @DisplayName("관리자 사이트 로그인은 액세스·리프레시 토큰 모두 ADMIN 발급처로 발급한다")
+        fun `관리자 로그인 발급처`() {
+            givenValidCredential(MemberType.ADMIN_USER)
+            every { rolePermissionRepository.findPermissionNamesByRoleName("ADMIN_USER") } returns setOf("READ")
+            every { jwtProvider.generateAccessToken(any(), any(), TokenAudience.ADMIN) } returns "adminAccess"
+            every {
+                jwtProvider.generateRefreshToken(any(), any(), any(), any(), TokenAudience.ADMIN)
+            } returns "adminRefresh"
+
+            val result = authService.login(loginRequest, audience = TokenAudience.ADMIN)
+
+            assertThat(result.accessToken).isEqualTo("adminAccess")
+            assertThat(result.refreshToken).isEqualTo("adminRefresh")
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -190,6 +236,7 @@ class AuthServiceTest {
             val claims = mockk<Claims>()
             every { claims.subject } returns testMemberIdStr
             every { claims[com.media.bus.contract.security.JwtProvider.SESSION_ID_CLAIM] } returns "session-A"
+            every { claims.audience } returns setOf("USER")
             every { jwtProvider.tryParseClaims("refreshToken") } returns claims
             every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-A", "refreshToken") } returns true
 
@@ -207,7 +254,7 @@ class AuthServiceTest {
                 )
             } returns "newRefresh"
 
-            val result = authService.refreshAccessToken("refreshToken")
+            val result = authService.refreshAccessToken("refreshToken", TokenAudience.USER)
 
             assertThat(result.accessToken).isEqualTo("newAccess")
             assertThat(result.refreshToken).isEqualTo("newRefresh")
@@ -218,7 +265,7 @@ class AuthServiceTest {
         fun `파싱 실패`() {
             every { jwtProvider.tryParseClaims("badToken") } returns null
 
-            assertThatThrownBy { authService.refreshAccessToken("badToken") }
+            assertThatThrownBy { authService.refreshAccessToken("badToken", TokenAudience.USER) }
                 .isInstanceOf(NoAuthenticationException::class.java)
         }
 
@@ -228,11 +275,78 @@ class AuthServiceTest {
             val claims = mockk<Claims>()
             every { claims.subject } returns testMemberIdStr
             every { claims[com.media.bus.contract.security.JwtProvider.SESSION_ID_CLAIM] } returns "session-X"
+            every { claims.audience } returns setOf("USER")
             every { jwtProvider.tryParseClaims("stolenToken") } returns claims
             every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-X", "stolenToken") } returns false
 
-            assertThatThrownBy { authService.refreshAccessToken("stolenToken") }
+            assertThatThrownBy { authService.refreshAccessToken("stolenToken", TokenAudience.USER) }
                 .isInstanceOf(NoAuthenticationException::class.java)
+        }
+
+        private fun refreshClaims(audience: Set<String>?): Claims {
+            val claims = mockk<Claims>()
+            every { claims.subject } returns testMemberIdStr
+            every { claims[com.media.bus.contract.security.JwtProvider.SESSION_ID_CLAIM] } returns "session-A"
+            every { claims.audience } returns audience
+            every { jwtProvider.tryParseClaims("refreshToken") } returns claims
+            return claims
+        }
+
+        @Test
+        @DisplayName("일반 사이트 refresh 토큰으로 관리자 갱신 API를 호출하면 401")
+        fun `발급처 불일치`() {
+            refreshClaims(setOf("USER"))
+
+            assertThatThrownBy { authService.refreshAccessToken("refreshToken", TokenAudience.ADMIN) }
+                .isInstanceOf(NoAuthenticationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.TOKEN_AUDIENCE_MISMATCH)
+            // Redis 검증 전에 거부되어야 한다 — 세션 rotation 부작용이 없다.
+            verify(exactly = 0) { jwtProvider.validateRefreshToken(any(), any(), any()) }
+        }
+
+        @Test
+        @DisplayName("aud 가 없는 구버전 refresh 토큰은 USER 로 간주되어 관리자 갱신이 거부된다")
+        fun `구버전 토큰은 관리자 갱신 불가`() {
+            refreshClaims(null)
+
+            assertThatThrownBy { authService.refreshAccessToken("refreshToken", TokenAudience.ADMIN) }
+                .isInstanceOf(NoAuthenticationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.TOKEN_AUDIENCE_MISMATCH)
+        }
+
+        @Test
+        @DisplayName("관리자 세션 도중 관리자 역할을 잃으면 갱신이 거부된다")
+        fun `역할 변경 후 갱신 거부`() {
+            refreshClaims(setOf("ADMIN"))
+            every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-A", "refreshToken") } returns true
+            every { memberRepository.findById(testMemberId) } returns mockMember()
+            every { roleResolutionService.resolveMemberType(testMemberId) } returns MemberType.MEMBER
+            every { jwtProvider.deleteSession(testMemberIdStr, "session-A") } just Runs
+
+            assertThatThrownBy { authService.refreshAccessToken("refreshToken", TokenAudience.ADMIN) }
+                .isInstanceOf(NoAuthenticationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.TOKEN_AUDIENCE_MISMATCH)
+            // 다시 승격돼도 이 refresh 토큰이 되살아나지 않도록 세션을 지운다.
+            verify { jwtProvider.deleteSession(testMemberIdStr, "session-A") }
+        }
+
+        @Test
+        @DisplayName("관리자 갱신은 ADMIN 발급처를 유지한다")
+        fun `관리자 갱신 발급처 유지`() {
+            refreshClaims(setOf("ADMIN"))
+            every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-A", "refreshToken") } returns true
+            every { memberRepository.findById(testMemberId) } returns mockMember()
+            every { roleResolutionService.resolveMemberType(testMemberId) } returns MemberType.ADMIN_MASTER
+            every { rolePermissionRepository.findPermissionNamesByRoleName("ADMIN_MASTER") } returns setOf("MANAGE")
+            every { jwtProvider.generateAccessToken(any(), any(), TokenAudience.ADMIN) } returns "adminAccess"
+            every {
+                jwtProvider.generateRefreshToken(testMemberIdStr, "session-A", any(), any(), TokenAudience.ADMIN)
+            } returns "adminRefresh"
+
+            val result = authService.refreshAccessToken("refreshToken", TokenAudience.ADMIN)
+
+            assertThat(result.accessToken).isEqualTo("adminAccess")
+            assertThat(result.refreshToken).isEqualTo("adminRefresh")
         }
     }
 
@@ -309,13 +423,23 @@ class AuthServiceTest {
     // ──────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("로그아웃 시 Refresh Token을 삭제한다")
-    fun `logout`() {
-        every { jwtProvider.deleteRefreshToken(testMemberIdStr) } just Runs
+    @DisplayName("현재 세션 id 가 있으면 그 세션만 삭제한다")
+    fun `logout 세션 단위`() {
+        every { jwtProvider.deleteSession(testMemberIdStr, "session-A") } just Runs
 
-        authService.logout(testMemberIdStr)
+        authService.logout(testMemberIdStr, "session-A")
 
-        verify { jwtProvider.deleteRefreshToken(testMemberIdStr) }
+        verify { jwtProvider.deleteSession(testMemberIdStr, "session-A") }
+        verify(exactly = 0) { jwtProvider.deleteRefreshToken(any()) }
+    }
+
+    @Test
+    @DisplayName("refresh 쿠키가 없어 세션 id 를 모르면 어떤 세션도 지우지 않는다")
+    fun `logout 세션 id 없음`() {
+        authService.logout(testMemberIdStr, null)
+
+        verify(exactly = 0) { jwtProvider.deleteRefreshToken(any()) }
+        verify(exactly = 0) { jwtProvider.deleteSession(any(), any()) }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -477,6 +601,47 @@ class AuthServiceTest {
 
             assertThatThrownBy { authService.changePassword(testMemberIdStr, request) }
                 .hasMessageContaining(AuthResult.MEMBER_NOT_FOUND.message)
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // reactivate — 사이트 규칙
+    // ──────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("reactivate 사이트 규칙")
+    inner class ReactivateAudience {
+
+        private val request = LoginRequest(loginId = "testuser", password = "Password123!")
+
+        private fun givenInactive(memberType: MemberType): MemberEntity {
+            val member = mockMember(status = MemberStatus.INACTIVE)
+            every { memberRepository.findByLoginId("testuser") } returns member
+            every { passwordEncoder.matches("Password123!", "encodedPassword") } returns true
+            every { roleResolutionService.resolveMemberType(testMemberId) } returns memberType
+            return member
+        }
+
+        @Test
+        @DisplayName("관리자 계정은 일반 재활성화를 쓸 수 없고 상태도 바뀌지 않는다")
+        fun `관리자 일반 재활성화 거부`() {
+            val member = givenInactive(MemberType.ADMIN_MASTER)
+
+            assertThatThrownBy { authService.reactivate(request, audience = TokenAudience.USER) }
+                .isInstanceOf(NoAuthorizationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.ADMIN_SITE_LOGIN_REQUIRED)
+            verify(exactly = 0) { member.reactivate() }
+        }
+
+        @Test
+        @DisplayName("일반 계정은 관리자 재활성화를 쓸 수 없고 상태도 바뀌지 않는다")
+        fun `일반 계정 관리자 재활성화 거부`() {
+            val member = givenInactive(MemberType.MEMBER)
+
+            assertThatThrownBy { authService.reactivate(request, audience = TokenAudience.ADMIN) }
+                .isInstanceOf(NoAuthorizationException::class.java)
+                .extracting("result").isEqualTo(AuthResult.ADMIN_ACCOUNT_REQUIRED)
+            verify(exactly = 0) { member.reactivate() }
         }
     }
 }
