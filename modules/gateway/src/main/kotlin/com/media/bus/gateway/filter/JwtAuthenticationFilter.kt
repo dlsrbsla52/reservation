@@ -2,9 +2,13 @@ package com.media.bus.gateway.filter
 
 import com.media.bus.contract.security.JwtProvider
 import com.media.bus.contract.security.MemberPrincipal
+import com.media.bus.contract.security.TokenAudience
+import io.jsonwebtoken.Claims
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.gateway.filter.GatewayFilterChain
 import org.springframework.cloud.gateway.filter.GlobalFilter
+import org.springframework.cloud.gateway.route.Route
+import org.springframework.cloud.gateway.support.ServerWebExchangeUtils
 import org.springframework.core.Ordered
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -35,6 +39,14 @@ class JwtAuthenticationFilter(
             "POST:/api/v1/auth/register",
             "POST:/api/v1/auth/login",
             "POST:/api/v1/auth/token/refresh",
+            "POST:/api/v1/auth/admin/login",
+            "POST:/api/v1/auth/admin/token/refresh",
+            "POST:/api/v1/auth/admin/reactivate",
+            // 로그인하지 못한 사용자가 쓰는 복구 흐름 — 요청 body 로만 본인을 확인하며 X-User-* 헤더를 읽지 않는다.
+            "POST:/api/v1/auth/reactivate",
+            "POST:/api/v1/auth/password-reset/request",
+            "POST:/api/v1/auth/password-reset/verify",
+            "POST:/api/v1/auth/password-reset/confirm",
             "GET:/api/v1/auth/verify-email",
             "GET:/api/v1/auth/health-check",
             "GET:/api/v1/member/health-check",
@@ -42,15 +54,38 @@ class JwtAuthenticationFilter(
             "GET:/api/v1/stop/health-check",
             "GET:/api/v1/member/find/me"
         )
+
+        /// 라우트 metadata 키. 값은 [TokenAudience] 이름이며, 해당 발급처 토큰만 이 라우트로 보낸다.
+        const val REQUIRED_AUDIENCE_METADATA = "required-audience"
+
+        /// 라우트 metadata 가 빠져도 관리자 경로는 막기 위한 경로 기준 2차 판정 prefix.
+        private const val ADMIN_PATH_PREFIX = "/api/v1/admin"
+
+        private val MULTIPLE_SLASHES = Regex("/{2,}")
+
+        /// 하위 서비스가 신뢰하는 사용자 컨텍스트 헤더. gateway 만 주입해야 한다.
+        private val TRUSTED_USER_HEADERS = listOf(
+            MemberPrincipal.HEADER_USER_ID,
+            MemberPrincipal.HEADER_USER_LOGIN_ID,
+            MemberPrincipal.HEADER_USER_EMAIL,
+            MemberPrincipal.HEADER_USER_ROLE,
+            MemberPrincipal.HEADER_EMAIL_VERIFIED,
+            MemberPrincipal.HEADER_USER_PERMISSIONS,
+        )
     }
 
     override fun filter(exchange: ServerWebExchange, chain: GatewayFilterChain): Mono<Void> {
         val method = exchange.request.method.name()
         val path = exchange.request.uri.path
 
-        // Public Endpoint는 인증 없이 통과
+        // Public Endpoint는 인증 없이 통과.
+        // 단, 클라이언트가 넣은 사용자 컨텍스트 헤더는 지운다 — 하위 서비스는 이 헤더를 검증 없이 신뢰하므로
+        // 공개 엔드포인트가 나중에 이 헤더를 읽게 되면 그대로 위조 경로가 된다.
         if (isPublicPath(method, path)) {
-            return chain.filter(exchange)
+            val sanitized = exchange.mutate()
+                .request { r -> r.headers { headers -> TRUSTED_USER_HEADERS.forEach(headers::remove) } }
+                .build()
+            return chain.filter(sanitized)
         }
 
         // Authorization 헤더에서 Bearer 토큰 추출
@@ -72,6 +107,18 @@ class JwtAuthenticationFilter(
         // 클레임 추출 및 하위 서비스로 전달할 헤더 주입
         return try {
             val principal: MemberPrincipal = jwtProvider.getPrincipalFromClaims(claims)
+
+            // 발급처 경계: 관리자 라우트는 관리자 계정 + 관리자 사이트(aud=ADMIN) 토큰만 통과시킨다.
+            // 하위 서비스의 @Authorize 와 별개로 gateway 에서 먼저 막아, 컨트롤러 인가 누락 시에도
+            // 일반 사이트 토큰이 관리자 API 에 도달하지 못하게 한다.
+            val requiredAudience = resolveRequiredAudience(exchange, path)
+            if (requiredAudience != null && !isAudienceSatisfied(principal, claims, requiredAudience)) {
+                log.warn(
+                    "[JwtAuthenticationFilter] 발급처 불일치로 차단. memberId={}, memberType={}, required={}, path={}",
+                    principal.id, principal.memberType.name, requiredAudience, path,
+                )
+                return forbidden(exchange)
+            }
 
             // 하위 서비스는 이 헤더를 신뢰하여 별도 JWT 파싱 없이 사용자 정보를 활용합니다.
             // loginId, email 헤더를 추가하여 MemberPrincipal.fromHeaders() 복원에 필요한 모든 정보를 전달합니다.
@@ -113,6 +160,48 @@ class JwtAuthenticationFilter(
     private fun isPublicPath(method: String, path: String): Boolean {
         val key = "$method:$path"
         return PUBLIC_PATHS.any { key.startsWith(it) }
+    }
+
+    /// 이 요청에 필요한 토큰 발급처를 결정합니다.
+    /// 1차로 매칭된 라우트의 metadata 를 보고, metadata 가 없어도 관리자 경로면 ADMIN 을 요구합니다.
+    /// (라우트 설정 실수로 metadata 가 빠지는 경우를 막는 안전망. `//` 중복 슬래시는 접어서 비교합니다)
+    private fun resolveRequiredAudience(exchange: ServerWebExchange, path: String): TokenAudience? {
+        val route = exchange.getAttribute<Route>(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR)
+        val metadataValue = route?.metadata?.get(REQUIRED_AUDIENCE_METADATA)
+        if (metadataValue != null) {
+            // 설정 오타(예: 소문자 admin)로 검사가 조용히 꺼지지 않도록, 알 수 없는 값은 가장 엄격한 ADMIN 으로 본다(fail-closed).
+            return TokenAudience.fromName(metadataValue.toString()) ?: TokenAudience.ADMIN.also {
+                log.error(
+                    "[JwtAuthenticationFilter] 알 수 없는 {} 값 '{}' — ADMIN 으로 처리합니다. routeId={}",
+                    REQUIRED_AUDIENCE_METADATA, metadataValue, route.id,
+                )
+            }
+        }
+
+        val normalized = path.replace(MULTIPLE_SLASHES, "/")
+        val isAdminPath = normalized == ADMIN_PATH_PREFIX || normalized.startsWith("$ADMIN_PATH_PREFIX/")
+        return if (isAdminPath) TokenAudience.ADMIN else null
+    }
+
+    /// 관리자 발급처는 토큰의 memberType 이 관리자 카테고리인지도 함께 확인합니다(발급 규칙 위반 토큰에 대한 방어).
+    /// memberType 은 **발급 시점의 클레임**이라 발급 이후의 역할 변경은 감지하지 못합니다.
+    /// 해임된 관리자는 액세스 토큰 TTL(관리자 15분) 동안 통과할 수 있고, 갱신은 iam 이 거부합니다.
+    private fun isAudienceSatisfied(
+        principal: MemberPrincipal,
+        claims: Claims,
+        required: TokenAudience,
+    ): Boolean {
+        val audience = TokenAudience.fromClaims(claims)
+        return when (required) {
+            TokenAudience.ADMIN -> audience == TokenAudience.ADMIN && principal.memberType.isAdmin
+            TokenAudience.USER -> audience == TokenAudience.USER
+        }
+    }
+
+    /// 403 Forbidden 응답을 즉시 반환합니다. 인증은 됐지만 이 경로에 쓸 수 없는 토큰입니다.
+    private fun forbidden(exchange: ServerWebExchange): Mono<Void> {
+        exchange.response.statusCode = HttpStatus.FORBIDDEN
+        return exchange.response.setComplete()
     }
 
     /// 401 Unauthorized 응답을 즉시 반환합니다.

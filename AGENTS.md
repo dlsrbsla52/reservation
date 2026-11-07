@@ -48,6 +48,7 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 인프라: PostgreSQL 18.3 (port **15433**), Valkey 8.1.6 / Redis (port **6379**)
 
 라우팅: `/api/v1/auth/**`, `/api/v1/admin/**` → 8181 / `/api/v1/stop/**` → 8182 / `/api/v1/reservation/**` → 8183
+- `/api/v1/admin/**`는 gateway가 관리자 사이트 토큰(`aud=ADMIN`)만 통과시킨다. 관리자 화면이 쓰는 기능은 서비스 공개 API를 직접 부르지 말고 iam admin API를 거쳐 S2S로 위임한다.
 
 ## 코드 규칙 (반드시 지킨다)
 
