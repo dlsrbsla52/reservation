@@ -2,6 +2,6 @@ server:
   port: 8080
 
 jwt:
-  secret: ${JWT_SECRET:local-dev-dummy-jwt-secret-for-tests-only-0000000000}
+  secret: ${JWT_SECRET}
 
 CORS_ALLOWED_ORIGIN: "http://localhost:3000"

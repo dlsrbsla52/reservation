@@ -30,7 +30,7 @@ spring:
   security:
     user:
       name: user
-      password: REDACTED_PASSWORD
+      password: ${LOCAL_SECURITY_PASSWORD:local-only}
 
 # Exposed SQL 로그 (local 전용). ExposedSqlLoggingInterceptor가 'Exposed' 로거 DEBUG로 출력.
 # 운영/스테이징에서는 미설정 → 루트 INFO 상속 → SQL 미출력.
@@ -50,7 +50,7 @@ resilience4j:
         maxWaitDuration: 300ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)
 
 jwt:
-  secret: ${JWT_SECRET:local-dev-dummy-jwt-secret-for-tests-only-0000000000}
+  secret: ${JWT_SECRET}
 
 # 로컬 개발환경 — 직접 실행 시 localhost, Docker 실행 시 환경변수 사용
 services:

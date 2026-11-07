@@ -4,7 +4,7 @@ Content-Type: {{json}}
 
 {
     "loginId" : "vhkdrb521",
-    "password" : "REDACTED_PASSWORD"
+    "password" : "{{password}}"
 }
 
 > {%

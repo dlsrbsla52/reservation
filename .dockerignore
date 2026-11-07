@@ -1,0 +1,10 @@
+# 빌드 컨텍스트에서 비밀값과 불필요한 파일 제외.
+# Dockerfile 은 gradle·modules 만 복사하지만, 컨텍스트 자체가 Docker 데몬으로 전송되므로 비밀값은 여기서 막는다.
+.env
+.env.*
+!.env.example
+HTTP/env/http-client.private.env.json
+.git
+.idea
+**/build
+**/.gradle

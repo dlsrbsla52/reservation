@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 비밀값 (커밋 금지) ###
+# 실제 값은 로컬 파일에만 둔다. 템플릿(.env.example 등)만 커밋한다.
+.env
+.env.*
+!.env.example
+HTTP/env/http-client.private.env.json

@@ -18,7 +18,9 @@ x-app-common: &app-common
     DB_NAME: ${POSTGRES_DB:-default}
     DB_USERNAME: ${POSTGRES_USER:-postgres}
     DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    JWT_SECRET: ${JWT_SECRET:-local-dev-dummy-jwt-secret-for-tests-only-0000000000}
+    # 비밀값은 프로젝트 루트 .env 에서 읽는다(git 제외, .env.example 참고). 없으면 기동을 막는다.
+    JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
+    SEOUL_API_KEY: ${SEOUL_API_KEY:-}
     REDIS_HOST: valkey
     REDIS_PORT: 6379
     COOKIE_SECURE: ${COOKIE_SECURE:-false}

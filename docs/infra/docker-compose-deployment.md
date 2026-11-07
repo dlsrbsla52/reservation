@@ -25,11 +25,16 @@
 
 ## 운영 환경 변수
 
-현재 compose는 작은 서비스의 초기 배포를 빠르게 시작할 수 있도록 기본값을 제공한다. 서버에서는 반드시 `.env` 파일 또는 배포 파이프라인 환경 변수로 운영값을 덮어쓴다.
+비밀값은 프로젝트 루트의 `.env`에서 읽는다. `.env`는 `.gitignore`·`.dockerignore` 대상이라 커밋되지도, 빌드 컨텍스트에 실리지도 않는다. `.env.example`을 복사해 만든다.
+
+- `JWT_SECRET`은 기본값이 없다. 없으면 `docker compose`가 기동을 거부한다(`${JWT_SECRET:?...}`).
+- `SEOUL_API_KEY`는 선택이다. 비우면 정류소 일괄 등록만 실패한다.
+- 운영에서는 서버의 `.env` 대신 배포 파이프라인 환경변수(AWS Secrets Manager 연동)를 권장한다. 환경변수가 `.env`보다 우선한다.
 
 ```env
+JWT_SECRET=<openssl rand -base64 48 로 생성, 로컬과 다른 값>
+SEOUL_API_KEY=<서울 열린데이터광장 키>
 POSTGRES_PASSWORD=change-me
-JWT_SECRET=change-me-at-least-32-bytes
 CORS_ALLOWED_ORIGIN=http://<server-host>:3000
 ```
 
