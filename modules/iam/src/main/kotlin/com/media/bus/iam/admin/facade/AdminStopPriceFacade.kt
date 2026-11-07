@@ -4,6 +4,9 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.iam.client.stop.StopServiceClient
+import com.media.bus.iam.client.stop.dto.SimpleStopCreateRequest
+import com.media.bus.iam.client.stop.dto.StopBoundsApiResponse
+import com.media.bus.iam.client.stop.dto.StopBulkRegisterApiResponse
 import com.media.bus.iam.client.stop.dto.StopInfo
 import com.media.bus.iam.client.stop.dto.StopPriceInfo
 import org.springframework.stereotype.Service
@@ -49,4 +52,22 @@ class AdminStopPriceFacade(
 
     fun deleteStopPrice(stopId: UUID, adminId: UUID) =
         stopServiceClient.deleteStopPrice(stopId, adminId)
+
+    /** 지도 영역 내 정류소 마커를 조회한다. 좌표 검증은 stop 모듈이 수행한다. */
+    fun getStopsInBounds(
+        swLat: String,
+        swLng: String,
+        neLat: String,
+        neLng: String,
+        limit: Int?,
+        stopsType: String?,
+    ): StopBoundsApiResponse.StopBoundsInfo =
+        stopServiceClient.getStopsInBounds(swLat, swLng, neLat, neLng, limit, stopsType)
+
+    fun createSimpleStop(request: SimpleStopCreateRequest, adminId: UUID) =
+        stopServiceClient.createSimpleStop(request, adminId)
+
+    /** 공공 API 전체 정류소를 일괄 등록한다. 장시간 작업이다. */
+    fun registerBulk(): StopBulkRegisterApiResponse.StopBulkRegisterInfo =
+        stopServiceClient.registerBulk()
 }

@@ -30,9 +30,21 @@ class StopService(
      * @param request   등록 요청 DTO
      */
     @Transactional
-    fun createOneStop(principal: MemberPrincipal, @Valid request: SimpleStopCreateRequest) {
+    fun createOneStop(principal: MemberPrincipal, @Valid request: SimpleStopCreateRequest) =
+        createOneStop(principal.id, request)
+
+    /**
+     * 정류소 단건 수기 등록 (등록자 id 직접 지정).
+     *
+     * S2S 호출(iam 어드민 경유)은 회원 컨텍스트(`MemberPrincipal`)가 없어
+     * 호출자가 전달한 등록자 id를 그대로 감사 필드에 기록한다.
+     *
+     * @param registeredById 등록한 관리자 회원 id
+     */
+    @Transactional
+    fun createOneStop(registeredById: UUID, @Valid request: SimpleStopCreateRequest) {
         stopCommandGuard.validateNotDuplicate(request.stopId)
-        StopEntity.createFromRequest(request, principal.id)
+        StopEntity.createFromRequest(request, registeredById)
     }
 
     /**

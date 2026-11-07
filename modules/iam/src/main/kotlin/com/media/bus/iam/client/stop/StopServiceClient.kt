@@ -1,5 +1,7 @@
 package com.media.bus.iam.client.stop
 
+import com.media.bus.common.exceptions.ServiceException
+import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.iam.client.stop.dto.*
 import org.slf4j.LoggerFactory
@@ -94,5 +96,38 @@ class StopServiceClient(
     fun deleteStopPrice(stopId: UUID, changedById: UUID) {
         log.debug("[StopServiceClient] 정류소 단가 삭제: stopId={}", stopId)
         stopApi.deleteStopPrice(stopId, changedById)
+    }
+
+    /**
+     * 지도 영역 내 정류소 마커를 조회한다.
+     * 응답 본문이 비면 오류로 본다 — 빈 결과로 대체하면 지도에 "정류소 0건"이 정상처럼 보인다.
+     */
+    fun getStopsInBounds(
+        swLat: String,
+        swLng: String,
+        neLat: String,
+        neLng: String,
+        limit: Int?,
+        stopsType: String?,
+    ): StopBoundsApiResponse.StopBoundsInfo {
+        log.debug("[StopServiceClient] 지도 영역 정류소 조회: sw=({}, {}), ne=({}, {})", swLat, swLng, neLat, neLng)
+        return stopApi.getStopsInBounds(swLat, swLng, neLat, neLng, limit, stopsType)?.data
+            ?: throw ServiceException(CommonResult.SERVICE_ERROR, "정류소 지도 조회 응답이 비어 있습니다.")
+    }
+
+    /** 정류소를 단건 수기 등록한다. 중복·좌표 오류 등은 stop 모듈이 4xx로 응답한다. */
+    fun createSimpleStop(request: SimpleStopCreateRequest, registeredById: UUID) {
+        log.debug("[StopServiceClient] 정류소 단건 등록: stopId={}", request.stopId)
+        stopApi.createSimpleStop(registeredById, request)
+    }
+
+    /**
+     * 공공 API 전체 정류소를 일괄 등록한다.
+     * 이미 실행 중이면 stop 이 409 를 돌려주고, S2S 클라이언트가 같은 상태로 전달한다.
+     */
+    fun registerBulk(): StopBulkRegisterApiResponse.StopBulkRegisterInfo {
+        log.info("[StopServiceClient] 정류소 일괄 등록 요청")
+        return stopApi.registerBulk()?.data
+            ?: throw ServiceException(CommonResult.SERVICE_ERROR, "정류소 일괄 등록 응답이 비어 있습니다.")
     }
 }
