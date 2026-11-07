@@ -23,6 +23,8 @@ x-app-common: &app-common
     REDIS_PORT: 6379
     COOKIE_SECURE: ${COOKIE_SECURE:-false}
     CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+    # 관리자 사이트 origin (예: https://admin.mbus.kr). 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다.
+    CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
     IAM_SERVICE_URL: http://iam-service:8181
     STOP_SERVICE_URL: http://stop-service:8182
     RESERVATION_SERVICE_URL: http://reservation-service:8183
