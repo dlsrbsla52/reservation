@@ -110,6 +110,8 @@ self-invocation (`this.method()`)은 AOP 우회 → 비동기 메서드는 별�
 
 비동기/스케줄러 등 요청 컨텍스트 없는 호출은 `TokenProvider.generateS2SToken()`으로 S2S 토큰을 자동 주입.
 
+`S2SRestClientFactory`로 만든 클라이언트는 하위 서비스 4xx를 **같은 상태의 `BusinessException`**(메시지는 하위 응답의 `message`)으로 바꿔 호출자에게 전달한다. 401/403은 사용자 인증이 아니라 S2S 설정 문제이므로 `ServiceException`(500)으로 바꾼다. 프론트가 이를 자기 토큰 만료로 오인하지 않게 하기 위함이다.
+
 ## Exposed 기본 엔티티
 
 JPA 대신 Exposed DAO 패턴을 사용한다. Table object와 Entity class를 분리하여 정의한다.

@@ -63,4 +63,26 @@ interface StopApi {
     /** 정류소 단가 삭제 (내부 전용) */
     @DeleteExchange("/price/{stopId}")
     fun deleteStopPrice(@PathVariable stopId: UUID, @RequestParam("changedById") changedById: UUID?)
+
+    /** 지도 영역(bbox) 내 정류소 마커 조회 (내부 전용). 좌표 검증과 상한 보정은 stop 모듈이 수행한다. */
+    @GetExchange("/map/bounds")
+    fun getStopsInBounds(
+        @RequestParam("swLat") swLat: String,
+        @RequestParam("swLng") swLng: String,
+        @RequestParam("neLat") neLat: String,
+        @RequestParam("neLng") neLng: String,
+        @RequestParam("limit") limit: Int?,
+        @RequestParam("stopsType") stopsType: String?,
+    ): StopBoundsApiResponse?
+
+    /** 정류소 단건 수기 등록 (내부 전용). 등록자 id는 감사 필드 기록용이다. */
+    @PostExchange("/simple")
+    fun createSimpleStop(
+        @RequestParam("registeredById") registeredById: UUID,
+        @RequestBody request: SimpleStopCreateRequest,
+    )
+
+    /** 공공 API 전체 정류소 일괄 등록 (내부 전용). 장시간 걸릴 수 있다. */
+    @PostExchange("/register/bulk")
+    fun registerBulk(): StopBulkRegisterApiResponse?
 }

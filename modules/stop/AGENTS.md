@@ -57,6 +57,7 @@ Base package: `com.media.bus.stop`
   - API key: `${seoul.api.key}` (환경변수 `SEOUL_API_KEY`)
   - `fetchTotalCount()` → 전체 건수 조회
   - `fetchStops(start, end)` → 범위 조회 (1-based)
+- **`StopRegisterService.registerAllFromPublicApi()`는 Redis 락(`stop:bulk-register:lock`, TTL 30분)으로 동시에 하나만 실행**한다. 실행 중이면 409. Redis 라이브러리는 auth-contract가 노출하고, 접속 설정은 `application.yml`의 `spring.data.redis`에 있다
 
 ### 검색
 

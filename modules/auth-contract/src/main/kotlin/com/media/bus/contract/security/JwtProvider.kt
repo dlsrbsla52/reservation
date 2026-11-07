@@ -20,7 +20,8 @@ import kotlin.concurrent.withLock
  * ## JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트
  *
  * 토큰 전략:
- * - Access Token : 단기(60분), 무상태(Stateless). JWT 서명으로만 검증.
+ * - Access Token : 단기(일반 60분 / 관리자 15분, [TokenAudience]), 무상태(Stateless). JWT 서명으로만 검증.
+ *   `aud` 클레임으로 발급처(일반 사이트/관리자 사이트)를 구분한다.
  * - Refresh Token : 장기(7일), Redis에 **세션 단위 Hash**로 저장하여
  *   다중 디바이스 세션 관리 + 서버 측 개별 무효화(Revoke)를 지원한다.
  * - S2S Token : 시스템 간 내부 통신 전용 토큰. 특수 클레임으로 구분.
@@ -41,7 +42,6 @@ class JwtProvider(
 ) : TokenProvider {
 
     companion object {
-        private const val ACCESS_TOKEN_EXPIRE_MS = 1000L * 60 * 60          // 60분
         private const val REFRESH_TOKEN_EXPIRE_MS = 1000L * 60 * 60 * 24 * 7 // 7일
         private const val S2S_TOKEN_EXPIRE_MS = 1000L * 60 * 60              // 1시간
         // 만료 5분 전 갱신하여 경계 시점에서 만료된 토큰이 하위 서비스에 전달되는 것을 방지
@@ -84,18 +84,25 @@ class JwtProvider(
 
     /**
      * 인증된 회원 정보와 DB에서 조회한 권한 목록으로 Access Token을 생성합니다.
+     *
+     * @param audience 발급처. `aud` 클레임과 토큰 TTL([TokenAudience.accessTokenTtl])을 결정한다.
      */
-    fun generateAccessToken(principal: MemberPrincipal, permissionNames: Set<String>): String {
+    fun generateAccessToken(
+        principal: MemberPrincipal,
+        permissionNames: Set<String>,
+        audience: TokenAudience = TokenAudience.USER,
+    ): String {
         val now = System.currentTimeMillis()
         return Jwts.builder()
             .subject(principal.id.toString())
+            .audience().add(audience.name).and()
             .claim(MemberPrincipal.CLAIM_LOGIN_ID, principal.loginId)
             .claim(MemberPrincipal.CLAIM_EMAIL, principal.email)
             .claim(MemberPrincipal.CLAIM_MEMBER_TYPE, principal.memberType.name)
             .claim(MemberPrincipal.CLAIM_EMAIL_VERIFIED, principal.emailVerified)
             .claim(MemberPrincipal.CLAIM_PERMISSIONS, permissionNames.joinToString(","))
             .issuedAt(Date(now))
-            .expiration(Date(now + ACCESS_TOKEN_EXPIRE_MS))
+            .expiration(Date(now + audience.accessTokenTtl.toMillis()))
             .signWith(secretKey)
             .compact()
     }
@@ -117,16 +124,19 @@ class JwtProvider(
      * @param sessionId   세션 식별자 — 재발급 시 동일 값을 전달하면 해당 세션이 rotation 된다
      * @param deviceInfo  User-Agent 등 기기 정보 (선택)
      * @param ip          클라이언트 IP (선택)
+     * @param audience    발급처 — 갱신 시 클라이언트 입력이 아니라 이 클레임을 이어받아 발급처가 바뀌지 않게 한다
      */
     fun generateRefreshToken(
         memberId: String,
         sessionId: String,
         deviceInfo: String?,
         ip: String?,
+        audience: TokenAudience = TokenAudience.USER,
     ): String {
         val now = System.currentTimeMillis()
         val refreshToken = Jwts.builder()
             .subject(memberId)
+            .audience().add(audience.name).and()
             .claim("type", "refresh")
             .claim(SESSION_ID_CLAIM, sessionId)
             .issuedAt(Date(now))
