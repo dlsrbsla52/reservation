@@ -2,6 +2,11 @@ server:
   port: 8182
 
 spring:
+  config:
+    # 비밀값(JWT_SECRET, SEOUL_API_KEY 등)은 프로젝트 루트 .env(git 제외)에서 읽는다.
+    # bootRun 은 모듈 디렉터리, IDE 는 프로젝트 루트에서 실행되므로 두 위치를 모두 둔다.
+    # 컨테이너에는 .env 가 없고(optional) compose 가 환경변수로 주입한다 — 환경변수가 이 파일보다 우선한다.
+    import: "optional:file:.env[.properties],optional:file:../../.env[.properties]"
   main:
     allow-bean-definition-overriding: true
   # Redis — 정류소 일괄 등록 분산 락. (라이브러리는 auth-contract 가 api 로 노출한다)
@@ -66,7 +71,7 @@ jwt:
 
 seoul:
   api:
-    key: ${SEOUL_API_KEY:REDACTED_SEOUL_API_KEY}
+    key: ${SEOUL_API_KEY:}
     base-url: http://openapi.seoul.go.kr:8088
 springdoc:
   api-docs:

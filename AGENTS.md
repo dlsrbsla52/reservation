@@ -69,6 +69,14 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 - 바꾼 모듈마다 `./gradlew :modules:<module>:test`를 실행한다. 실행 모듈은 `bootJar`까지 확인한다.
 - 여러 모듈이나 공유 모듈(`common`, `auth-contract`)을 바꿨으면 `./gradlew clean build`로 전체를 확인한다.
 
+## 비밀값
+
+- 비밀값(`JWT_SECRET`, `SEOUL_API_KEY` 등)은 **프로젝트 루트 `.env`에만** 둔다. `.env`는 git·docker 빌드 컨텍스트에서 제외돼 있고, `.env.example`이 템플릿이다.
+- 읽는 경로: docker compose는 `.env`를 자동으로 읽어 `${VAR}`를 치환하고, 로컬 실행은 각 모듈 `application.yml`의 `spring.config.import`가 읽는다. 환경변수가 `.env`보다 우선한다.
+- yml·compose·테스트에 실제 값이나 운영에 쓰일 수 있는 기본값을 넣지 않는다. 테스트는 명백한 더미 값을 쓴다.
+- IntelliJ HTTP Client의 계정 비밀번호는 `HTTP/env/http-client.private.env.json`(git 제외)에 두고 `.http`에서는 `{{password}}`로 참조한다.
+- `local/*`, `backup/*` 브랜치는 비밀값 정리 전 원본 이력을 담은 로컬 전용 브랜치다. `.git/hooks/pre-push`가 push를 막는다.
+
 ## 주의할 파일
 
 - `.claude/**`는 Claude Code 설정(hooks, skills)이고, `.codex/`와 `.omx/`는 Codex 설정과 상태다. 사용자가 요청한 경우에만 수정한다.

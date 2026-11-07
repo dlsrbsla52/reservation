@@ -4,7 +4,7 @@ Content-Type: {{json}}
 
 {
     "loginId" : "vhkdrb521",
-    "password" : "REDACTED_PASSWORD",
+    "password" : "{{password}}",
     "email" : "vhkdrb521@gmail.com",
     "phoneNumber" : "01049045402",
     "memberType" : "MEMBER"
@@ -17,7 +17,7 @@ Content-Type: {{json}}
 
 {
     "loginId" : "vhkdrb521",
-    "password" : "REDACTED_PASSWORD"
+    "password" : "{{password}}"
 }
 
 > {%
