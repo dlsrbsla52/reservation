@@ -23,8 +23,9 @@ class CorsConfig(
     @Value("\${CORS_ALLOWED_ORIGIN}")
     private val allowedOrigin: String,
     /// 관리자 사이트 origin. 비어 있으면 일반 origin 과 같다고 보고(로컬 단일 Next 앱) 그대로 사용합니다.
+    /// Kotlin 기본값을 두지 않는다 — 생성자가 둘이 되면 @Configuration CGLIB 프록시가 생성자를 고르지 못해 기동이 실패한다.
     @Value("\${CORS_ADMIN_ALLOWED_ORIGIN:}")
-    private val adminAllowedOrigin: String = "",
+    private val adminAllowedOrigin: String,
 ) {
 
     companion object {

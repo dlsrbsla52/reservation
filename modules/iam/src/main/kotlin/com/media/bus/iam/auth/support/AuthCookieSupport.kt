@@ -23,7 +23,8 @@ import java.time.Duration
 @Component
 class AuthCookieSupport(
     /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
-    @param:Value($$"${cookie.secure:false}") private val cookieSecure: Boolean = false,
+    // 기본값은 @Value 에만 둔다(Kotlin 기본값을 함께 두면 생성자가 둘이 되어 주입 대상이 모호해진다).
+    @param:Value($$"${cookie.secure:false}") private val cookieSecure: Boolean,
 ) {
     companion object {
         const val USER_REFRESH_COOKIE = "refresh_token"
