@@ -5,7 +5,10 @@ import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.iam.admin.dto.CreateSimpleStopRequest
 import com.media.bus.iam.admin.dto.CreateStopPriceRequest
+import com.media.bus.iam.admin.dto.StopBoundsResponse
+import com.media.bus.iam.admin.dto.StopBulkRegisterResponse
 import com.media.bus.iam.admin.dto.StopPriceResponse
 import com.media.bus.iam.admin.dto.StopResponse
 import com.media.bus.iam.admin.dto.UpdateStopPriceRequest
@@ -116,4 +119,40 @@ class AdminStopPriceController(
         adminStopPriceFacade.deleteStopPrice(stopId, UUID.fromString(requesterId))
         return ApiResponse.successWithMessage("정류소 단가가 삭제되었습니다.")
     }
+
+    /**
+     * 지도 영역(bbox) 내 정류소 마커를 조회한다.
+     * 어드민 화면이 stop 서비스 공개 API(`/api/v1/stop/map/bounds`)를 직접 호출하지 않도록 iam이 위임한다.
+     * 좌표 검증·상한 보정은 stop 모듈 규칙을 그대로 따른다.
+     */
+    @Operation(summary = "지도 영역 내 정류소 조회", description = "남서/북동 좌표로 영역 내 정류소 마커를 조회한다.")
+    @GetMapping("/map/bounds")
+    fun getStopsInBounds(
+        @RequestParam swLat: String,
+        @RequestParam swLng: String,
+        @RequestParam neLat: String,
+        @RequestParam neLng: String,
+        @RequestParam(required = false) limit: Int?,
+        @RequestParam(required = false) stopsType: String?,
+    ): ApiResponse<StopBoundsResponse> =
+        ApiResponse.success(
+            StopBoundsResponse.of(adminStopPriceFacade.getStopsInBounds(swLat, swLng, neLat, neLng, limit, stopsType)),
+        )
+
+    /** 정류소를 단건 수기 등록한다. 등록자는 요청 헤더의 관리자 id로 기록된다. */
+    @Operation(summary = "정류소 단건 등록", description = "정류소를 수기로 단건 등록합니다.")
+    @PostMapping("/simple")
+    fun createSimpleStop(
+        @RequestHeader("X-User-Id") requesterId: String,
+        @RequestBody @Valid request: CreateSimpleStopRequest,
+    ): ApiResponse<Unit?> {
+        adminStopPriceFacade.createSimpleStop(request.toClientRequest(), UUID.fromString(requesterId))
+        return ApiResponse.success()
+    }
+
+    /** 서울 공공 API 전체 정류소를 일괄 등록·갱신한다. 장시간 걸릴 수 있다. */
+    @Operation(summary = "정류소 일괄 등록", description = "공공 API 전체 정류소를 가져와 저장·갱신합니다.")
+    @PostMapping("/register/bulk")
+    fun registerBulk(): ApiResponse<StopBulkRegisterResponse> =
+        ApiResponse.success(StopBulkRegisterResponse.of(adminStopPriceFacade.registerBulk()))
 }

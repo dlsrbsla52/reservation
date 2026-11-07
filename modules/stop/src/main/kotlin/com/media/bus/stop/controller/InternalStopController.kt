@@ -5,11 +5,17 @@ import com.media.bus.common.web.response.ListData
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.stop.dto.request.BulkStopLookupRequest
 import com.media.bus.stop.dto.request.CreateStopPriceRequest
+import com.media.bus.stop.dto.request.SimpleStopCreateRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
 import com.media.bus.stop.dto.request.UpdateStopPriceRequest
 import com.media.bus.stop.dto.response.BusStopResponse
+import com.media.bus.stop.dto.response.StopBulkRegisterResult
 import com.media.bus.stop.dto.response.StopPriceResponse
+import com.media.bus.stop.map.dto.StopBoundsCriteria
+import com.media.bus.stop.map.dto.StopBoundsResponse
+import com.media.bus.stop.map.service.StopMapQueryService
 import com.media.bus.stop.service.StopPriceService
+import com.media.bus.stop.service.StopRegisterService
 import com.media.bus.stop.service.StopService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -35,6 +41,8 @@ import java.util.*
 class InternalStopController(
     private val stopService: StopService,
     private val stopPriceService: StopPriceService,
+    private val stopMapQueryService: StopMapQueryService,
+    private val stopRegisterService: StopRegisterService,
 ) {
 
     @Operation(
@@ -133,4 +141,48 @@ class InternalStopController(
         stopPriceService.deletePrice(stopId, changedById)
         return ApiResponse.successWithMessage("정류소 단가가 삭제되었습니다.")
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // 어드민 사이트 경유 전용 (iam `/api/v1/admin/stop/**` 가 위임)
+    // ─────────────────────────────────────────────────────────────────
+
+    @Operation(
+        summary = "지도 영역 내 정류소 조회 (내부 전용)",
+        description = "iam 어드민 API가 위임하는 지도 마커 조회. 검증·상한 규칙은 공개 `/api/v1/stop/map/bounds`와 동일합니다.",
+    )
+    @GetMapping("/map/bounds")
+    fun getStopsInBounds(
+        @RequestParam swLat: String,
+        @RequestParam swLng: String,
+        @RequestParam neLat: String,
+        @RequestParam neLng: String,
+        @RequestParam(required = false) limit: Int?,
+        @RequestParam(required = false) stopsType: String?,
+    ): ApiResponse<StopBoundsResponse> =
+        ApiResponse.success(
+            stopMapQueryService.findMarkersInBounds(
+                StopBoundsCriteria.of(swLat, swLng, neLat, neLng, limit, stopsType),
+            ),
+        )
+
+    @Operation(
+        summary = "정류소 단건 등록 (내부 전용)",
+        description = "iam 어드민 API가 위임하는 수기 등록. 등록자 id는 감사 필드 기록용으로 호출자가 전달합니다.",
+    )
+    @PostMapping("/simple")
+    fun createSimpleStop(
+        @RequestParam registeredById: UUID,
+        @RequestBody @Valid request: SimpleStopCreateRequest,
+    ): ApiResponse<Unit?> {
+        stopService.createOneStop(registeredById, request)
+        return ApiResponse.success()
+    }
+
+    @Operation(
+        summary = "공공 API 정류소 일괄 등록 (내부 전용)",
+        description = "서울 열린데이터광장 전체 정류소를 가져와 저장합니다. 페이지 단위 커밋이라 장시간 걸릴 수 있습니다.",
+    )
+    @PostMapping("/register/bulk")
+    fun registerBulk(): ApiResponse<StopBulkRegisterResult> =
+        ApiResponse.success(stopRegisterService.registerAllFromPublicApi())
 }
