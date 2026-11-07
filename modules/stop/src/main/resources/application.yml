@@ -4,6 +4,12 @@ server:
 spring:
   main:
     allow-bean-definition-overriding: true
+  # Redis — 정류소 일괄 등록 분산 락. (라이브러리는 auth-contract 가 api 로 노출한다)
+  # 이 설정이 없으면 컨테이너 안에서 localhost:6379 로 접속을 시도한다.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   datasource:
     hikari:
       maximum-pool-size: 20

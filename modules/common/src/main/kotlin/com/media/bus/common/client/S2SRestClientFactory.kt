@@ -1,6 +1,14 @@
 package com.media.bus.common.client
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.media.bus.common.exceptions.BusinessException
+import com.media.bus.common.exceptions.ServiceException
+import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.security.TokenProvider
+import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
+import org.springframework.http.client.ClientHttpResponse
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.support.RestClientAdapter
 import org.springframework.web.service.invoker.HttpServiceProxyFactory
@@ -20,6 +28,8 @@ class S2SRestClientFactory(private val tokenProvider: TokenProvider) {
 
     companion object {
         private const val S2S_TOKEN_HEADER = "X-Service-Token"
+        private val log = LoggerFactory.getLogger(S2SRestClientFactory::class.java)
+        private val objectMapper = ObjectMapper()
     }
 
     /**
@@ -50,5 +60,38 @@ class S2SRestClientFactory(private val tokenProvider: TokenProvider) {
                 req.headers.add(S2S_TOKEN_HEADER, tokenProvider.generateS2SToken())
                 exec.execute(req, body)
             }
+            // 하위 서비스의 4xx 를 호출자에게 같은 상태로 전달한다.
+            // 처리기가 없으면 HttpClientErrorException 이 글로벌 핸들러의 catch-all 로 떨어져
+            // 중복(409)·검증 실패(400) 같은 정상 비즈니스 실패가 모두 500 으로 보인다.
+            .defaultStatusHandler(HttpStatusCode::is4xxClientError) { req, res ->
+                throw translateClientError(req.method.name(), req.uri.path, res)
+            }
             .build()
+
+    /**
+     * 하위 서비스 4xx 응답을 공통 예외로 변환한다.
+     *
+     * - 401/403 은 **사용자 인증 문제가 아니라 S2S 토큰·설정 문제**다. 그대로 넘기면 프론트가
+     *   자기 토큰이 만료된 줄 알고 갱신·로그아웃을 시도하므로 500(`ServiceException`)으로 바꾼다.
+     * - 그 외 4xx 는 같은 HTTP 상태의 `BusinessException` 으로, 메시지는 하위 응답의 `message` 를 쓴다.
+     */
+    private fun translateClientError(method: String, path: String, res: ClientHttpResponse): RuntimeException {
+        val status = res.statusCode.value()
+        val downstreamMessage = readMessage(res)
+        if (status == HttpStatus.UNAUTHORIZED.value() || status == HttpStatus.FORBIDDEN.value()) {
+            log.error("[S2S] 하위 서비스 인증 거부 — S2S 토큰/설정 확인 필요. {} {} status={}", method, path, status)
+            return ServiceException(CommonResult.SERVICE_ERROR, "내부 서비스 인증에 실패했습니다.")
+        }
+        log.warn("[S2S] 하위 서비스 요청 거부. {} {} status={} message={}", method, path, status, downstreamMessage)
+        return BusinessException(
+            HttpStatus.resolve(status) ?: HttpStatus.BAD_REQUEST,
+            downstreamMessage ?: "요청을 처리할 수 없습니다.",
+        )
+    }
+
+    /** `ApiResponse`/`ErrorView` 공통 필드인 `message` 를 읽는다. 본문이 없거나 JSON 이 아니면 null. */
+    private fun readMessage(res: ClientHttpResponse): String? =
+        runCatching { objectMapper.readTree(res.body)?.get("message")?.asText() }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
 }
