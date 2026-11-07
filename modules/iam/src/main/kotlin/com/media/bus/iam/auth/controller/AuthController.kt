@@ -4,18 +4,16 @@ import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.contract.security.JwtProvider
+import com.media.bus.contract.security.TokenAudience
 import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.service.AuthService
+import com.media.bus.iam.auth.support.AuthCookieSupport
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpHeaders
-import org.springframework.http.ResponseCookie
 import org.springframework.web.bind.annotation.*
-import java.time.Duration
 
 /**
  * ## 인증 API 컨트롤러
@@ -32,14 +30,10 @@ import java.time.Duration
 class AuthController(
     private val authService: AuthService,
     private val jwtProvider: JwtProvider,
-    /** `cookie.secure` 설정값. 운영 환경(HTTPS)에서는 true, 로컬 개발(HTTP)에서는 false. */
-    @param:Value($$"${cookie.secure:false}") private val cookieSecure: Boolean = false,
+    private val cookieSupport: AuthCookieSupport,
 ) {
     companion object {
-        private const val REFRESH_TOKEN_COOKIE = "refresh_token"
-
-        /** Refresh Token TTL — JwtProvider의 Refresh Token TTL과 반드시 동일해야 한다. */
-        private val REFRESH_TOKEN_TTL = Duration.ofDays(7)
+        private const val REFRESH_TOKEN_COOKIE = AuthCookieSupport.USER_REFRESH_COOKIE
     }
 
     /** 회원가입. 이메일 인증 토큰은 보안상 응답에 포함하지 않으며 이메일로만 발송된다. */
@@ -63,10 +57,10 @@ class AuthController(
     ): ApiResponse<TokenResponse> {
         val result = authService.login(
             request = request,
-            deviceInfo = extractDeviceInfo(httpRequest),
-            ip = extractClientIp(httpRequest),
+            deviceInfo = cookieSupport.extractDeviceInfo(httpRequest),
+            ip = cookieSupport.extractClientIp(httpRequest),
         )
-        setRefreshTokenCookie(response, result.refreshToken)
+        cookieSupport.setRefreshTokenCookie(response, result.refreshToken, TokenAudience.USER)
         return ApiResponse.success(TokenResponse.of(result.accessToken))
     }
 
@@ -96,8 +90,8 @@ class AuthController(
         if (refreshToken == null) {
             throw NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL)
         }
-        val result = authService.refreshAccessToken(refreshToken)
-        setRefreshTokenCookie(response, result.refreshToken)
+        val result = authService.refreshAccessToken(refreshToken, TokenAudience.USER)
+        cookieSupport.setRefreshTokenCookie(response, result.refreshToken, TokenAudience.USER)
         return ApiResponse.success(TokenResponse.of(result.accessToken))
     }
 
@@ -128,21 +122,10 @@ class AuthController(
             jwtProvider.tryParseClaims(token)?.get(JwtProvider.SESSION_ID_CLAIM) as? String
         }
         authService.logout(memberId, sessionId)
-        expireRefreshTokenCookie(response)
+        cookieSupport.expireRefreshTokenCookie(response, TokenAudience.USER)
         return ApiResponse.success()
     }
 
-    /** Refresh Token을 HttpOnly Cookie로 설정한다. */
-    private fun setRefreshTokenCookie(response: HttpServletResponse, refreshToken: String) {
-        val cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, refreshToken)
-            .httpOnly(true)
-            .secure(cookieSecure)
-            .path("/api/v1/auth")   // /login, /token/refresh, /logout 범위로 제한
-            .maxAge(REFRESH_TOKEN_TTL)
-            .sameSite("Lax")
-            .build()
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString())
-    }
 
     // ────────────────────────────────────────��────────────────────────
     // 비밀번호 초기화
@@ -200,10 +183,10 @@ class AuthController(
     ): ApiResponse<TokenResponse> {
         val result = authService.reactivate(
             request = request,
-            deviceInfo = extractDeviceInfo(httpRequest),
-            ip = extractClientIp(httpRequest),
+            deviceInfo = cookieSupport.extractDeviceInfo(httpRequest),
+            ip = cookieSupport.extractClientIp(httpRequest),
         )
-        setRefreshTokenCookie(response, result.refreshToken)
+        cookieSupport.setRefreshTokenCookie(response, result.refreshToken, TokenAudience.USER)
         return ApiResponse.success(TokenResponse.of(result.accessToken))
     }
 
@@ -244,41 +227,5 @@ class AuthController(
             ?: throw NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL)
         authService.revokeOtherSessions(memberId, currentSessionId)
         return ApiResponse.successWithMessage("다른 디바이스 세션이 모두 로그아웃되었습니다.")
-    }
-
-    // ─────────────────────────────────────────────────────────────────
-    // Request 메타데이터 추출 유틸
-    // ─────────────────────────────────────────────────────────────────
-
-    /** User-Agent 헤더를 기기 식별 정보로 사용한다. 없으면 null. */
-    private fun extractDeviceInfo(request: HttpServletRequest): String? =
-        request.getHeader("User-Agent")?.take(500)
-
-    /**
-     * 클라이언트 IP를 추출한다.
-     * X-Forwarded-For 헤더(첫 번째 값) 우선 — Gateway/Load Balancer 뒤에서 실제 클라이언트 IP 보존.
-     */
-    private fun extractClientIp(request: HttpServletRequest): String? {
-        val forwarded = request.getHeader("X-Forwarded-For")
-        if (!forwarded.isNullOrBlank()) {
-            return forwarded.substringBefore(",").trim().ifBlank { null }
-        }
-        return request.remoteAddr
-    }
-
-    // ────────────────────────────────────────────────────��────────────
-    // Cookie 헬퍼
-    // ─────────────────────────────────────────────────────────────────
-
-    /** Refresh Token Cookie를 즉시 만료시킨다 (로그아웃 시 사용). */
-    private fun expireRefreshTokenCookie(response: HttpServletResponse) {
-        val cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
-            .httpOnly(true)
-            .secure(cookieSecure)
-            .path("/api/v1/auth")
-            .maxAge(Duration.ZERO)
-            .sameSite("Lax")
-            .build()
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString())
     }
 }

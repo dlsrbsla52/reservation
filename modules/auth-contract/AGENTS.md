@@ -19,9 +19,16 @@
 
 | 토큰 종류 | TTL | 저장소 | 비고 |
 |-----------|-----|--------|------|
-| Access | 60분 | 없음(Stateless) | 서명 검증만 수행 |
-| Refresh | 7일 | Redis | 취소 가능, Token Rotation 지원 |
+| Access (일반 사이트, `aud=USER`) | 60분 | 없음(Stateless) | 서명 검증만 수행 |
+| Access (관리자 사이트, `aud=ADMIN`) | 15분 | 없음(Stateless) | gateway가 `/api/v1/admin/**`에 이 토큰만 통과시킨다 |
+| Refresh | 7일 | Redis | 취소 가능, Token Rotation 지원. `aud`를 기록하고 갱신 시 이어받는다 |
 | S2S | 1시간 | 메모리 캐시 | `type: "s2s"` 클레임으로 구분, 만료 5분 전 자동 갱신 |
+
+## 발급처(`TokenAudience`)
+
+- 액세스·리프레시 토큰의 JWT 표준 `aud` 클레임에 `USER` 또는 `ADMIN`을 기록한다. TTL도 발급처별로 `TokenAudience.accessTokenTtl`이 정한다.
+- `TokenAudience.fromClaims()`는 `aud`가 없거나 모르는 값이면 **`USER`로 해석**한다. 넓은 쪽(`ADMIN`)으로 해석하면 구버전 토큰이 관리자 경계를 우회한다.
+- 발급처 규칙(관리자 계정 ⇔ 관리자 사이트)은 iam `AuthService`가, 경로 진입 규칙은 gateway `JwtAuthenticationFilter`가 강제한다.
 
 ## 핵심 API
 

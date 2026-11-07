@@ -32,6 +32,9 @@ enum class AuthResult(
     NEW_PASSWORD_SAME_AS_CURRENT("A0016", "새 비밀번호가 현재 비밀번호와 동일합니다."),
     COMMISSION_NOT_FOUND("A0017", "영업사원의 정산 비율 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     COMMISSION_ALREADY_EXISTS("A0018", "이미 정산 비율이 등록된 영업사원입니다.", HttpStatus.CONFLICT),
+    ADMIN_SITE_LOGIN_REQUIRED("A0019", "관리자 계정은 관리자 사이트에서 로그인해주세요.", HttpStatus.FORBIDDEN),
+    ADMIN_ACCOUNT_REQUIRED("A0020", "관리자 계정만 로그인할 수 있습니다.", HttpStatus.FORBIDDEN),
+    TOKEN_AUDIENCE_MISMATCH("A0021", "다른 사이트에서 발급된 인증 정보입니다. 다시 로그인해주세요.", HttpStatus.UNAUTHORIZED),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus
