@@ -9,9 +9,13 @@ import com.media.bus.reservation.contract.entity.ContractEntity
 import com.media.bus.reservation.contract.repository.ContractRepository
 import com.media.bus.reservation.contract.result.ContractResult
 import com.media.bus.reservation.reservation.dto.response.StopInfo
+import com.media.bus.reservation.slot.StopSlot
+import com.media.bus.reservation.support.SQLSTATE_EXCLUSION_VIOLATION
+import com.media.bus.reservation.support.flushTranslating
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -34,20 +38,34 @@ class ContractService(
      *
      * @param stopInfo stop 서비스에서 확인된 정류소 정보
      * @param request  계약 생성 요청 DTO
+     * @param slotNo   정류소 내 광고면 번호
      * @return 저장된 ContractEntity
+     * @throws BusinessException 같은 광고면에 기간이 겹치는 점유 계약이 있는 경우(409)
      */
     @Transactional
     fun createContract(
         stopInfo: StopInfo,
         request: CreateContractRequest,
+        slotNo: Short = StopSlot.DEFAULT_NO,
     ): ContractEntity {
         // 계약 기간 무결성 검증: 회원/어드민 생성 경로가 모두 이 지점을 통과하므로 단일 지점에서 보장한다.
         // 종료일이 시작일보다 같거나 빠르면 잘못된 계약이므로 저장 전에 차단한다.
         if (!request.contractEndDate.isAfter(request.contractStartDate)) {
             throw BusinessException(ContractResult.CONTRACT_INVALID_PERIOD)
         }
-        val contract = ContractEntity.create(stopInfo, request)
+        // 기간 독점 사전 검사: 같은 광고면에 기간이 겹치는 점유 계약이 있으면 저장하지 않는다.
+        if (contractRepository.existsOccupyingOverlap(
+                stopInfo.id, slotNo, request.contractStartDate, request.contractEndDate,
+            )
+        ) {
+            throw BusinessException(ContractResult.CONTRACT_PERIOD_OVERLAP)
+        }
+        val contract = ContractEntity.create(stopInfo, request, slotNo)
         ContractDetailEntity.create(contract, request)
+        // 사전 검사를 함께 통과한 동시 요청은 DB 제외 제약이 1건만 남긴다. 위반을 여기서 409 로 바꾼다.
+        flushTranslating(SQLSTATE_EXCLUSION_VIOLATION) {
+            BusinessException(ContractResult.CONTRACT_PERIOD_OVERLAP)
+        }
 
         log.debug(
             "[ContractService] 계약 저장 완료: contractId={}, memberId={}, stopId={}",
@@ -55,6 +73,14 @@ class ContractService(
         )
         return contract
     }
+
+    /**
+     * 특정 시점에 광고면을 점유 중인 계약(PENDING/ACTIVE)이 있는지 확인한다.
+     * 예약 도메인이 "계약 중인 정류소 예약 거절" 판정에 쓴다.
+     */
+    @Transactional(readOnly = true)
+    fun isSlotOccupiedAt(stopId: UUID, slotNo: Short, at: OffsetDateTime): Boolean =
+        contractRepository.existsOccupyingAt(stopId, slotNo, at)
 
     /**
      * 본인 계약 목록 조회 (페이지네이션).

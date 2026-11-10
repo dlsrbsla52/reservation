@@ -7,6 +7,7 @@ import com.media.bus.iam.client.reservation.dto.AdminReservationView
 import com.media.bus.iam.client.reservation.dto.CompleteToContractRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -52,6 +53,10 @@ class AdminReservationFacade(
 
     fun updateReservationStatus(reservationId: UUID, status: String, note: String?) {
         reservationServiceClient.updateReservationStatus(reservationId, status, note)
+    }
+
+    fun extendHold(reservationId: UUID, holdExpiresAt: OffsetDateTime) {
+        reservationServiceClient.extendHold(reservationId, holdExpiresAt)
     }
 
     fun completeReservationToContract(reservationId: UUID, request: CompleteToContractRequest) {

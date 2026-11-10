@@ -12,7 +12,7 @@ import java.util.*
 /**
  * ## 예약 상담 저장소
  *
- * 상담 이력은 append-only 로 저장되므로 "최신 row = 현재 상태" 로 해석한다.
+ * 상담 이력은 append-only 로 저장한다. 현재 상태의 원본은 `reservation.status` 이고 이 테이블은 변경 이력이다.
  */
 @Repository
 class ReservationConsultationRepository {
@@ -28,14 +28,4 @@ class ReservationConsultationRepository {
         }
             .orderBy(ReservationConsultationTable.createdAt to SortOrder.ASC)
             .toList()
-
-    /** 예약의 현재 상태를 결정하는 최신 상담 row 조회. */
-    @Transactional(readOnly = true)
-    fun findLatestByReservation(reservation: ReservationEntity): ReservationConsultationEntity? =
-        ReservationConsultationEntity.find {
-            ReservationConsultationTable.reservationId eq reservation.id
-        }
-            .orderBy(ReservationConsultationTable.createdAt to SortOrder.DESC)
-            .limit(1)
-            .firstOrNull()
 }

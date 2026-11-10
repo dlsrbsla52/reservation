@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+
+  <!-- ========================
+       V003. 정류소 선점(hold) 정책
+       - 예약 즉시 선착순 선점: 정류소 광고면(stop_id + slot_no)당 진행 중 예약은 1건
+       - 선점 만료: hold_expires_at 이 지나면 EXPIRED 로 종료
+       - 계약 독점: 같은 광고면에서 유효 계약(PENDING/ACTIVE)의 기간은 겹칠 수 없다
+       - slot_no 는 정류소에 광고면이 여러 개 생길 때를 위한 자리. 지금은 모두 1
+       ======================== -->
+
+  <!-- V003-1. reservation 에 현재 상태·선점 만료·광고면 번호 컬럼 추가 -->
+  <changeSet id="V003-1" author="hig">
+
+    <addColumn tableName="reservation" schemaName="reservation">
+      <column name="slot_no" type="SMALLINT" defaultValueNumeric="1"
+              remarks="정류소 내 광고면 번호. 현재는 정류소당 1면이라 항상 1">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="VARCHAR(18)"
+              remarks="현재 예약 상태. reservation_consultation 은 변경 이력"/>
+      <column name="hold_expires_at" type="TIMESTAMP WITH TIME ZONE"
+              remarks="선점 만료 일시. 진행 중(PENDING/CONSULTING)일 때만 값이 있다"/>
+    </addColumn>
+
+    <!-- 기존 데이터: 최신 상담 이력의 상태를 현재 상태로 옮긴다 -->
+    <sql>
+      UPDATE reservation.reservation r
+         SET status = COALESCE(
+               (SELECT c.status
+                  FROM reservation.reservation_consultation c
+                 WHERE c.reservation_id = r.id
+                 ORDER BY c.created_at DESC, c.id DESC
+                 LIMIT 1),
+               'PENDING')
+    </sql>
+
+    <!-- 기존 진행 중 예약은 배포 시점부터 7일의 선점 기간을 새로 받는다 -->
+    <sql>
+      UPDATE reservation.reservation
+         SET hold_expires_at = CURRENT_TIMESTAMP + INTERVAL '7 days'
+       WHERE status IN ('PENDING', 'CONSULTING')
+    </sql>
+
+    <addNotNullConstraint tableName="reservation" schemaName="reservation"
+                          columnName="status" columnDataType="VARCHAR(18)"/>
+
+    <rollback>
+      <dropColumn tableName="reservation" schemaName="reservation">
+        <column name="slot_no"/>
+        <column name="status"/>
+        <column name="hold_expires_at"/>
+      </dropColumn>
+    </rollback>
+  </changeSet>
+
+  <!-- V003-2. 광고면당 진행 중 예약 1건 제약 -->
+  <changeSet id="V003-2" author="hig">
+
+    <!-- 이미 같은 정류소에 진행 중 예약이 여러 건이면 누구에게 선점을 줄지 사람이 정해야 한다 -->
+    <preConditions onFail="HALT"
+                   onFailMessage="같은 정류소에 진행 중(PENDING/CONSULTING) 예약이 2건 이상 있습니다. 선점을 남길 1건만 두고 나머지를 종료 상태로 정리한 뒤 다시 배포하세요.">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+          FROM (SELECT stop_id, slot_no
+                  FROM reservation.reservation
+                 WHERE status IN ('PENDING', 'CONSULTING')
+                 GROUP BY stop_id, slot_no
+                HAVING COUNT(*) > 1) d
+      </sqlCheck>
+    </preConditions>
+
+    <!-- 부분 유니크 인덱스: 동시 요청이 몰려도 승자는 DB 가 1건으로 확정한다 -->
+    <sql>
+      CREATE UNIQUE INDEX uq_reservation_active_slot
+          ON reservation.reservation (stop_id, slot_no)
+       WHERE status IN ('PENDING', 'CONSULTING')
+    </sql>
+
+    <!-- 회원별 진행 중 예약 수(선점 한도) 조회용 -->
+    <sql>
+      CREATE INDEX idx_reservation_member_active
+          ON reservation.reservation (member_id)
+       WHERE status IN ('PENDING', 'CONSULTING')
+    </sql>
+
+    <!-- 만료 대상 스캔용 -->
+    <sql>
+      CREATE INDEX idx_reservation_hold_expires_at
+          ON reservation.reservation (hold_expires_at)
+       WHERE status IN ('PENDING', 'CONSULTING')
+    </sql>
+
+    <rollback>
+      <sql>DROP INDEX IF EXISTS reservation.idx_reservation_hold_expires_at</sql>
+      <sql>DROP INDEX IF EXISTS reservation.idx_reservation_member_active</sql>
+      <sql>DROP INDEX IF EXISTS reservation.uq_reservation_active_slot</sql>
+    </rollback>
+  </changeSet>
+
+  <!-- V003-3. 계약 기간 겹침 금지 -->
+  <changeSet id="V003-3" author="hig">
+
+    <preConditions onFail="HALT"
+                   onFailMessage="같은 정류소에 기간이 겹치는 유효 계약(PENDING/ACTIVE)이 있거나 종료일이 시작일보다 빠른 계약이 있습니다. 데이터를 정리한 뒤 다시 배포하세요.">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+          FROM reservation.contract a
+          JOIN reservation.contract b
+            ON a.stop_id = b.stop_id
+           AND a.id &lt; b.id
+           AND a.contract_start_date &lt; b.contract_end_date
+           AND b.contract_start_date &lt; a.contract_end_date
+         WHERE a.status IN ('PENDING', 'ACTIVE')
+           AND b.status IN ('PENDING', 'ACTIVE')
+      </sqlCheck>
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+          FROM reservation.contract
+         WHERE status IN ('PENDING', 'ACTIVE')
+           AND contract_start_date > contract_end_date
+      </sqlCheck>
+    </preConditions>
+
+    <addColumn tableName="contract" schemaName="reservation">
+      <column name="slot_no" type="SMALLINT" defaultValueNumeric="1"
+              remarks="정류소 내 광고면 번호. 현재는 정류소당 1면이라 항상 1">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+
+    <!-- UUID·SMALLINT 의 동등 비교를 GiST 제외 제약에 쓰려면 btree_gist 가 필요하다.
+         이 계정이 소유한 reservation 스키마에 설치해 public 스키마 권한에 의존하지 않는다. -->
+    <sql>CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA reservation</sql>
+
+    <!-- 기간은 [시작, 종료) 반열림 구간: 앞 계약 종료 시각과 뒤 계약 시작 시각이 같아도 겹치지 않는다 -->
+    <sql>
+      ALTER TABLE reservation.contract
+        ADD CONSTRAINT ex_contract_slot_period
+        EXCLUDE USING gist (
+          stop_id WITH =,
+          slot_no WITH =,
+          tstzrange(contract_start_date, contract_end_date, '[)') WITH &amp;&amp;
+        )
+        WHERE (status IN ('PENDING', 'ACTIVE'))
+    </sql>
+
+    <rollback>
+      <sql>ALTER TABLE reservation.contract DROP CONSTRAINT IF EXISTS ex_contract_slot_period</sql>
+      <dropColumn tableName="contract" schemaName="reservation" columnName="slot_no"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

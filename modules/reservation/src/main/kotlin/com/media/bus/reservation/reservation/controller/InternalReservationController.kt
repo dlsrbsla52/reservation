@@ -4,6 +4,7 @@ import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.reservation.reservation.dto.request.AssignReservationRequest
 import com.media.bus.reservation.reservation.dto.request.CompleteToContractRequest
+import com.media.bus.reservation.reservation.dto.request.ExtendHoldRequest
 import com.media.bus.reservation.reservation.dto.request.UpdateReservationStatusRequest
 import com.media.bus.reservation.reservation.dto.response.AdminReservationListResponse
 import com.media.bus.reservation.reservation.dto.response.ReservationDetailResponse
@@ -82,6 +83,19 @@ class InternalReservationController(
     ): ApiResponse<Unit?> {
         facade.updateReservationStatus(reservationId, request.status, request.note)
         return ApiResponse.successWithMessage("예약 상태 및 상담 기록이 반영되었습니다.")
+    }
+
+    @Operation(
+        summary = "선점 기간 연장 (내부 전용)",
+        description = "진행 중(PENDING/CONSULTING)인 예약의 선점 만료 일시를 변경합니다."
+    )
+    @PutMapping("/reservations/{reservationId}/hold")
+    fun extendHold(
+        @PathVariable reservationId: UUID,
+        @RequestBody @Valid request: ExtendHoldRequest
+    ): ApiResponse<Unit?> {
+        facade.extendHold(reservationId, request.holdExpiresAt)
+        return ApiResponse.successWithMessage("선점 기간이 변경되었습니다.")
     }
 
     @Operation(

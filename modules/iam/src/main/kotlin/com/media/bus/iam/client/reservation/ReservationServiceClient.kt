@@ -133,6 +133,15 @@ class ReservationServiceClient(
         }
     }
 
+    /** 진행 중인 예약의 선점 만료 일시 변경 */
+    fun extendHold(reservationId: UUID, holdExpiresAt: OffsetDateTime) {
+        log.debug("[ReservationServiceClient] 선점 기간 연장 요청: reservationId={}, holdExpiresAt={}", reservationId, holdExpiresAt)
+        val response = reservationApi.extendHold(reservationId, ExtendHoldRequest(holdExpiresAt))
+        if (response == null || response.code != "00000") {
+            throw IllegalStateException("선점 기간 연장에 실패하였습니다. ${response?.message ?: ""}")
+        }
+    }
+
     /** 예약을 완료 처리하고 광고 계약으로 전환 생성 */
     fun completeReservationToContract(reservationId: UUID, request: CompleteToContractRequest) {
         log.debug("[ReservationServiceClient] 예약 완료 및 계약 전환 요청: reservationId={}", reservationId)

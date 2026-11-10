@@ -83,6 +83,12 @@ interface ReservationApi {
         @RequestBody request: UpdateReservationStatusRequest,
     ): ApiResponse<Unit?>?
 
+    @PutExchange("/reservations/{reservationId}/hold")
+    fun extendHold(
+        @PathVariable reservationId: UUID,
+        @RequestBody request: ExtendHoldRequest,
+    ): ApiResponse<Unit?>?
+
     @PostExchange("/reservations/{reservationId}/complete-to-contract")
     fun completeReservationToContract(
         @PathVariable reservationId: UUID,

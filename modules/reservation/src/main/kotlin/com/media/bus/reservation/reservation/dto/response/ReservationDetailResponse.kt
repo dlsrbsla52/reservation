@@ -33,6 +33,9 @@ data class ReservationDetailResponse(
     @param:Schema(description = "현재 상태")
     val status: ReservationStatus,
 
+    @param:Schema(description = "선점 만료 일시 — 진행 중(PENDING/CONSULTING)일 때만 값이 있다", nullable = true)
+    val holdExpiresAt: OffsetDateTime?,
+
     @param:Schema(description = "상담 요청 일시")
     val consultationRequestedAt: OffsetDateTime,
 
@@ -70,7 +73,6 @@ data class ReservationDetailResponse(
         /** Facade가 stop 서비스 bulk 조회로 얻은 정보를 주입한다. 없으면 null로 fallback. */
         fun of(
             reservation: ReservationEntity,
-            currentStatus: ReservationStatus,
             consultations: List<ReservationConsultationEntity>,
             stopNumber: String? = null,
             stopName: String? = null,
@@ -80,7 +82,8 @@ data class ReservationDetailResponse(
             stopId = reservation.stopId,
             stopNumber = stopNumber,
             stopName = stopName,
-            status = currentStatus,
+            status = reservation.status,
+            holdExpiresAt = reservation.holdExpiresAt,
             consultationRequestedAt = reservation.consultationRequestedAt,
             desiredContractStartDate = reservation.desiredContractStartDate,
             createdAt = reservation.createdAt,

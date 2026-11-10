@@ -6,10 +6,10 @@ import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.annotation.Authorize
 import com.media.bus.contract.security.annotation.CurrentMember
 import com.media.bus.reservation.reservation.dto.request.CreateStopReservationRequest
+import com.media.bus.reservation.reservation.dto.response.CreateReservationResponse
 import com.media.bus.reservation.reservation.dto.response.MyReservationResponse
 import com.media.bus.reservation.reservation.dto.response.ReservationDetailResponse
 import com.media.bus.reservation.reservation.service.ReservationFacade
-import com.media.bus.reservation.reservation.service.ReservationService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -22,19 +22,20 @@ import java.util.*
 @RequestMapping("/api/v1/reservation")
 class ReservationController(
     private val facade: ReservationFacade,
-    private val reservationService: ReservationService,
 ) {
     /// 예약 생성.
     @Authorize
-    @Operation(summary = "예약 생성", description = "새로운 예약을 생성합니다.")
+    @Operation(
+        summary = "예약 생성",
+        description = "요청한 정류소를 선착순으로 선점합니다. 정류소마다 독립적으로 처리하며, " +
+            "일부가 이미 선점돼 있어도 나머지는 예약됩니다. 정류소별 성공 여부는 응답의 results 로 확인합니다.",
+    )
     @PostMapping
     fun createReservation(
         @CurrentMember principal: MemberPrincipal,
         @RequestBody @Valid request: CreateStopReservationRequest,
-    ): ApiResponse<Set<UUID>> {
-        val reservationIds = facade.createReservation(principal, request)
-        return ApiResponse.success(reservationIds)
-    }
+    ): ApiResponse<CreateReservationResponse> =
+        ApiResponse.success(facade.createReservation(principal, request))
 
     /// 내 예약 목록 조회 (페이지네이션).
     @Authorize
@@ -65,7 +66,7 @@ class ReservationController(
         @CurrentMember principal: MemberPrincipal,
         @PathVariable reservationId: UUID,
     ): ApiResponse<Unit?> {
-        reservationService.cancelReservation(principal.id, reservationId)
+        facade.cancelReservation(principal, reservationId)
         return ApiResponse.success()
     }
 }

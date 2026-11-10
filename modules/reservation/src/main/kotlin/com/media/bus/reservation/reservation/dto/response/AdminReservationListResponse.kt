@@ -27,6 +27,9 @@ data class AdminReservationListResponse(
     @param:Schema(description = "현재 상태")
     val status: ReservationStatus,
 
+    @param:Schema(description = "선점 만료 일시 — 진행 중(PENDING/CONSULTING)일 때만 값이 있다", nullable = true)
+    val holdExpiresAt: OffsetDateTime?,
+
     @param:Schema(description = "담당 어드민 ID (미지정 시 null)", nullable = true)
     val assigneeId: UUID?,
 
@@ -42,7 +45,6 @@ data class AdminReservationListResponse(
     companion object {
         fun of(
             reservation: ReservationEntity,
-            status: ReservationStatus,
             stopNumber: String? = null,
             stopName: String? = null,
         ): AdminReservationListResponse =
@@ -52,7 +54,8 @@ data class AdminReservationListResponse(
                 stopId = reservation.stopId,
                 stopNumber = stopNumber,
                 stopName = stopName,
-                status = status,
+                status = reservation.status,
+                holdExpiresAt = reservation.holdExpiresAt,
                 assigneeId = reservation.assigneeId,
                 consultationRequestedAt = reservation.consultationRequestedAt,
                 desiredContractStartDate = reservation.desiredContractStartDate,

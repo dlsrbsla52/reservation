@@ -1,12 +1,13 @@
 package com.media.bus.reservation.reservation.repository
 
-import com.media.bus.reservation.reservation.entity.ReservationConsultationTable
 import com.media.bus.reservation.reservation.entity.ReservationEntity
 import com.media.bus.reservation.reservation.entity.ReservationTable
 import com.media.bus.reservation.reservation.entity.enums.ReservationStatus
 import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.util.*
@@ -16,6 +17,10 @@ import java.util.*
  *
  * Exposed DAO 기반 예약 조회 메서드를 제공한다.
  * 저장은 `ReservationEntity.create()` 팩토리 메서드가 트랜잭션 내에서 자동 INSERT 한다.
+ *
+ * 이름이 `ForUpdate` 로 끝나는 메서드는 행 잠금(`SELECT ... FOR UPDATE`)을 잡는다.
+ * 잠금은 트랜잭션이 끝날 때 풀리므로 반드시 서비스의 쓰기 트랜잭션 안에서 호출해야 하고,
+ * 그래서 전파 속성을 `MANDATORY` 로 둔다(트랜잭션 없이 부르면 즉시 실패).
  */
 @Repository
 class ReservationRepository {
@@ -23,12 +28,17 @@ class ReservationRepository {
     @Transactional(readOnly = true)
     fun findById(id: UUID): ReservationEntity? = ReservationEntity.findById(id)
 
-    /** 본인 소유 예약만 조회. 다른 회원이 예약을 소유한 경우 null 을 반환하여 인가 검증에 사용한다. */
-    @Transactional(readOnly = true)
-    fun findByIdAndMemberId(id: UUID, memberId: UUID): ReservationEntity? =
+    /** 상태 전이용 조회. 같은 예약을 동시에 바꾸려는 요청을 순서대로 세운다. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun findByIdForUpdate(id: UUID): ReservationEntity? =
+        ReservationEntity.find { ReservationTable.id eq id }.forUpdate().firstOrNull()
+
+    /** 본인 소유 예약만 잠금 조회. 다른 회원의 예약이면 null 을 반환하여 인가 검증에 사용한다. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun findByIdAndMemberIdForUpdate(id: UUID, memberId: UUID): ReservationEntity? =
         ReservationEntity.find {
             (ReservationTable.id eq id) and (ReservationTable.memberId eq memberId)
-        }.firstOrNull()
+        }.forUpdate().firstOrNull()
 
     /** 회원의 예약 수. 페이지네이션 메타에 사용한다. */
     @Transactional(readOnly = true)
@@ -44,34 +54,44 @@ class ReservationRepository {
             .offset(start = (page * size).toLong())
             .toList()
 
-    /**
-     * 동일 회원·정류소에 대해 현재 "진행 중"(PENDING/CONSULTING) 상태의 예약이 존재하는지 확인한다.
-     *
-     * 판정 근거: 각 예약의 가장 최신 `reservation_consultation.status` 가 진행 중 상태인지.
-     * 동일 조합에 대한 중복 예약 생성을 사전 차단하기 위해 저장 직전에 호출한다.
-     */
+    /** 회원이 현재 선점 중인 예약 수. 회원당 선점 한도 판정에 쓴다. */
     @Transactional(readOnly = true)
-    fun existsActiveByMemberAndStop(memberId: UUID, stopId: UUID): Boolean {
-        val candidates = ReservationEntity.find {
-            (ReservationTable.memberId eq memberId) and (ReservationTable.stopId eq stopId)
-        }
-        // 최신 상담 row 의 상태가 진행 중(PENDING/CONSULTING)이면 중복으로 간주
-        return candidates.any { reservation ->
-            val latestStatus = ReservationConsultationTable
-                .selectAll()
-                .where { ReservationConsultationTable.reservationId eq reservation.id }
-                .orderBy(ReservationConsultationTable.createdAt to SortOrder.DESC)
-                .limit(1)
-                .firstOrNull()
-                ?.get(ReservationConsultationTable.status)
-            latestStatus == ReservationStatus.PENDING || latestStatus == ReservationStatus.CONSULTING
-        }
-    }
+    fun countHoldingByMember(memberId: UUID): Long =
+        ReservationTable.selectAll()
+            .where { (ReservationTable.memberId eq memberId) and (ReservationTable.status inList ReservationStatus.HOLDING) }
+            .count()
 
     /**
-     * 어드민용 전체 예약 목록을 검색 및 조건부 필터링하여 페이징 조회한다.
-     * Left Join newer is null 패턴을 활용하여 최신 상담 이력의 상태를 N+1 쿼리 없이 한번에 결합한다.
+     * 광고면을 현재 선점 중인 예약을 잠금 조회한다. 부분 유니크 인덱스 덕분에 많아야 1건이다.
+     *
+     * 선점 예약이 없으면 잠글 행이 없어 동시 요청이 함께 통과하지만,
+     * 그 경우의 승자는 INSERT 시점에 유니크 인덱스가 정한다.
      */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun findHolderForUpdate(stopId: UUID, slotNo: Short): ReservationEntity? =
+        ReservationEntity.find {
+            (ReservationTable.stopId eq stopId) and
+                (ReservationTable.slotNo eq slotNo) and
+                (ReservationTable.status inList ReservationStatus.HOLDING)
+        }.forUpdate().firstOrNull()
+
+    /**
+     * 선점 기간이 지난 예약을 만료가 오래된 순으로 잠금 조회한다.
+     *
+     * `SKIP LOCKED` — 다른 트랜잭션(다른 인스턴스의 스케줄러, 같은 예약을 처리 중인 관리자 요청)이
+     * 잡고 있는 행은 기다리지 않고 건너뛴다. 건너뛴 행은 다음 주기에 다시 대상이 된다.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun findExpiredHoldsForUpdate(now: OffsetDateTime, limit: Int): List<ReservationEntity> =
+        ReservationEntity.find {
+            (ReservationTable.status inList ReservationStatus.HOLDING) and (ReservationTable.holdExpiresAt less now)
+        }
+            .orderBy(ReservationTable.holdExpiresAt to SortOrder.ASC)
+            .limit(limit)
+            .forUpdate(ForUpdateOption.PostgreSQL.ForUpdate(ForUpdateOption.PostgreSQL.MODE.SKIP_LOCKED))
+            .toList()
+
+    /** 어드민용 전체 예약 목록을 조건으로 걸러 최신 생성순으로 페이지 조회한다. */
     @Transactional(readOnly = true)
     fun searchAdminReservations(
         status: ReservationStatus?,
@@ -80,91 +100,40 @@ class ReservationRepository {
         createdFrom: OffsetDateTime?,
         createdTo: OffsetDateTime?,
         page: Int,
-        size: Int
-    ): List<Pair<ReservationEntity, ReservationStatus>> {
-        val rc = ReservationConsultationTable
-        val rcNewer = ReservationConsultationTable.alias("rc_newer")
-
-        val joinRelation = ReservationTable
-            .join(
-                otherTable = rc,
-                joinType = JoinType.INNER,
-                onColumn = ReservationTable.id,
-                otherColumn = rc.reservationId
-            )
-            .join(
-                otherTable = rcNewer,
-                joinType = JoinType.LEFT,
-                onColumn = ReservationTable.id,
-                otherColumn = rcNewer[ReservationConsultationTable.reservationId],
-                additionalConstraint = {
-                    rc.createdAt less rcNewer[ReservationConsultationTable.createdAt]
-                }
-            )
-
-        val conditions = mutableListOf<Op<Boolean>>()
-        conditions.add(rcNewer[ReservationConsultationTable.id].isNull())
-
-        status?.let { conditions.add(rc.status eq it) }
-        assigneeId?.let { conditions.add(ReservationTable.assigneeId eq it) }
-        stopId?.let { conditions.add(ReservationTable.stopId eq it) }
-        createdFrom?.let { conditions.add(ReservationTable.createdAt greaterEq it) }
-        createdTo?.let { conditions.add(ReservationTable.createdAt lessEq it) }
-
-        val combinedOp = conditions.reduce { acc, op -> acc and op }
-
-        val query = joinRelation.selectAll().where(combinedOp)
+        size: Int,
+    ): List<ReservationEntity> =
+        ReservationEntity.find { adminSearchPredicate(status, assigneeId, stopId, createdFrom, createdTo) }
             .orderBy(ReservationTable.createdAt to SortOrder.DESC)
             .limit(size)
             .offset(start = (page * size).toLong())
+            .toList()
 
-        return query.map { row ->
-            val entity = ReservationEntity.wrapRow(row)
-            val currentStatus = row[rc.status]
-            entity to currentStatus
-        }
-    }
-
-    /** 어드민 검색 조건에 매칭되는 전체 예약 개수를 반환한다. */
+    /** 어드민 검색 조건에 매칭되는 전체 예약 개수를 반환한다. 목록 쿼리와 같은 조건을 쓴다. */
     @Transactional(readOnly = true)
     fun countAdminReservations(
         status: ReservationStatus?,
         assigneeId: UUID?,
         stopId: UUID?,
         createdFrom: OffsetDateTime?,
-        createdTo: OffsetDateTime?
-    ): Long {
-        val rc = ReservationConsultationTable
-        val rcNewer = ReservationConsultationTable.alias("rc_newer")
+        createdTo: OffsetDateTime?,
+    ): Long =
+        ReservationTable.selectAll()
+            .where { adminSearchPredicate(status, assigneeId, stopId, createdFrom, createdTo) }
+            .count()
 
-        val joinRelation = ReservationTable
-            .join(
-                otherTable = rc,
-                joinType = JoinType.INNER,
-                onColumn = ReservationTable.id,
-                otherColumn = rc.reservationId
-            )
-            .join(
-                otherTable = rcNewer,
-                joinType = JoinType.LEFT,
-                onColumn = ReservationTable.id,
-                otherColumn = rcNewer[ReservationConsultationTable.reservationId],
-                additionalConstraint = {
-                    rc.createdAt less rcNewer[ReservationConsultationTable.createdAt]
-                }
-            )
-
+    private fun adminSearchPredicate(
+        status: ReservationStatus?,
+        assigneeId: UUID?,
+        stopId: UUID?,
+        createdFrom: OffsetDateTime?,
+        createdTo: OffsetDateTime?,
+    ): Op<Boolean> {
         val conditions = mutableListOf<Op<Boolean>>()
-        conditions.add(rcNewer[ReservationConsultationTable.id].isNull())
-
-        status?.let { conditions.add(rc.status eq it) }
-        assigneeId?.let { conditions.add(ReservationTable.assigneeId eq it) }
-        stopId?.let { conditions.add(ReservationTable.stopId eq it) }
-        createdFrom?.let { conditions.add(ReservationTable.createdAt greaterEq it) }
-        createdTo?.let { conditions.add(ReservationTable.createdAt lessEq it) }
-
-        val combinedOp = conditions.reduce { acc, op -> acc and op }
-
-        return joinRelation.selectAll().where(combinedOp).count()
+        status?.let { conditions += ReservationTable.status eq it }
+        assigneeId?.let { conditions += ReservationTable.assigneeId eq it }
+        stopId?.let { conditions += ReservationTable.stopId eq it }
+        createdFrom?.let { conditions += ReservationTable.createdAt greaterEq it }
+        createdTo?.let { conditions += ReservationTable.createdAt lessEq it }
+        return conditions.reduceOrNull { acc, op -> acc and op } ?: Op.TRUE
     }
 }

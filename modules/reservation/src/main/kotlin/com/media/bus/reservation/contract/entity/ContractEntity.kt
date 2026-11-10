@@ -26,11 +26,13 @@ class ContractEntity(id: EntityID<UUID>) : DateBaseEntity(id, ContractTable) {
          *
          * @param stopInfo stop 서비스에서 확인된 정류소 정보
          * @param request  계약 생성 요청 DTO
+         * @param slotNo   정류소 내 광고면 번호
          * @return 저장된 ContractEntity 인스턴스
          */
-        fun create(stopInfo: StopInfo, request: CreateContractRequest): ContractEntity =
+        fun create(stopInfo: StopInfo, request: CreateContractRequest, slotNo: Short): ContractEntity =
             new(UuidV7.generate()) {
                 stopId = stopInfo.id
+                this.slotNo = slotNo
                 memberId = request.memberId
                 contractName = request.contractName
                 status = ContractStatus.PENDING
@@ -42,6 +44,9 @@ class ContractEntity(id: EntityID<UUID>) : DateBaseEntity(id, ContractTable) {
 
     /** 계약이 연결된 정류소 UUID. stop 서비스에서 검증된 값이며, 복합 인덱스(stop_id + status) 대상. */
     var stopId by ContractTable.stopId
+
+    /** 정류소 내 광고면 번호. 계약 기간 독점의 단위는 정류소 + 광고면이다. */
+    var slotNo by ContractTable.slotNo
 
     /** 갱신 계약인 경우 이전 계약의 UUID. 신규 계약이면 null. */
     var previousContractId by ContractTable.previousContractId

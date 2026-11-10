@@ -95,6 +95,20 @@ class AdminReservationController(
         return ApiResponse.successWithMessage("예약 상태 및 상담 기록이 반영되었습니다.")
     }
 
+    /** 선점 기간 연장 */
+    @Operation(
+        summary = "선점 기간 연장",
+        description = "진행 중(PENDING/CONSULTING)인 예약의 선점 만료 일시를 변경합니다. 만료 일시는 현재 시각 이후여야 합니다."
+    )
+    @PutMapping("/reservations/{reservationId}/hold")
+    fun extendHold(
+        @PathVariable reservationId: UUID,
+        @RequestBody @Valid request: ExtendHoldRequest
+    ): ApiResponse<Unit?> {
+        adminReservationFacade.extendHold(reservationId, request.holdExpiresAt)
+        return ApiResponse.successWithMessage("선점 기간이 변경되었습니다.")
+    }
+
     /** 예약 완료 및 계약 생성 */
     @Operation(
         summary = "예약 완료 및 계약 생성",

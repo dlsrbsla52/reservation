@@ -3,10 +3,12 @@ package com.media.bus.reservation.contract.repository
 import com.media.bus.reservation.contract.dto.request.AdminContractSearchCondition
 import com.media.bus.reservation.contract.entity.ContractEntity
 import com.media.bus.reservation.contract.entity.ContractTable
+import com.media.bus.reservation.contract.entity.enums.ContractStatus
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
+import java.time.OffsetDateTime
 import java.util.*
 
 /**
@@ -56,6 +58,39 @@ class ContractRepository {
 
     @Transactional(readOnly = true)
     fun findById(id: UUID): ContractEntity? = ContractEntity.findById(id)
+
+    /**
+     * 광고면에 `[start, end)` 기간과 겹치는 점유 계약(PENDING/ACTIVE)이 있는지 확인한다.
+     *
+     * DB 제외 제약과 같은 반열림 구간 기준이다. 이 조회는 친절한 오류 응답을 위한 사전 검사이고,
+     * 동시 요청 사이의 최종 판정은 제외 제약이 한다.
+     */
+    @Transactional(readOnly = true)
+    fun existsOccupyingOverlap(stopId: UUID, slotNo: Short, start: OffsetDateTime, end: OffsetDateTime): Boolean =
+        ContractTable.selectAll()
+            .where {
+                (ContractTable.stopId eq stopId) and
+                    (ContractTable.slotNo eq slotNo) and
+                    (ContractTable.status inList ContractStatus.OCCUPYING) and
+                    (ContractTable.contractStartDate less end) and
+                    (ContractTable.contractEndDate greater start)
+            }
+            .limit(1)
+            .any()
+
+    /** 특정 시점에 광고면을 점유 중인 계약이 있는지 확인한다. */
+    @Transactional(readOnly = true)
+    fun existsOccupyingAt(stopId: UUID, slotNo: Short, at: OffsetDateTime): Boolean =
+        ContractTable.selectAll()
+            .where {
+                (ContractTable.stopId eq stopId) and
+                    (ContractTable.slotNo eq slotNo) and
+                    (ContractTable.status inList ContractStatus.OCCUPYING) and
+                    (ContractTable.contractStartDate lessEq at) and
+                    (ContractTable.contractEndDate greater at)
+            }
+            .limit(1)
+            .any()
 
     /** 본인 소유 계약만 조회. 다른 회원 계약이면 null 을 반환하여 인가 검증에 사용한다. */
     @Transactional(readOnly = true)

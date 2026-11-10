@@ -66,6 +66,16 @@ rest:
   service:
     apply-patterns: /health-check
 
+# 정류소 선점(hold) 정책. 값을 바꾸면 이후 생성·전이되는 예약부터 적용된다.
+reservation:
+  hold:
+    duration: 7d # 선점 유지 기간. 예약 시점과 상담 시작 시점에 이만큼 만료가 설정된다
+    max-active-per-member: 100 # 회원 1명이 동시에 가질 수 있는 진행 중 예약 수
+    gate-ttl: 5s # Redis 게이트 락 TTL (예약 1건의 S2S + DB 저장이 끝나기에 충분한 시간)
+    occupied-cache-ttl: 30s # 예약 성공 후 게이트 키를 "점유됨" 캐시로 유지하는 시간
+    expiry-interval: PT1M # 만료 스케줄러 주기 (ISO-8601)
+    expiry-batch-size: 100 # 만료 스케줄러가 한 번에 처리하는 예약 수
+
 jwt:
   secret: ${JWT_SECRET}
 
