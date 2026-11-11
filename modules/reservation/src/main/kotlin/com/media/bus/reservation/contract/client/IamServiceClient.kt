@@ -1,5 +1,6 @@
 package com.media.bus.reservation.contract.client
 
+import com.media.bus.reservation.contract.dto.request.internal.FindIamMemberByIdRequest
 import com.media.bus.reservation.contract.dto.response.MemberInfo
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -21,13 +22,13 @@ class IamServiceClient(
 
     /**
      * 회원 UUID로 IAM DB에서 회원을 조회한다.
-     * 회원이 존재하지 않거나 응답이 null이면 null을 반환한다.
+     * 응답 본문이 비면 null을 반환한다. 회원이 없으면 iam의 4xx가 `BusinessException`으로 전달된다.
      *
      * @param memberId 조회할 회원의 UUID
      * @return 조회된 회원 정보, 없으면 null
      */
     fun findMemberById(memberId: UUID): MemberInfo? {
         log.debug("[IamServiceClient] UUID로 회원 조회 요청: memberId={}", memberId)
-        return iamApi.findMemberById(memberId)?.data
+        return iamApi.findMemberById(FindIamMemberByIdRequest(memberId.toString()))?.data
     }
 }

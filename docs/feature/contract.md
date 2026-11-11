@@ -6,7 +6,7 @@
 
 ## 현재 구현 상태
 
-- [x] 계약 생성 (`POST /api/v1/contract`) — ContractFacade → IAM/Stop S2S → ContractService
+- [x] 계약 생성 (`POST /api/v1/admin/contract`, iam admin → S2S `POST /api/v1/internal/reservation/contract`) — InternalContractFacade → IAM/Stop S2S → ContractService
 - [x] 계약 엔티티 (`contract`, `contract_detail`) 및 Liquibase 스키마
 - [x] 계약 갱신 체인 구조 (`previous_contract_id`)
 - [x] 자동 갱신 플래그 (`auto_renewal`)

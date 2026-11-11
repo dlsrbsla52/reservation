@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  *
  * 설계 원칙:
  * - auth 서비스는 Gateway 내부 망에서만 호출된다. JWT 검증은 Gateway에서 수행한다.
- * - /api/v1/member 하위 전체 경로는 `S2STokenFilter`로 내부 서비스 호출만 허용한다.
+ * - `/api/v1/internal/` 하위 전체 경로는 `S2STokenFilter`로 내부 서비스 호출만 허용한다(stop, reservation과 같은 규약).
  * - CSRF는 Stateless REST API 특성상 비활성화한다.
  */
 @Configuration
@@ -27,14 +27,14 @@ class SecurityConfig(
 ) {
     @Bean
     fun s2sTokenFilter(): S2STokenFilter =
-        S2STokenFilter(jwtProvider, listOf("/api/v1/member/internal/", "/api/v1/commission/internal/"))
+        S2STokenFilter(jwtProvider, listOf("/api/v1/internal/"))
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain =
         http
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-            // S2STokenFilter는 /api/v1/member/** 경로에만 적용 (shouldNotFilter로 제어)
+            // S2STokenFilter는 /api/v1/internal/** 경로에만 적용 (shouldNotFilter로 제어)
             .addFilterBefore(s2sTokenFilter(), UsernamePasswordAuthenticationFilter::class.java)
             .authorizeHttpRequests { it.anyRequest().permitAll() }
             .build()

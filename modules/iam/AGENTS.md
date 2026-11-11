@@ -58,8 +58,11 @@ modules/iam/src/main/kotlin/com/media/bus/iam/
 | POST | `/api/v1/auth/admin/token/refresh` | 관리자 토큰 재발급 (`admin_refresh_token` 쿠키, Path `/api/v1/auth/admin`) |
 | POST | `/api/v1/auth/admin/logout` | 관리자 세션 로그아웃 |
 | POST | `/api/v1/auth/admin/reactivate` | INACTIVE 관리자 계정 재활성화 (일반 재활성화는 관리자 계정을 받지 않음) |
-| POST | `/api/v1/member/jwt` | JWT 기반 회원 조회 (S2S 전용) |
-| POST | `/api/v1/member/id` | memberId 기반 회원 조회 (S2S 전용) |
+| POST | `/api/v1/internal/iam/member/jwt` | JWT 기반 회원 조회 (S2S 전용) |
+| POST | `/api/v1/internal/iam/member/id` | memberId 기반 회원 조회 (S2S 전용) |
+| GET  | `/api/v1/internal/iam/commission/effective-rate` | 최종 정산 비율 조회 (S2S 전용) |
+
+S2S 전용 API는 모두 `/api/v1/internal/iam/` 아래에 둔다. `S2STokenFilter`가 `/api/v1/internal/` 접두 경로만 검사하므로, 다른 경로에 두면 S2S 토큰 없이 열린다.
 
 ## Database
 

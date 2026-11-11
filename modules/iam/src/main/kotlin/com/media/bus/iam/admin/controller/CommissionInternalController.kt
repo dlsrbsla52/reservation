@@ -14,7 +14,7 @@ import java.util.*
 /**
  * ## 정산 비율 S2S 내부 API 컨트롤러
  *
- * `/api/v1/commission/internal/` 하위 경로는 `S2STokenFilter`로 보호된다.
+ * `/api/v1/internal/` 하위 경로는 `S2STokenFilter`로 보호된다.
  * Reservation 모듈이 계약 정산 시 최종 적용 비율을 조회하기 위해 호출한다.
  */
 @Tag(
@@ -22,7 +22,7 @@ import java.util.*
     description = "S2S 전용 정산 비율 조회 API. S2S 토큰 인증 필요.",
 )
 @RestController
-@RequestMapping("/api/v1/commission/internal")
+@RequestMapping("/api/v1/internal/iam/commission")
 class CommissionInternalController(
     private val commissionFacade: AdminManagerCommissionFacade,
 ) {

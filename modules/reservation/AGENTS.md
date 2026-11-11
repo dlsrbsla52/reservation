@@ -23,7 +23,7 @@ Base package: `com.media.bus.reservation`
 ```
 modules/reservation/src/main/kotlin/com/media/bus/reservation/
   contract/              # 계약 도메인
-    controller/ContractController   # @Authorize(ADMIN, WRITE) 보호
+    controller/ContractController   # 회원 본인 계약 조회 (생성은 InternalContractController — iam admin 경유)
     service/ContractFacade          # S2S 호출(트랜잭션 외부) + DB 저장(트랜잭션 내부) 분리
     service/ContractService         # @Transactional DB 저장
     service/MemberVerificationService  # IAM S2S 회원 재검증

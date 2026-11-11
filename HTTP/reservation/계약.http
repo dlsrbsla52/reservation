@@ -1,5 +1,5 @@
 ### 로그인
-POST {{domain-gateway}}/api/v1/auth/login
+POST {{domain-gateway}}/api/v1/auth/admin/login
 Content-Type: {{json}}
 
 {
@@ -11,8 +11,8 @@ Content-Type: {{json}}
   client.global.set("accessToken", response.body.data.accessToken);
 %}
 
-### 계약 생성
-POST {{domain-gateway}}/api/v1/contract
+### 계약 생성 (관리자 사이트 토큰 필요 — iam admin API 경유)
+POST {{domain-gateway}}/api/v1/admin/contract
 Content-Type: {{json}}
 Authorization: Bearer {{accessToken}}
 

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @Tag(name = "유저(Member) API", description = "Internal 전용 회원조회, 회원 수정 등 회원 관련 API")
 @RestController
-@RequestMapping("/api/v1/member/internal")
+@RequestMapping("/api/v1/internal/iam/member")
 class MemberInternalController(
     private val memberService: MemberService,
 ) {

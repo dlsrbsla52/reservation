@@ -2,6 +2,7 @@ package com.media.bus.common.client
 
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.exceptions.ServiceException
+import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.security.TokenProvider
 import com.sun.net.httpserver.HttpServer
 import org.assertj.core.api.Assertions.assertThat
@@ -49,12 +50,26 @@ class S2SRestClientFactoryErrorTest {
     }
 
     @Test
-    fun `본문이 JSON 이 아니어도 상태는 유지된다`() {
+    fun `하위 서비스의 결과 코드를 그대로 전달한다`() {
+        respond(409, """{"code":"R0010","message":"선점 기간을 연장할 수 없는 예약입니다."}""")
+
+        assertThatThrownBy { call() }
+            .isInstanceOfSatisfying(BusinessException::class.java) {
+                assertThat(it.result.code).isEqualTo("R0010")
+                assertThat(it.result.httpStatus()).isEqualTo(HttpStatus.CONFLICT)
+                assertThat(it.httpStatus).isEqualTo(HttpStatus.CONFLICT)
+            }
+    }
+
+    @Test
+    fun `본문이 JSON 이 아니어도 상태는 유지되고 코드는 공통 실패 코드다`() {
         respond(400, "bad request")
 
         assertThatThrownBy { call() }
-            .isInstanceOf(BusinessException::class.java)
-            .extracting("httpStatus").isEqualTo(HttpStatus.BAD_REQUEST)
+            .isInstanceOfSatisfying(BusinessException::class.java) {
+                assertThat(it.httpStatus).isEqualTo(HttpStatus.BAD_REQUEST)
+                assertThat(it.result).isEqualTo(CommonResult.FAIL)
+            }
     }
 
     @Test

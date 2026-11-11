@@ -1,8 +1,10 @@
 package com.media.bus.common.client
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.exceptions.ServiceException
+import com.media.bus.common.result.Result
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.security.TokenProvider
 import org.slf4j.LoggerFactory
@@ -73,25 +75,47 @@ class S2SRestClientFactory(private val tokenProvider: TokenProvider) {
      *
      * - 401/403 은 **사용자 인증 문제가 아니라 S2S 토큰·설정 문제**다. 그대로 넘기면 프론트가
      *   자기 토큰이 만료된 줄 알고 갱신·로그아웃을 시도하므로 500(`ServiceException`)으로 바꾼다.
-     * - 그 외 4xx 는 같은 HTTP 상태의 `BusinessException` 으로, 메시지는 하위 응답의 `message` 를 쓴다.
+     * - 그 외 4xx 는 같은 HTTP 상태의 `BusinessException` 으로, 하위 응답의 `code`·`message` 를 그대로 싣는다.
+     *   코드를 버리면 호출자(관리자 화면)가 `R0010`·`C0004` 같은 실패 사유를 메시지 문자열로만 구분해야 한다.
      */
     private fun translateClientError(method: String, path: String, res: ClientHttpResponse): RuntimeException {
         val status = res.statusCode.value()
-        val downstreamMessage = readMessage(res)
+        val body = readBody(res)
+        val downstreamCode = body.text("code")
+        val downstreamMessage = body.text("message")
         if (status == HttpStatus.UNAUTHORIZED.value() || status == HttpStatus.FORBIDDEN.value()) {
             log.error("[S2S] 하위 서비스 인증 거부 — S2S 토큰/설정 확인 필요. {} {} status={}", method, path, status)
             return ServiceException(CommonResult.SERVICE_ERROR, "내부 서비스 인증에 실패했습니다.")
         }
-        log.warn("[S2S] 하위 서비스 요청 거부. {} {} status={} message={}", method, path, status, downstreamMessage)
-        return BusinessException(
-            HttpStatus.resolve(status) ?: HttpStatus.BAD_REQUEST,
-            downstreamMessage ?: "요청을 처리할 수 없습니다.",
+        log.warn(
+            "[S2S] 하위 서비스 요청 거부. {} {} status={} code={} message={}",
+            method, path, status, downstreamCode, downstreamMessage,
         )
+        val httpStatus = HttpStatus.resolve(status) ?: HttpStatus.BAD_REQUEST
+        val message = downstreamMessage ?: "요청을 처리할 수 없습니다."
+        // 하위 코드가 없으면(본문 없음·비 JSON) 기존처럼 공통 실패 코드로 응답한다.
+        val result = downstreamCode?.let { DownstreamResult(it, message, httpStatus) } ?: CommonResult.FAIL
+        return BusinessException(result = result, message = message, httpStatus = httpStatus)
     }
 
-    /** `ApiResponse`/`ErrorView` 공통 필드인 `message` 를 읽는다. 본문이 없거나 JSON 이 아니면 null. */
-    private fun readMessage(res: ClientHttpResponse): String? =
-        runCatching { objectMapper.readTree(res.body)?.get("message")?.asText() }
-            .getOrNull()
-            ?.takeIf { it.isNotBlank() }
+    /** 하위 응답 본문(`ApiResponse`/`ErrorView`)을 읽는다. 본문이 없거나 JSON 이 아니면 null. */
+    private fun readBody(res: ClientHttpResponse): JsonNode? =
+        runCatching { objectMapper.readTree(res.body) }.getOrNull()
+
+    private fun JsonNode?.text(field: String): String? =
+        this?.get(field)?.takeIf { it.isTextual }?.asText()?.takeIf { it.isNotBlank() }
+}
+
+/**
+ * ## 하위 서비스가 돌려준 결과 코드를 그대로 전달하기 위한 `Result`
+ *
+ * 모듈 경계상 호출자는 하위 모듈의 Result enum(`ReservationResult` 등)을 참조할 수 없으므로,
+ * 응답 본문의 `code`·`message`·HTTP 상태만 담아 `ExceptionAdvisor`가 그대로 내보내게 한다.
+ */
+data class DownstreamResult(
+    override val code: String,
+    override val message: String,
+    private val status: HttpStatus,
+) : Result {
+    override fun httpStatus(): HttpStatus = status
 }

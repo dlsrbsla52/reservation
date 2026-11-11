@@ -45,7 +45,8 @@ Spring Boot 4.1.0 + Kotlin 2.3.20 기반의 **MSA(Microservices Architecture)** 
 |-----------|-------------|
 | `/api/v1/auth/**` | iam (8181) |
 | `/api/v1/admin/**` | iam (8181) |
-| `/api/v1/member/**` | iam (8181, S2S 전용 — 직접 호출 불가) |
+| `/api/v1/member/**` | iam (8181) |
+| `/api/v1/internal/**` | 서비스 간(S2S) 전용 — gateway가 403으로 차단 |
 | `/api/v1/stop/**` | stop (8182) |
 | `/api/v1/reservation/**` | reservation (8183) |
 | `/api/v1/contract/**` | reservation (8183) |
@@ -292,11 +293,12 @@ export default api;
 | POST | `/api/v1/stop/simple` | 정류소 단건 등록 (수동) |
 | POST | `/api/v1/stop/register/bulk` | 서울 열린데이터광장 일괄 동기화 |
 
-### 6-5. 계약 (reservation, `/api/v1/contract`) — ADMIN + WRITE 권한 필요(생성)
+### 6-5. 계약 (reservation, `/api/v1/contract`) — 회원 본인 계약 조회
+
+계약 생성은 관리자 기능이므로 관리자 사이트에서 `POST /api/v1/admin/contract`(iam)로 호출한다.
 
 | Method | Path | 설명 |
 |--------|------|------|
-| POST | `/api/v1/contract` | 계약 생성 (정류소 광고) |
 | GET  | `/api/v1/contract/me?page=0&size=20` | 내 계약 목록 |
 | GET  | `/api/v1/contract/{contractId}` | 계약 단건 상세 |
 

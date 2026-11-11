@@ -25,11 +25,13 @@ spring:
           # Security 필터가 라우팅보다 먼저 실행되어 허용되지 않은 origin 을 여기서 거부하므로,
           # 이전의 globalcors('[/**]' 전체 허용)는 경로별 제한과 어긋나 제거했다.
           routes:
-            # internal 경로 차단 — 게이트웨이 외부에서 내부 전용 API 호출 방지
-            - id: block-member-internal
+            # internal 경로 차단 — 게이트웨이 외부에서 내부 전용 API 호출 방지.
+            # 모든 서비스의 S2S API 는 /api/v1/internal/{service}/** 규약을 따른다.
+            # 지금은 이 경로로 가는 라우트가 없지만, 넓은 라우트가 추가돼도 열리지 않게 먼저 선언해 둔다.
+            - id: block-internal
               uri: no://op
               predicates:
-                - Path=/api/v1/member/internal/**
+                - Path=/api/v1/internal/**
               filters:
                 - SetStatus=403
 

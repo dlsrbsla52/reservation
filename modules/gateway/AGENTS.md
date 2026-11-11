@@ -27,7 +27,8 @@ Base package: `com.media.bus.gateway`
 | `/api/v1/admin/**` (라우트 `iam-admin`, metadata `required-audience: ADMIN`) | `iam-service:8181` |
 | `/api/v1/auth/**`, `/api/v1/member/**` | `iam-service:8181` |
 | `/api/v1/stop/**` | `stop-service:8182` |
-| `/api/v1/reservation/**` | `reservation-service:8183` |
+| `/api/v1/reservation/**`, `/api/v1/contract/**` | `reservation-service:8183` |
+| `/api/v1/internal/**` (라우트 `block-internal`) | 403 차단 — 서비스 간(S2S) 전용 경로 |
 
 ## 주요 클래스
 
