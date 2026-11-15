@@ -19,7 +19,11 @@ dependencies {
 
 dependencyManagement {
     imports {
-        // Spring Cloud 2025.1.2 (Oakwood) — Spring Boot 4.1.x 지원이 시작된 Release Train
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.2")
+        // Spring Cloud 2025.1.4 (Oakwood) — Spring Boot 4.1.x 대응 Release Train.
+        // 2025.1.2의 spring-cloud-commons가 끌어오던 bcprov-jdk18on 1.81.1(CVE-2026-8763 등)을 1.85.2로 올린다.
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.1.4")
+        // Spring Cloud BOM이 resilience4j를 2.3.0으로 고정해 common의 resilience4j-spring-boot4:2.4.0과
+        // 버전이 섞인다(런타임 NoSuchMethodError 위험). 뒤에 import한 BOM이 우선하므로 2.4.0으로 다시 맞춘다.
+        mavenBom("io.github.resilience4j:resilience4j-bom:2.4.0")
     }
 }
