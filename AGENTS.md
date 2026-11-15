@@ -11,7 +11,7 @@
 
 ## 개요
 
-Spring Boot 4.1.0 MSA (root: `bus`), Kotlin 2.3.20, 6개 Gradle 모듈. ORM: Exposed 1.3.1. 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
+Spring Boot 4.1.2 MSA (root: `bus`), Kotlin 2.3.20, 6개 Gradle 모듈. ORM: Exposed 1.6.1. 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
 
 ## 빌드와 실행
 

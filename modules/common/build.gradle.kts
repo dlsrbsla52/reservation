@@ -16,7 +16,7 @@ dependencies {
     api("org.aspectj:aspectjweaver")
 
     // OpenAPI (Swagger) — springdoc 3.x: Spring Boot 4 / Spring Framework 7 지원
-    api("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
+    api("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
 
     // Exposed ORM — JPA/QueryDSL 대체
     // exposed-spring-boot4-starter: Spring Boot 4.x + SpringTransactionManager 자동구성 포함
