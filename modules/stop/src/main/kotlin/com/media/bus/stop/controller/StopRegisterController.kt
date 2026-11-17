@@ -19,7 +19,7 @@ class StopRegisterController(
     private val stopRegisterService: StopRegisterService,
 ) {
 
-    // TODO : 추후 배치 등으로 서비스에서 호출하게 되면 s2sTokenFilter 등을 통해 endpoint 접근 제어가 필요할 수 있다.
+    // 배치 등 앱 내부에서 실행하게 되면 이 엔드포인트가 아니라 StopRegisterService 를 직접 호출한다(같은 프로세스라 HTTP 가 필요 없다).
     @Operation(
         summary = "공공 API 전체 정류소 업데이트 및 일괄 등록",
         description = "서울 열린데이터광장 getBusStopInfo API에서 전체 버스 정류소를 가져와 DB에 저장합니다. ADMIN 권한 필요.",

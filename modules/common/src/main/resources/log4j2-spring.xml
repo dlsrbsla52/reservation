@@ -6,7 +6,7 @@
 
   MDC 필드:
     requestId — MdcLoggingFilter가 요청 단위로 주입 (X-Request-ID 헤더 또는 UUID)
-    memberId  — MdcLoggingFilter가 X-User-Id 헤더에서 주입
+    memberId  — app 인증 필터가 토큰 검증 후 주입(MdcLoggingFilter가 요청 끝에 제거)
 -->
 <Configuration status="WARN">
     <Appenders>

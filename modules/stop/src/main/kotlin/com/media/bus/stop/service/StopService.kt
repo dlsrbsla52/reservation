@@ -1,5 +1,8 @@
 package com.media.bus.stop.service
 
+import com.media.bus.common.exceptions.BusinessException
+import com.media.bus.common.result.type.CommonResult
+import com.media.bus.common.validation.InputValidator
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.stop.dto.request.SimpleStopCreateRequest
@@ -10,7 +13,6 @@ import com.media.bus.stop.entity.enums.StopType
 import com.media.bus.stop.guard.StopCommandGuard
 import com.media.bus.stop.repository.StopPriceRepository
 import com.media.bus.stop.repository.StopRepository
-import jakarta.validation.Valid
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
@@ -30,19 +32,24 @@ class StopService(
      * @param request   등록 요청 DTO
      */
     @Transactional
-    fun createOneStop(principal: MemberPrincipal, @Valid request: SimpleStopCreateRequest) =
+    fun createOneStop(principal: MemberPrincipal, request: SimpleStopCreateRequest) =
         createOneStop(principal.id, request)
 
     /**
      * 정류소 단건 수기 등록 (등록자 id 직접 지정).
      *
-     * S2S 호출(iam 어드민 경유)은 회원 컨텍스트(`MemberPrincipal`)가 없어
+     * iam 관리자 기능(app 어댑터 경유)은 회원 컨텍스트(`MemberPrincipal`)를 넘기지 않으므로
      * 호출자가 전달한 등록자 id를 그대로 감사 필드에 기록한다.
      *
+     * 파라미터의 `@Valid`는 클래스에 `@Validated`가 없어 실행되지 않았으므로, DTO 제약을 직접 검증한다.
+     * 모듈 간 직접 호출에서는 컨트롤러 `@Valid`가 거치지 않기 때문이다.
+     *
      * @param registeredById 등록한 관리자 회원 id
+     * @throws BusinessException `request`가 DTO 제약(길이 50 초과 등)을 어기면 400 `VALIDATION_FAIL`
      */
     @Transactional
-    fun createOneStop(registeredById: UUID, @Valid request: SimpleStopCreateRequest) {
+    fun createOneStop(registeredById: UUID, request: SimpleStopCreateRequest) {
+        InputValidator.validate(request)
         stopCommandGuard.validateNotDuplicate(request.stopId)
         StopEntity.createFromRequest(request, registeredById)
     }
@@ -91,12 +98,17 @@ class StopService(
     /**
      * pk(UUID) 복수 기반 일괄 조회.
      *
-     * 예약 서비스가 본인 예약 목록 조회 시 각 예약의 정류소 정보를 **단일 S2S 호출로** 붙이기 위해 사용한다.
+     * 예약 모듈이 예약·계약 목록 조회 시 각 행의 정류소 정보를 **한 번의 조회로** 붙이기 위해 사용한다(`StopLookupPort` 경유).
      * 반환 순서는 입력 순서와 무관하며, 일부 id가 누락되어도 정상 처리한다(예약 목록에서 stopName null로 fallback).
+     *
+     * @throws BusinessException `ids`가 비었거나 [MAX_BULK_LOOKUP_SIZE]개를 넘으면 400 `VALIDATION_FAIL`
+     *   (예전 internal API 요청 DTO의 `@NotEmpty`·`@Size(max = 200)`과 같은 규칙)
      */
     @Transactional(readOnly = true)
-    fun getBusStopsByIds(ids: Collection<UUID>): List<BusStopResponse> =
-        withUnitPrice(stopRepository.findByIdIn(ids))
+    fun getBusStopsByIds(ids: Collection<UUID>): List<BusStopResponse> {
+        if (ids.isEmpty() || ids.size > MAX_BULK_LOOKUP_SIZE) throw BusinessException(CommonResult.VALIDATION_FAIL)
+        return withUnitPrice(stopRepository.findByIdIn(ids))
+    }
 
     /**
      * 정류소 목록에 현재 단가를 붙인다.
@@ -112,5 +124,10 @@ class StopService(
         if (entities.isEmpty()) return emptyList()
         val priceMap = stopPriceRepository.findUnitPriceMapByStopIds(entities.map { it.id.value })
         return entities.map { BusStopResponse.of(it, priceMap[it.id.value]) }
+    }
+
+    companion object {
+        /** 일괄 조회 최대 건수. 예전 internal API 요청 DTO(`BulkStopLookupRequest.ids`)의 제약과 같다. */
+        const val MAX_BULK_LOOKUP_SIZE = 200
     }
 }

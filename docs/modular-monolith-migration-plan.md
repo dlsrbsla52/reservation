@@ -2,7 +2,7 @@
 
 - 브랜치: `bigbang/modular-monolith` (기준 `origin/main` `5a64caf`)
 - 작성일: 2026-11-17
-- 상태: 계획 (코드 변경 전). [1차 리뷰](modular-monolith-migration-plan-review.md)·[2차 리뷰](modular-monolith-migration-plan-review_v2.md)·[3차 리뷰](modular-monolith-migration-plan-review_v3.md)·[4차 리뷰](modular-monolith-migration-plan-review_v4.md) 검증 후 반영함 — [리뷰 반영](#리뷰-반영)
+- 상태: **1~4·6단계 코드 작업 완료**(2026-11-17). 운영 환경이 없는 초기 개발 단계라 0단계 운영 확인과 5단계 리허설·롤백은 해당 없음. 결과와 검증은 [S2S 대응표](modular-monolith-s2s-mapping.md)의 "전환 결과" 절. [1차 리뷰](modular-monolith-migration-plan-review.md)·[2차 리뷰](modular-monolith-migration-plan-review_v2.md)·[3차 리뷰](modular-monolith-migration-plan-review_v3.md)·[4차 리뷰](modular-monolith-migration-plan-review_v4.md) 검증 후 반영함 — [리뷰 반영](#리뷰-반영)
 
 ## 결론
 

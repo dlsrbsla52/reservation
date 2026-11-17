@@ -122,15 +122,16 @@ class MdcLoggingFilterTest {
     inner class MemberIdTest {
 
         @Test
-        @DisplayName("X-User-Id 헤더가 있으면 memberId를 MDC에 주입한다")
-        fun shouldInjectMemberIdForAuthenticatedUser() {
+        @DisplayName("클라이언트가 보낸 X-User-Id 헤더는 MDC에 넣지 않는다(위조 방지)")
+        fun shouldIgnoreForgedUserIdHeader() {
             val request = MockHttpServletRequest()
-            request.addHeader("X-User-Id", "user-123")
+            request.addHeader("X-User-Id", "forged-user")
             val captured = captureFromMdc("memberId")
 
             filter.doFilter(request, MockHttpServletResponse(), filterChain)
 
-            assertThat(captured.get()).isEqualTo("user-123")
+            // 회원 ID는 인증 필터가 토큰을 검증한 뒤에만 넣는다
+            assertThat(captured.get()).isNull()
         }
 
         @Test
@@ -177,22 +178,21 @@ class MdcLoggingFilterTest {
     inner class MdcLifecycleTest {
 
         @Test
-        @DisplayName("필터 체인 실행 중 requestId와 memberId가 MDC에 존재한다")
-        fun shouldHaveMdcFieldsDuringFilterChainExecution() {
+        @DisplayName("체인 안에서 인증 필터가 넣은 memberId는 요청이 끝나면 이 필터가 지운다")
+        fun shouldClearMemberIdSetInsideChain() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "trace-001")
-            request.addHeader("X-User-Id", "user-abc")
             val capturedRequestId = AtomicReference<String>()
-            val capturedMemberId = AtomicReference<String>()
             every { filterChain.doFilter(any(), any()) } answers {
                 capturedRequestId.set(MDC.get("requestId"))
-                capturedMemberId.set(MDC.get("memberId"))
+                // 인증 필터 역할: 검증된 회원 ID를 넣기만 한다
+                MDC.put(MdcLoggingFilter.MDC_MEMBER_ID, "verified-member")
             }
 
             filter.doFilter(request, MockHttpServletResponse(), filterChain)
 
             assertThat(capturedRequestId.get()).isEqualTo("trace-001")
-            assertThat(capturedMemberId.get()).isEqualTo("user-abc")
+            assertThat(MDC.get("memberId")).isNull()
         }
 
         @Test

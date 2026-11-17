@@ -1,6 +1,5 @@
 package com.media.bus.common.core.aop
 
-import com.media.bus.common.security.TokenProvider
 import io.github.resilience4j.bulkhead.Bulkhead
 import io.github.resilience4j.bulkhead.BulkheadFullException
 import io.github.resilience4j.bulkhead.BulkheadRegistry
@@ -16,9 +15,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.EnableAspectJAutoProxy
 import org.springframework.test.context.TestPropertySource
-import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.client.RestClient
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutionException
@@ -44,10 +41,6 @@ import java.util.concurrent.atomic.AtomicInteger
     "jwt.secret=test-secret-key-for-unit-test-minimum-256bits-padding-here",
 ])
 class TransactionalBulkheadAspectTest {
-
-    // TokenProvider(JwtProvider)는 StringRedisTemplate과 jwt.secret에 의존한다.
-    @MockitoBean
-    private lateinit var tokenProvider: TokenProvider
 
     @Autowired
     private lateinit var testService: TestService
@@ -130,10 +123,6 @@ class TransactionalBulkheadAspectTest {
     @TestConfiguration
     @EnableAspectJAutoProxy
     class TestConfig {
-        // Spring Boot 4에서 RestClient.Builder 자동 구성이 변경되어 테스트 컨텍스트에서 누락됨.
-        @Bean
-        fun restClientBuilder(): RestClient.Builder = RestClient.builder()
-
         @Bean
         fun testService(): TestService = TestService()
     }

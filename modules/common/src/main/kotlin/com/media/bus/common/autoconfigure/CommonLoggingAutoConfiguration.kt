@@ -12,7 +12,7 @@ import org.springframework.core.Ordered
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 class CommonLoggingAutoConfiguration {
 
-    /** Gateway가 전달한 요청 헤더를 MDC에 주입하는 필터를 등록한다. */
+    /** 요청 ID를 MDC에 주입하는 필터를 등록한다. 회원 ID는 app 인증 필터가 토큰 검증 후 넣는다. */
     @Bean
     fun mdcLoggingFilter(): FilterRegistrationBean<MdcLoggingFilter> =
         FilterRegistrationBean(MdcLoggingFilter()).apply {

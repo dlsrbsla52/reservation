@@ -11,45 +11,49 @@
 
 ## 개요
 
-Spring Boot 4.1.2 MSA (root: `bus`), Kotlin 2.3.20, 6개 Gradle 모듈. ORM: Exposed 1.6.1. 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
+Spring Boot 4.1.2 모듈러 모놀리스 (root: `bus`), Kotlin 2.3.20, 6개 Gradle 모듈. ORM: Exposed 1.6.1. 실행 모듈: `modules/app`(JVM 1개, 포트 8080). 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
+
+- 2026-11 MSA(gateway + 서비스 3개)에서 전환했다. 배경과 단계는 `docs/modular-monolith-migration-plan.md`, 모듈 간 호출 대응표는 `docs/modular-monolith-s2s-mapping.md`.
 
 ## 빌드와 실행
 
 ```bash
 ./gradlew clean build                                         # 전체 빌드
-./gradlew :modules:<module>:bootJar                           # 단일 모듈 JAR
+./gradlew :modules:app:bootJar                                # 실행 JAR (modules/app/build/libs/app.jar)
+./gradlew :modules:app:bootRun --args='--spring.profiles.active=local'
 ./gradlew :modules:<module>:test                              # 단일 모듈 테스트
 ./gradlew :modules:<module>:test --tests "패키지.클래스.메서드"
+./gradlew generateAllOpenApiDocs                              # 통합 OpenAPI (modules/app/build/docs/openapi/openapi.yaml)
 
 # Docker (운영)
-docker-compose up --build -d
-docker-compose up -d --build --no-deps <service-name>
-DOCKER_BUILDKIT=1 docker compose build --parallel
+docker compose up --build -d
+docker compose up -d --build --no-deps app
 
 # Docker (로컬 개발)
-docker-compose -f docker-compose-local.yml up --build -d
-docker-compose -f docker-compose-local.yml up -d --build --no-deps <service-name>
-DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
+docker compose -f docker-compose-local.yml up --build -d
+docker compose -f docker-compose-local.yml up -d database valkey   # 앱은 IDE에서 실행할 때
 ```
 
 ## 모듈
 
 모듈 코드를 수정하기 전에 해당 모듈의 `AGENTS.md`를 먼저 읽는다.
 
-| 모듈 | 포트 | 역할 | 지침 |
-|---|---|---|---|
-| `gateway` | 8080 | Spring Cloud Gateway (WebFlux) | `modules/gateway/AGENTS.md` |
-| `iam` | 8181 | JWT 발급·갱신·회원 관리 | `modules/iam/AGENTS.md` |
-| `auth-contract` | — | JWT/인증 계약 공유 라이브러리 | `modules/auth-contract/AGENTS.md` |
-| `stop` | 8182 | 버스 정류소 CRUD | `modules/stop/AGENTS.md` |
-| `reservation` | 8183 | 예약 핵심 비즈니스 | `modules/reservation/AGENTS.md` |
-| `common` | — | 공통 인프라 라이브러리 | `modules/common/AGENTS.md` |
+| 모듈 | 역할 | 지침 |
+|---|---|---|
+| `app` | 실행 모듈(8080, Actuator 127.0.0.1:8081). 보안 필터 체인, 통합 설정, 모듈 간 포트 어댑터 | `modules/app/AGENTS.md` |
+| `iam` | JWT 발급·갱신·회원 관리, 관리자 API | `modules/iam/AGENTS.md` |
+| `stop` | 버스 정류소 CRUD | `modules/stop/AGENTS.md` |
+| `reservation` | 예약 핵심 비즈니스 | `modules/reservation/AGENTS.md` |
+| `auth-contract` | JWT/인증 계약 공유 라이브러리 | `modules/auth-contract/AGENTS.md` |
+| `common` | 공통 인프라 라이브러리 | `modules/common/AGENTS.md` |
 
 인프라: PostgreSQL 18.3 (port **15433**), Valkey 8.1.6 / Redis (port **6379**)
 
-라우팅: `/api/v1/auth/**`, `/api/v1/admin/**` → 8181 / `/api/v1/stop/**` → 8182 / `/api/v1/reservation/**` → 8183
-- 서비스 간(S2S) 전용 API는 `/api/v1/internal/{service}/**`에 둔다(`internal`이 서비스 이름 앞). 각 서비스의 `S2STokenFilter`가 이 접두만 검사하고 gateway가 외부 요청을 403으로 막는다.
-- `/api/v1/admin/**`는 gateway가 관리자 사이트 토큰(`aud=ADMIN`)만 통과시킨다. 관리자 화면이 쓰는 기능은 서비스 공개 API를 직접 부르지 말고 iam admin API를 거쳐 S2S로 위임한다.
+공개 경로: `/api/v1/{auth,member,admin,stop,reservation,contract}/**`만 8080에서 받는다. 그 밖의 경로(`/actuator`, `/error`, swagger 등)는 `app`의 인증 필터가 404로 끝낸다(로컬 프로필은 swagger 허용).
+- **모듈 간 호출은 포트·어댑터로만 한다.** 소비 모듈이 포트 인터페이스를 정의하고(`iam.port.*`, `reservation.*.port.*`), `app`의 어댑터(`com.media.bus.app.adapter`)가 제공 모듈의 Service·Facade를 호출해 구현한다. HTTP internal API(`/api/v1/internal/**`)는 만들지 않는다 — `WebSurfaceArchitectureTest`가 막는다.
+- 어댑터는 제공 모듈의 공개 진입점(Service·Facade)만 부른다. Repository·Exposed Entity를 받지 않고, `@Transactional`을 붙이지 않는다. 입력 검증은 제공 모듈 진입점에 둔다(`InputValidator`).
+- `/api/v1/admin/**`는 인증 필터가 관리자 사이트 토큰(`aud=ADMIN`) + 관리자 회원 유형만 통과시킨다. 관리자 화면이 쓰는 기능은 서비스 공개 API를 직접 부르지 말고 iam admin API → 포트로 위임한다.
+- 회원 정보는 `@CurrentMember MemberPrincipal`로만 받는다. `X-User-*` 헤더를 읽지 않는다(인증 필터가 모든 요청에서 제거한다).
 
 ## 코드 규칙 (반드시 지킨다)
 
@@ -57,23 +61,23 @@ DOCKER_BUILDKIT=1 docker compose -f docker-compose-local.yml build --parallel
 - **Virtual Threads 활성화** — `ThreadLocal` 금지, `ScopedValue` 사용. `synchronized` 대신 `ReentrantLock`
 - **Enum** — 모든 코드성 Enum은 `BaseEnum` 구현 (`displayName` 필드). companion object에 `fromName()` 정의
 - **Entity** — Exposed DAO 패턴. Table object + Entity class 분리. 정적 팩토리 메서드(`companion object`)로 생성 강제
-- **모듈 경계** — 기존 아키텍처와 모듈 경계를 우선한다. 타 모듈 Repository 직접 참조 금지. 해당 모듈 Service 또는 API 경유
+- **모듈 경계** — 기존 아키텍처와 모듈 경계를 우선한다. `iam`/`stop`/`reservation`은 서로 Gradle 의존하지 않는다(`ModuleBoundaryTest`). 타 모듈 호출은 소비 모듈의 포트 → `app` 어댑터 경유
 - **응답** — `common`의 `ApiResponse<T>` 래퍼 필수
 - **예외** — Controller 내 try-catch 금지. `common` 글로벌 핸들러(`ExceptionAdvisor`)에 위임. 예외 클래스는 Kotlin 기본 인수 주생성자 사용
 - **KDoc** — 모든 KDoc은 마크다운 스타일로 작성
-- **DB 마이그레이션** — Liquibase changelog만 사용, 수동 DDL 금지
+- **DB 마이그레이션** — Liquibase changelog만 사용, 수동 DDL 금지. 모듈별 `db/changelog/{iam,stop,reservation}/`에 두고 `app`의 루트 master가 include한다. 새 changelog 파일의 `logicalFilePath`는 모듈 경로(`db/changelog/{module}/<파일명>.xml`)로 지정한다(V001 등 전환 전 파일은 예전 이력 경로 `db/changelog/<파일명>.xml`을 유지한다)
 - **테스트** — Repository: `@Mock`, Guard/Validator: 익명 Stub. MockK 사용 권장
-- **스키마 격리** — DB는 모듈별 schema (`?schema=auth|stop|member|reservation`)
+- **스키마 격리** — DataSource는 하나지만 모듈별 schema를 쓴다(`auth`·`audit` iam / `stop` / `reservation`). Exposed Table은 스키마를 명시한다(`"auth.member"`). 다른 모듈 스키마의 테이블을 조인하지 않는다
 
 ## 검증
 
-- 바꾼 모듈마다 `./gradlew :modules:<module>:test`를 실행한다. 실행 모듈은 `bootJar`까지 확인한다.
+- 바꾼 모듈마다 `./gradlew :modules:<module>:test`를 실행한다. `:modules:app:test`(아키텍처·보안·어댑터 테스트)와 `:modules:app:bootJar`도 확인한다.
 - 여러 모듈이나 공유 모듈(`common`, `auth-contract`)을 바꿨으면 `./gradlew clean build`로 전체를 확인한다.
 
 ## 비밀값
 
 - 비밀값(`JWT_SECRET`, `SEOUL_API_KEY` 등)은 **프로젝트 루트 `.env`에만** 둔다. `.env`는 git·docker 빌드 컨텍스트에서 제외돼 있고, `.env.example`이 템플릿이다.
-- 읽는 경로: docker compose는 `.env`를 자동으로 읽어 `${VAR}`를 치환하고, 로컬 실행은 각 모듈 `application.yml`의 `spring.config.import`가 읽는다. 환경변수가 `.env`보다 우선한다.
+- 읽는 경로: docker compose는 `.env`를 자동으로 읽어 `${VAR}`를 치환하고, 로컬 실행은 `modules/app`의 `application.yml` `spring.config.import`가 읽는다. 환경변수가 `.env`보다 우선한다. 설정 파일(`application*.yml`)은 `modules/app`에만 둔다.
 - yml·compose·테스트에 실제 값이나 운영에 쓰일 수 있는 기본값을 넣지 않는다. 테스트는 명백한 더미 값을 쓴다.
 - IntelliJ HTTP Client의 계정 비밀번호는 `HTTP/env/http-client.private.env.json`(git 제외)에 두고 `.http`에서는 `{{password}}`로 참조한다.
 - `local/*`, `backup/*` 브랜치는 비밀값 정리 전 원본 이력을 담은 로컬 전용 브랜치다. `.git/hooks/pre-push`가 push를 막는다.

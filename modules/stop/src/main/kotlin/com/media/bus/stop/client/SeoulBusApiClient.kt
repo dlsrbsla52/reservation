@@ -24,7 +24,7 @@ class SeoulBusApiClient(
 
     val pageSize: Int = PAGE_SIZE
 
-    // 외부 공공 API 호출용 — 인증 헤더 불필요, internalRestClient 사용하지 않음
+    // 외부 공공 API 호출용 — 인증 헤더 불필요
     private val restClient: RestClient = RestClient.builder()
         .baseUrl(baseUrl)
         .build()

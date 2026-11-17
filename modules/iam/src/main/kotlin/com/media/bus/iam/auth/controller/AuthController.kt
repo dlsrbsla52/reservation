@@ -4,7 +4,9 @@ import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.contract.security.JwtProvider
+import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.TokenAudience
+import com.media.bus.contract.security.annotation.CurrentMember
 import com.media.bus.iam.auth.dto.*
 import com.media.bus.iam.auth.service.AuthService
 import com.media.bus.iam.auth.support.AuthCookieSupport
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.*
 /**
  * ## 인증 API 컨트롤러
  *
- * 모든 엔드포인트는 Gateway의 JWT 검증 화이트리스트에 포함되어야 한다.
+ * 토큰 없이 쓰는 엔드포인트(가입·로그인·갱신·비밀번호 재설정 등)는 app `ApiPathPolicy.PUBLIC_ENDPOINTS`에 메서드+경로로 등록해야 한다.
  *
  * **토큰 전달 전략**
  * - Access Token  → Response Body (`accessToken` 필드)
@@ -99,21 +101,21 @@ class AuthController(
     @Operation(summary = "2차 본인 인증", description = "회원정보 수정, 비밀번호 변경, 탈퇴 등 민감한 작업 전 비밀번호로 본인을 재확인한다.")
     @PostMapping("/verify")
     fun verifyMember(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @RequestBody @Valid request: VerifyMemberRequest,
     ): ApiResponse<Unit?> {
-        authService.verifyMember(memberId, request)
+        authService.verifyMember(member.id.toString(), request)
         return ApiResponse.success()
     }
 
     /**
      * 로그아웃.
-     * Gateway에서 주입한 `X-User-Id` 헤더를 기반으로 Redis의 Refresh Token을 삭제하고 Cookie를 만료시킨다.
+     * 토큰의 회원(`@CurrentMember`)과 refresh 쿠키의 세션으로 Redis의 Refresh Token을 삭제하고 Cookie를 만료시킨다.
      */
     @Operation(summary = "로그아웃", description = "서버에서 사용자의 Refresh Token을 삭제하고 Cookie를 만료시켜 로그아웃 처리합니다.")
     @PostMapping("/logout")
     fun logout(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) refreshToken: String?,
         response: HttpServletResponse,
     ): ApiResponse<Unit?> {
@@ -121,7 +123,7 @@ class AuthController(
         val sessionId = refreshToken?.let { token ->
             jwtProvider.tryParseClaims(token)?.get(JwtProvider.SESSION_ID_CLAIM) as? String
         }
-        authService.logout(memberId, sessionId)
+        authService.logout(member.id.toString(), sessionId)
         cookieSupport.expireRefreshTokenCookie(response, TokenAudience.USER)
         return ApiResponse.success()
     }
@@ -162,10 +164,10 @@ class AuthController(
     @Operation(summary = "비밀번호 변경", description = "로그인된 사용자가 현재 비밀번호 확인 후 새 비밀번호로 변경합니다.")
     @PostMapping("/password/change")
     fun changePassword(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @RequestBody @Valid request: PasswordChangeRequest,
     ): ApiResponse<Unit?> {
-        authService.changePassword(memberId, request)
+        authService.changePassword(member.id.toString(), request)
         return ApiResponse.successWithMessage("비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해주세요.")
     }
 
@@ -198,21 +200,21 @@ class AuthController(
     @Operation(summary = "내 세션 목록", description = "로그인된 사용자의 활성 디바이스 세션 목록을 반환합니다.")
     @GetMapping("/sessions")
     fun listSessions(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) refreshToken: String?,
     ): ApiResponse<List<SessionResponse>> {
         val currentSessionId = refreshToken?.let { jwtProvider.tryParseClaims(it)?.get(JwtProvider.SESSION_ID_CLAIM) as? String }
-        return ApiResponse.success(authService.listMySessions(memberId, currentSessionId))
+        return ApiResponse.success(authService.listMySessions(member.id.toString(), currentSessionId))
     }
 
     /** 특정 세션을 로그아웃 시킨다. */
     @Operation(summary = "특정 세션 로그아웃", description = "지정된 세션만 강제 로그아웃합니다. 다른 디바이스는 유지됩니다.")
     @DeleteMapping("/sessions/{sessionId}")
     fun revokeSession(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @PathVariable sessionId: String,
     ): ApiResponse<Unit?> {
-        authService.revokeSession(memberId, sessionId)
+        authService.revokeSession(member.id.toString(), sessionId)
         return ApiResponse.successWithMessage("세션이 로그아웃되었습니다.")
     }
 
@@ -220,12 +222,12 @@ class AuthController(
     @Operation(summary = "다른 기기 모두 로그아웃", description = "현재 세션을 제외한 모든 디바이스를 강제 로그아웃합니다.")
     @DeleteMapping("/sessions")
     fun revokeOtherSessions(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) refreshToken: String?,
     ): ApiResponse<Unit?> {
         val currentSessionId = refreshToken?.let { jwtProvider.tryParseClaims(it)?.get(JwtProvider.SESSION_ID_CLAIM) as? String }
             ?: throw NoAuthenticationException(CommonResult.ACCESS_TOKEN_EXPIRED_FAIL)
-        authService.revokeOtherSessions(memberId, currentSessionId)
+        authService.revokeOtherSessions(member.id.toString(), currentSessionId)
         return ApiResponse.successWithMessage("다른 디바이스 세션이 모두 로그아웃되었습니다.")
     }
 }

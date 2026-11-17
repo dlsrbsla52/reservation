@@ -1,6 +1,6 @@
 package com.media.bus.iam.admin.dto
 
-import com.media.bus.iam.client.reservation.dto.ContractView
+import com.media.bus.iam.port.dto.reservation.ContractView
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.OffsetDateTime
 import java.util.*

@@ -3,7 +3,9 @@ package com.media.bus.iam.admin.controller
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
+import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.contract.security.annotation.CurrentMember
 import com.media.bus.iam.admin.dto.*
 import com.media.bus.iam.admin.facade.AdminManagerCommissionFacade
 import io.swagger.v3.oas.annotations.Operation
@@ -49,14 +51,14 @@ class AdminManagerCommissionController(
     @Operation(summary = "영업사원 기본 정산 비율 수정", description = "특정 영업사원의 기본 정산 비율을 수정합니다. 변경 이력이 기록됩니다.")
     @PutMapping("/{memberId}")
     fun updateManagerCommission(
-        @RequestHeader("X-User-Id") requesterId: String,
+        @CurrentMember requester: MemberPrincipal,
         @PathVariable memberId: UUID,
         @RequestBody @Valid request: UpdateManagerCommissionRateRequest,
     ): ApiResponse<ManagerCommissionResponse> {
         val updated = commissionFacade.updateManagerCommissionRate(
             memberId = memberId,
             newRate = request.rate,
-            changedBy = UUID.fromString(requesterId),
+            changedBy = requester.id,
             reason = request.reason,
         )
         return ApiResponse.success(ManagerCommissionResponse.of(updated))
@@ -92,7 +94,7 @@ class AdminManagerCommissionController(
     @Operation(summary = "계약별 정산 비율 오버라이드 등록/수정", description = "특정 계약의 정산 비율을 오버라이드합니다. 없으면 생성, 있으면 수정합니다. 변경 이력이 기록됩니다.")
     @PutMapping("/contract/{contractId}/override")
     fun upsertContractCommissionOverride(
-        @RequestHeader("X-User-Id") requesterId: String,
+        @CurrentMember requester: MemberPrincipal,
         @PathVariable contractId: UUID,
         @RequestBody @Valid request: UpsertContractCommissionOverrideRequest,
     ): ApiResponse<ContractCommissionOverrideResponse> {
@@ -100,7 +102,7 @@ class AdminManagerCommissionController(
             contractId = contractId,
             memberId = request.memberId,
             newRate = request.rate,
-            changedBy = UUID.fromString(requesterId),
+            changedBy = requester.id,
             reason = request.reason,
         )
         return ApiResponse.success(ContractCommissionOverrideResponse.of(override))

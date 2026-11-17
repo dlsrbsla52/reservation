@@ -13,7 +13,7 @@ import java.util.*
 
 /**
  * 액세스 토큰의 **발급처(`aud`)와 TTL 계약**을 고정한다.
- * gateway 는 `aud` 로 관리자 경로 진입을 판단하므로, 클레임 이름·값이 바뀌면 관리자 화면 전체가 403 이 된다.
+ * app 인증 필터는 `aud` 로 관리자 경로 진입을 판단하므로, 클레임 이름·값이 바뀌면 관리자 화면 전체가 403 이 된다.
  */
 class JwtProviderAudienceTest {
 

@@ -2,7 +2,6 @@ package com.media.bus.contract.security
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.media.bus.common.security.TokenProvider
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
@@ -13,8 +12,6 @@ import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.*
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 /**
  * ## JWT 토큰 생성, 파싱, 검증을 담당하는 공유 컴포넌트
@@ -24,7 +21,7 @@ import kotlin.concurrent.withLock
  *   `aud` 클레임으로 발급처(일반 사이트/관리자 사이트)를 구분한다.
  * - Refresh Token : 장기(7일), Redis에 **세션 단위 Hash**로 저장하여
  *   다중 디바이스 세션 관리 + 서버 측 개별 무효화(Revoke)를 지원한다.
- * - S2S Token : 시스템 간 내부 통신 전용 토큰. 특수 클레임으로 구분.
+ * - 액세스 토큰에는 `type` 클레임이 없다. Refresh Token은 `type=refresh`라서 인증 필터가 액세스 토큰으로 받지 않는다.
  *
  * **Refresh Token 저장 구조 (Redis Hash)**
  * - Key: `refresh:{memberId}`
@@ -39,13 +36,10 @@ import kotlin.concurrent.withLock
 class JwtProvider(
     @Value("\${jwt.secret}") secret: String,
     private val redisTemplate: StringRedisTemplate,
-) : TokenProvider {
+) {
 
     companion object {
         private const val REFRESH_TOKEN_EXPIRE_MS = 1000L * 60 * 60 * 24 * 7 // 7일
-        private const val S2S_TOKEN_EXPIRE_MS = 1000L * 60 * 60              // 1시간
-        // 만료 5분 전 갱신하여 경계 시점에서 만료된 토큰이 하위 서비스에 전달되는 것을 방지
-        private const val S2S_CACHE_BUFFER_MS = 5 * 60 * 1000L
 
         private const val REFRESH_TOKEN_KEY_PREFIX = "refresh:"
 
@@ -71,16 +65,6 @@ class JwtProvider(
 
     /** Redis Hash 값 직렬화용 — 기본 설정으로 충분. */
     private val objectMapper = ObjectMapper()
-
-    // S2S 토큰 캐시 — 매 요청마다 HMAC 서명 연산을 방지한다
-    // ReentrantLock: Virtual Thread 환경에서 synchronized 사용 시 캐리어 스레드 핀닝이 발생하므로 Lock으로 대체
-    private val s2sLock = ReentrantLock()
-
-    @Volatile
-    private var cachedS2SToken: String? = null
-
-    @Volatile
-    private var s2sTokenExpireAt: Long = 0L
 
     /**
      * 인증된 회원 정보와 DB에서 조회한 권한 목록으로 Access Token을 생성합니다.
@@ -159,31 +143,6 @@ class JwtProvider(
         redisTemplate.expire(key, Duration.ofMillis(REFRESH_TOKEN_EXPIRE_MS))
         return refreshToken
     }
-
-    /**
-     * 시스템 간 내부 호출(S2S)에 사용되는 전용 토큰을 반환합니다.
-     */
-    override fun generateS2SToken(): String {
-        val now = System.currentTimeMillis()
-        if (cachedS2SToken == null || now >= s2sTokenExpireAt - S2S_CACHE_BUFFER_MS) {
-            s2sLock.withLock {
-                if (cachedS2SToken == null || now >= s2sTokenExpireAt - S2S_CACHE_BUFFER_MS) {
-                    cachedS2SToken = buildS2SToken(now)
-                    s2sTokenExpireAt = now + S2S_TOKEN_EXPIRE_MS
-                }
-            }
-        }
-        return cachedS2SToken!!
-    }
-
-    private fun buildS2SToken(now: Long): String =
-        Jwts.builder()
-            .subject("SYSTEM")
-            .claim("type", "s2s")
-            .issuedAt(Date(now))
-            .expiration(Date(now + S2S_TOKEN_EXPIRE_MS))
-            .signWith(secretKey)
-            .compact()
 
     /** JWT 토큰의 서명을 검증하고 클레임을 파싱하여 반환합니다. */
     fun parseClaimsFromToken(token: String): Claims =

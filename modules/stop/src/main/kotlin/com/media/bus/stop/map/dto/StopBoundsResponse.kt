@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  * 프론트는 이 플래그를 보고 "확대해서 보세요" 안내를 띄우거나 클러스터 단위 표시로 전환한다.
  * 잘렸다는 사실을 알리지 않으면 사용자는 지도에 없는 정류소를 "데이터가 없다"고 오인하게 된다.
  */
-@Schema(description = "지도 영역 내 정류소 마커 목록")
+@Schema(name = "StopMapBoundsResponse", description = "지도 영역 내 정류소 마커 목록")
 data class StopBoundsResponse(
     @get:Schema(description = "영역에 포함된 정류소 마커 목록")
     val items: List<StopMarkerResponse>,

@@ -8,7 +8,7 @@ import com.media.bus.common.entity.common.BaseEnum
  * 각 타입은 소속 카테고리([MemberCategory])를 가집니다.
  * 권한 정보는 DB(auth.role_permission)에서 관리되며,
  * 로그인/토큰 재발급 시 조회하여 JWT claim에 포함됩니다.
- * 하위 서비스는 X-User-Permissions 헤더로 권한 Set을 복원합니다.
+ * app 인증 필터가 토큰 claim에서 권한 Set을 복원합니다(`MemberPrincipal.fromClaims`).
  *
  * - MEMBER          : 일반 회원
  * - BUSINESS        : 비즈니스 회원

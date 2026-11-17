@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * `/api/v1/admin` 하위 컨트롤러의 **인가 누락을 빌드 단계에서 막는** 테스트.
  *
- * gateway 는 이 경로에 관리자 카테고리·관리자 발급처만 통과시키지만, 그것은 거친 1차 차단이다.
+ * app 인증 필터는 이 경로에 관리자 카테고리·관리자 발급처만 통과시키지만, 그것은 거친 1차 차단이다.
  * `ADMIN_USER` 와 `ADMIN_MASTER` 의 구분 같은 세부 인가는 `@Authorize` 가 담당하므로,
  * 핸들러 메서드마다 메서드 또는 클래스 레벨 `@Authorize` 가 반드시 있어야 한다.
  * (`AuthorizeHandlerInterceptor` 는 `@Authorize` 가 없으면 인가 검사를 건너뛴다 — 기본 허용)

@@ -31,7 +31,7 @@ import java.util.*
  * ## 예약 도메인의 DB 저장/조회를 담당하는 서비스
  *
  * 설계 의도:
- * - `ReservationFacade` 가 Redis 게이트와 S2S 호출(Stop 검증)을 처리한 뒤 이 서비스를 호출한다.
+ * - `ReservationFacade` 가 Redis 게이트와 정류소 확인(`StopLookupPort`)을 처리한 뒤 이 서비스를 호출한다.
  * - 현재 상태는 `reservation.status` 가 원본이고, `reservation_consultation` 은 append-only 변경 이력이다.
  *   상태를 바꿀 때는 항상 두 곳을 같은 트랜잭션에서 함께 쓴다.
  *
@@ -78,7 +78,7 @@ class ReservationService(
         }
 
         // 희망 계약 시작일에 이미 계약이 점유한 광고면이면 상담해도 계약할 수 없으므로 예약 단계에서 거절한다.
-        val desiredStart = (request.desiredContractStartDate ?: now.toLocalDate()).atStartOfDay(KST).toOffsetDateTime()
+        val desiredStart = request.desiredContractStartDate.atStartOfDay(KST).toOffsetDateTime()
         if (contractService.isSlotOccupiedAt(stopInfo.id, slotNo, desiredStart)) {
             throw BusinessException(ReservationResult.STOP_UNDER_CONTRACT)
         }
@@ -236,7 +236,7 @@ class ReservationService(
      * 계약 기간이 기존 계약과 겹치면 계약 생성이 실패하고 예약 상태 변경도 함께 롤백된다.
      * 예약의 선점은 여기서 끝나고, 이후 광고면은 계약이 계약 기간 동안 점유한다.
      *
-     * @param stopInfo stop 서비스에서 확인된 정류소 정보 (S2S 호출은 트랜잭션 밖에서 끝낸다)
+     * @param stopInfo stop 모듈에서 확인된 정류소 정보 (조회는 트랜잭션 밖에서 끝낸다)
      * @return 예약 선점이 풀린 광고면
      */
     @Transactional

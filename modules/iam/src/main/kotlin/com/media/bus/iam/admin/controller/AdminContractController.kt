@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*
 import java.time.OffsetDateTime
 import java.util.*
 
-/** IAM 어드민에서 reservation 내부 API를 통해 계약을 관리한다. */
+/** IAM 어드민에서 `ReservationAdminPort`(reservation 모듈)를 통해 계약을 관리한다. */
 @Tag(name = "어드민 계약 관리", description = "어드민 사이트 전용 계약 생성 및 조회 API")
 @RestController
 @Authorize(types = [MemberType.ADMIN_MASTER, MemberType.ADMIN_DEVELOPER], permissions = [Permission.MANAGE])

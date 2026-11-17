@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+  exposed:
+    # show-sql: true 사용 금지 — StdOutSqlLogger가 println으로 Log4j2를 우회한다.
+    # SQL 로그는 common의 ExposedSqlLoggingInterceptor가 Exposed 로거(DEBUG)로 출력하므로
+    # 아래 logging.level.Exposed 로 제어한다.
+    show-sql: false
+
+# Exposed SQL 로그 (local 전용). ExposedSqlLoggingInterceptor가 'Exposed' 로거 DEBUG로 출력.
+logging:
+  level:
+    Exposed: debug
+
+resilience4j:
+  bulkhead:
+    instances:
+      orderDatabase:
+        maxConcurrentCalls: 9 # 풀 크기(10) - 1. 예전 local 은 풀 10·퍼밋 10 이라 규칙과 달랐다
+        maxWaitDuration: 300ms
+
+cors:
+  allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:3000}
+
+# 로컬에서는 Swagger UI 를 8080 에서 연다
+app:
+  security:
+    expose-api-docs: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

@@ -17,7 +17,7 @@ import java.util.*
  * 설계 의도:
  * - 어드민이 매니저의 계약 현황을 한 번에 파악할 수 있도록 Contract + ContractDetail 정보를 결합한다.
  * - 일반 사용자 응답(`ContractResponse`)과 분리하여 노출 필드를 명시적으로 관리한다.
- * - 정류소(stopNumber/stopName) 정보는 facade 단계에서 bulk S2S 조회 후 주입한다.
+ * - 정류소(stopNumber/stopName) 정보는 facade 단계에서 `StopLookupPort` 일괄 조회 후 주입한다.
  *
  * 주의:
  * - `ContractDetail`은 1:1 관계이지만 만일의 누락 케이스 대비 nullable 로 둔다.

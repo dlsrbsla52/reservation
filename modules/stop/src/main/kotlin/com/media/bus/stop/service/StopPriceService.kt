@@ -1,5 +1,7 @@
 package com.media.bus.stop.service
 
+import com.media.bus.common.exceptions.BusinessException
+import com.media.bus.common.result.type.CommonResult
 import com.media.bus.stop.dto.response.StopPriceResponse
 import com.media.bus.stop.entity.StopPriceEntity
 import com.media.bus.stop.entity.StopPriceHistoryEntity
@@ -28,6 +30,7 @@ class StopPriceService(
      */
     @Transactional
     fun createPrice(stopId: UUID, unitPrice: BigDecimal, registeredById: UUID?): StopPriceResponse {
+        requirePositive(unitPrice)
         stopPriceCommandGuard.validateStopExists(stopId)
         stopPriceCommandGuard.validateNotDuplicate(stopId)
 
@@ -39,6 +42,7 @@ class StopPriceService(
     /** 정류소 단가 수정. 변경 전/후 단가를 이력에 함께 남긴다. */
     @Transactional
     fun updatePrice(stopId: UUID, unitPrice: BigDecimal, changedById: UUID?): StopPriceResponse {
+        requirePositive(unitPrice)
         val entity = stopPriceCommandGuard.validateExists(stopId)
         val previousPrice = entity.unitPrice
 
@@ -55,5 +59,13 @@ class StopPriceService(
 
         StopPriceHistoryEntity.create(stopId, previousPrice, null, StopPriceChangeType.DELETE, changedById)
         entity.delete()
+    }
+
+    /**
+     * 단가는 0보다 커야 한다. 관리자 API 요청 DTO(iam `CreateStopPriceRequest`·`UpdateStopPriceRequest`)의 `@Positive`와 같은 규칙으로,
+     * 모듈 간 직접 호출에서도 실행되도록 진입점에서 검사한다. 정류소 존재·중복 검사보다 먼저 한다(기존 `@Valid` 순서).
+     */
+    private fun requirePositive(unitPrice: BigDecimal) {
+        if (unitPrice.signum() <= 0) throw BusinessException(CommonResult.VALIDATION_FAIL)
     }
 }

@@ -2,15 +2,14 @@
 
 <!-- 이 모듈 지침의 원본. CLAUDE.md는 @AGENTS.md로 가져오고 GEMINI.md는 심볼릭 링크다. -->
 
-`modules/iam`는 JWT 발급·갱신·회원 관리를 담당하는 Spring Boot 서비스 (port **8181**).
+`modules/iam`는 JWT 발급·갱신·회원 관리, 관리자 API를 담당하는 도메인 라이브러리 모듈이다. 실행은 `modules/app`이 한다.
 Base package: `com.media.bus.iam`
 
 ## Build
 
 ```bash
-./gradlew :modules:iam:bootJar
-./gradlew :modules:iam:bootRun
 ./gradlew :modules:iam:test
+./gradlew :modules:app:bootRun --args='--spring.profiles.active=local'   # 실행은 app 모듈
 ```
 
 ## Dependencies
@@ -37,12 +36,14 @@ modules/iam/src/main/kotlin/com/media/bus/iam/
     dto/                 # LoginRequest, RegisterRequest, TokenResponse
     result/AuthResult    # IAM 전용 Result 코드 (A 접두사)
   member/                # 회원 관리
-    controller/MemberController   # S2S 전용 (내부 서비스 호출)
+    controller/MemberController   # 회원 본인 조회·수정·탈퇴
     service/MemberService
     entity/MemberEntity           # Exposed DAO, DateBaseTable 상속
     entity/enumerated/MemberStatus
     repository/MemberRepository
-    dto/                 # MemberResponse, FindMemberByJwtRequest
+    dto/                 # MemberResponse 등
+  port/                  # StopAdminPort, ReservationAdminPort (구현은 app 어댑터)
+    dto/{stop,reservation}/   # 포트 입출력 DTO
 ```
 
 ## 주요 API
@@ -58,11 +59,11 @@ modules/iam/src/main/kotlin/com/media/bus/iam/
 | POST | `/api/v1/auth/admin/token/refresh` | 관리자 토큰 재발급 (`admin_refresh_token` 쿠키, Path `/api/v1/auth/admin`) |
 | POST | `/api/v1/auth/admin/logout` | 관리자 세션 로그아웃 |
 | POST | `/api/v1/auth/admin/reactivate` | INACTIVE 관리자 계정 재활성화 (일반 재활성화는 관리자 계정을 받지 않음) |
-| POST | `/api/v1/internal/iam/member/jwt` | JWT 기반 회원 조회 (S2S 전용) |
-| POST | `/api/v1/internal/iam/member/id` | memberId 기반 회원 조회 (S2S 전용) |
-| GET  | `/api/v1/internal/iam/commission/effective-rate` | 최종 정산 비율 조회 (S2S 전용) |
 
-S2S 전용 API는 모두 `/api/v1/internal/iam/` 아래에 둔다. `S2STokenFilter`가 `/api/v1/internal/` 접두 경로만 검사하므로, 다른 경로에 두면 S2S 토큰 없이 열린다.
+**모듈 간 호출**
+- 다른 모듈에 제공: reservation의 `MemberLookupPort`를 `app`의 `ReservationMemberLookupAdapter`가 `MemberService.findByMemberId`로 구현한다. HTTP internal API는 두지 않는다.
+- 다른 모듈을 사용: 관리자 기능은 `iam.port.StopAdminPort`·`ReservationAdminPort`를 쓴다. 구현은 `app`의 어댑터다. 포트 DTO는 `iam.port.dto.{stop,reservation}`에 두고, stop·reservation 클래스를 참조하지 않는다(enum은 이름 문자열). 기본값을 두지 않는다 — 어댑터가 필드를 빠뜨리면 컴파일이 실패해야 한다.
+- 컨트롤러는 회원 정보를 `@CurrentMember MemberPrincipal`로만 받는다. `X-User-*` 헤더를 읽지 않는다.
 
 ## Database
 
@@ -84,4 +85,4 @@ S2S 전용 API는 모두 `/api/v1/internal/iam/` 아래에 둔다. `S2STokenFilt
 
 - **`RoleResolutionService`** — 회원 역할 조회 공통 서비스. AuthService, MemberService에서 공유
 - **`AuthService`** — 가입, 로그인, 이메일 인증, 토큰 갱신, 로그아웃
-- **`MemberService`** — JWT/ID/loginId/email 기반 회원 조회 (S2S 전용)
+- **`MemberService`** — 회원 조회·수정. `findByMemberId`는 reservation 회원 재검증 포트 어댑터도 쓴다

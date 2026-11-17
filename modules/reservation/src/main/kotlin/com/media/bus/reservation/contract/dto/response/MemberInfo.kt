@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.util.*
 
 /**
- * ## IAM 서비스 회원 조회 응답의 내부 표현
+ * ## 회원 정보의 reservation 내부 표현 (`MemberLookupPort` 응답)
  *
  * 설계 의도:
  * - `MemberPrincipal`은 JWT 클레임 파싱 결과이므로 IAM DB 재검증 결과와 분리한다.

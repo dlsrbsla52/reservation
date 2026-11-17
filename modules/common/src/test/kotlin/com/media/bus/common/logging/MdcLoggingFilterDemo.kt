@@ -257,7 +257,7 @@ object MdcLoggingFilterDemo {
                 │  docker compose logs stop-service | grep "front-abc-123-def-456-789"        │
                 │                                                                              │
                 │  # 실시간 로그 확인                                                        │
-                │  docker compose logs -f --tail=200 gateway-service                           │
+                │  docker compose logs -f --tail=200 app                                       │
                 │                                                                              │
                 └──────────────────────────────────────────────────────────────────────────────┘
         """.trimIndent())

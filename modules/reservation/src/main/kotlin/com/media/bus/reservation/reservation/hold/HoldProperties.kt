@@ -10,7 +10,7 @@ import java.time.Duration
  *
  * @property duration            선점 유지 기간. 예약 시점과 상담 시작 시점에 이 기간만큼 만료가 설정된다.
  * @property maxActivePerMember  회원 1명이 동시에 가질 수 있는 진행 중 예약 수.
- * @property gateTtl             Redis 게이트 락 TTL. 예약 1건의 S2S 호출 + DB 저장이 끝나기에 충분한 시간.
+ * @property gateTtl             Redis 게이트 락 TTL. 예약 1건의 정류소 조회 + DB 저장이 끝나기에 충분한 시간.
  * @property occupiedCacheTtl    예약 성공 후 게이트 키를 "점유됨" 캐시로 유지하는 시간.
  * @property expiryBatchSize     만료 스케줄러가 한 번에 처리하는 예약 수.
  */

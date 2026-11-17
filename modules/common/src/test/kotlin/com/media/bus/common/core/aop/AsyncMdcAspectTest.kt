@@ -1,7 +1,6 @@
 package com.media.bus.common.core.aop
 
 import com.media.bus.common.logging.MdcContextUtil
-import com.media.bus.common.security.TokenProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -15,8 +14,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.EnableAspectJAutoProxy
 import org.springframework.scheduling.annotation.Async
 import org.springframework.test.context.TestPropertySource
-import org.springframework.test.context.bean.override.mockito.MockitoBean
-import org.springframework.web.client.RestClient
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
@@ -42,14 +39,6 @@ import java.util.concurrent.TimeUnit
 ])
 @DisplayName("AsyncMdcAspect")
 class AsyncMdcAspectTest {
-
-    // TokenProvider(JwtProvider)는 StringRedisTemplate과 jwt.secret에 의존한다.
-    @MockitoBean
-    private lateinit var tokenProvider: TokenProvider
-
-    // RestClientConfig.internalRestClient(RestClient.Builder) 팩토리 메서드 호출을 건너뛰기 위해 선점 Mock 등록
-    @MockitoBean
-    private lateinit var internalRestClient: RestClient
 
     @Autowired
     private lateinit var asyncTestService: AsyncTestService

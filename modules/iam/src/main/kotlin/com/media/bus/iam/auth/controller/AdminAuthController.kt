@@ -4,7 +4,9 @@ import com.media.bus.common.exceptions.NoAuthenticationException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.contract.security.JwtProvider
+import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.TokenAudience
+import com.media.bus.contract.security.annotation.CurrentMember
 import com.media.bus.iam.auth.dto.LoginRequest
 import com.media.bus.iam.auth.dto.TokenResponse
 import com.media.bus.iam.auth.service.AuthService
@@ -20,12 +22,12 @@ import org.springframework.web.bind.annotation.*
  * ## 관리자 사이트 전용 인증 API
  *
  * 일반 사이트 인증(`/api/v1/auth`)과 분리한 이유:
- * - 발급되는 토큰의 `aud`가 `ADMIN`이어야 gateway가 `/api/v1/admin` 하위 경로 진입을 허용한다.
+ * - 발급되는 토큰의 `aud`가 `ADMIN`이어야 app 인증 필터가 `/api/v1/admin` 하위 경로 진입을 허용한다.
  * - Refresh Token 쿠키(`admin_refresh_token`, Path `/api/v1/auth/admin`)를 일반 사이트와 나눠
  *   일반 화면에서 관리자 세션을 갱신할 수 없게 한다.
  *
- * 경로를 `/api/v1/auth/admin` 하위에 둔 이유: gateway 의 iam 라우트(`/api/v1/auth` 하위)를 그대로 타고,
- * gateway CORS 가 이 하위 경로를 관리자 origin 만 허용하도록 묶기 쉽다.
+ * 경로를 `/api/v1/auth/admin` 하위에 둔 이유: 이미 열려 있는 `/api/v1/auth` 라우트 prefix 를 그대로 쓰고,
+ * app `CorsConfig` 가 이 하위 경로를 관리자 origin 만 허용하도록 묶기 쉽다.
  */
 @Tag(name = "관리자 인증 API", description = "관리자 사이트 로그인·토큰 갱신·로그아웃")
 @RestController
@@ -95,14 +97,14 @@ class AdminAuthController(
     @Operation(summary = "관리자 로그아웃", description = "현재 관리자 세션의 Refresh Token을 삭제하고 Cookie를 만료시킵니다.")
     @PostMapping("/logout")
     fun logout(
-        @RequestHeader("X-User-Id") memberId: String,
+        @CurrentMember member: MemberPrincipal,
         @CookieValue(name = AuthCookieSupport.ADMIN_REFRESH_COOKIE, required = false) refreshToken: String?,
         response: HttpServletResponse,
     ): ApiResponse<Unit?> {
         val sessionId = refreshToken?.let { token ->
             jwtProvider.tryParseClaims(token)?.get(JwtProvider.SESSION_ID_CLAIM) as? String
         }
-        authService.logout(memberId, sessionId)
+        authService.logout(member.id.toString(), sessionId)
         cookieSupport.expireRefreshTokenCookie(response, TokenAudience.ADMIN)
         return ApiResponse.success()
     }

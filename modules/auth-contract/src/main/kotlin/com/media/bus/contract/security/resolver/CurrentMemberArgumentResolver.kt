@@ -13,7 +13,7 @@ import org.springframework.web.method.support.ModelAndViewContainer
 /**
  * ## @CurrentMember 어노테이션이 붙은 MemberPrincipal 파라미터를 주입하는 ArgumentResolver
  *
- * MemberPrincipalExtractFilter가 request attribute에 저장한 MemberPrincipal을 꺼내
+ * `app`의 JWT 인증 필터가 request attribute에 저장한 MemberPrincipal을 꺼내
  * Controller 파라미터에 바인딩합니다.
  *
  * - `required = true`(기본값): 미인증 시 `NoAuthenticationException`(401) 발생

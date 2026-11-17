@@ -1,12 +1,12 @@
 package com.media.bus.iam.admin.dto
 
-import com.media.bus.iam.client.stop.dto.StopBoundsApiResponse
-import com.media.bus.iam.client.stop.dto.StopMarkerInfo
+import com.media.bus.iam.port.dto.stop.StopBoundsInfo
+import com.media.bus.iam.port.dto.stop.StopMarkerInfo
 import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 import java.util.*
 
-@Schema(description = "지도 영역 내 정류소 마커 목록")
+@Schema(name = "AdminStopBoundsResponse", description = "지도 영역 내 정류소 마커 목록")
 data class StopBoundsResponse(
     @param:Schema(description = "영역에 포함된 정류소 마커 목록")
     val items: List<StopMarkerResponse>,
@@ -16,7 +16,7 @@ data class StopBoundsResponse(
     val limit: Int,
 ) {
     companion object {
-        fun of(info: StopBoundsApiResponse.StopBoundsInfo) = StopBoundsResponse(
+        fun of(info: StopBoundsInfo) = StopBoundsResponse(
             items = info.items.orEmpty().map(StopMarkerResponse::of),
             truncated = info.truncated ?: false,
             limit = info.limit ?: 0,
@@ -24,7 +24,7 @@ data class StopBoundsResponse(
     }
 }
 
-@Schema(description = "지도 마커용 정류소 좌표")
+@Schema(name = "AdminStopMarkerResponse", description = "지도 마커용 정류소 좌표")
 data class StopMarkerResponse(
     @param:Schema(description = "정류소 pk(UUID)")
     val id: UUID,

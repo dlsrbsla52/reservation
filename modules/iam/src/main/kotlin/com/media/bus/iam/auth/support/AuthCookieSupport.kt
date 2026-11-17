@@ -18,7 +18,7 @@ import java.time.Duration
  *
  * 쿠키를 하나로 두면 같은 브라우저에서 관리자 로그인 후 일반 화면의 스크립트가
  * 일반 갱신 API로 관리자 세션을 갱신해 관리자 토큰을 얻을 수 있다.
- * 관리자 쿠키는 `/api/v1/auth/admin` 하위로만 전송되고, 그 경로는 gateway CORS가 관리자 origin만 허용한다.
+ * 관리자 쿠키는 `/api/v1/auth/admin` 하위로만 전송되고, 그 경로는 app `CorsConfig`가 관리자 origin만 허용한다.
  */
 @Component
 class AuthCookieSupport(
@@ -69,7 +69,8 @@ class AuthCookieSupport(
 
     /**
      * 클라이언트 IP를 추출한다.
-     * X-Forwarded-For 헤더(첫 번째 값) 우선 — Gateway/Load Balancer 뒤에서 실제 클라이언트 IP 보존.
+     * X-Forwarded-For 헤더(첫 번째 값) 우선 — 리버스 프록시·로드 밸런서 뒤에서 실제 클라이언트 IP 보존.
+     * 클라이언트가 보낸 값을 그대로 믿으므로 위조될 수 있다. 프록시 신뢰 범위는 배포 구성과 함께 정한다(회귀 계획 S8).
      */
     fun extractClientIp(request: HttpServletRequest): String? {
         val forwarded = request.getHeader("X-Forwarded-For")

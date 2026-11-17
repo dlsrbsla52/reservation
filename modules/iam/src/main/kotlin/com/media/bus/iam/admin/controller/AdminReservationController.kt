@@ -5,8 +5,13 @@ import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.iam.admin.dto.AssignReservationRequest
+import com.media.bus.iam.admin.dto.ExtendHoldRequest
+import com.media.bus.iam.admin.dto.UpdateReservationStatusRequest
 import com.media.bus.iam.admin.facade.AdminReservationFacade
-import com.media.bus.iam.client.reservation.dto.*
+import com.media.bus.iam.port.dto.reservation.AdminReservationDetail
+import com.media.bus.iam.port.dto.reservation.AdminReservationView
+import com.media.bus.iam.port.dto.reservation.CompleteToContractRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -18,7 +23,7 @@ import java.util.*
  * ## 어드민 사이트 전용 예약 관리 컨트롤러
  *
  * 어드민 매니저/마스터 권한을 가진 사용자가 예약을 제어한다.
- * 내부적으로 S2S API 클라이언트를 통해 reservation 모듈로 요청을 위임하여 실행한다.
+ * 내부적으로 `ReservationAdminPort`(구현은 `app` 어댑터)를 통해 reservation 모듈로 요청을 위임하여 실행한다.
  */
 @Tag(
     name = "어드민 예약 관리",
@@ -64,7 +69,7 @@ class AdminReservationController(
     @GetMapping("/reservations/{reservationId}")
     fun getReservationDetailForAdmin(
         @PathVariable reservationId: UUID
-    ): ApiResponse<AdminReservationDetailResponse.AdminReservationDetail> =
+    ): ApiResponse<AdminReservationDetail> =
         ApiResponse.success(adminReservationFacade.getReservationDetailForAdmin(reservationId))
 
     /** 예약 담당자 지정 */

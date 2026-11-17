@@ -23,6 +23,6 @@ object ReservationTable : DateBaseTable("reservation.reservation") {
     val status = enumerationByName<ReservationStatus>("status", 18)
     val holdExpiresAt = timestampWithTimeZone("hold_expires_at").nullable()
     val consultationRequestedAt = timestampWithTimeZone("consultation_requested_at")
-    val desiredContractStartDate = date("desired_contract_start_date").nullable()
+    val desiredContractStartDate = date("desired_contract_start_date")
     val assigneeId = javaUUID("assignee_id").nullable()
 }

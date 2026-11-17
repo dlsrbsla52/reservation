@@ -100,7 +100,7 @@ subprojects {
         jvmArgs("-Dnet.bytebuddy.experimental=true")
     }
 
-    // openapi-gradle-plugin이 적용된 모듈(iam/stop/reservation)에만 적용.
+    // openapi-gradle-plugin이 적용된 모듈(app)에만 적용.
     // generateOpenApiDocs는 outputDir 산출물 존재 여부만 보고 UP-TO-DATE를 판단하므로
     // 소스가 바뀌어도 재실행을 건너뛴다. 매번 output을 지우고 재생성해 최신 스펙을 보장한다.
     pluginManager.withPlugin("org.springdoc.openapi-gradle-plugin") {
@@ -117,10 +117,6 @@ subprojects {
 
 tasks.register("generateAllOpenApiDocs") {
     group = "documentation"
-    description = "IAM, 정류소, 예약 서비스의 OpenAPI YAML 문서를 생성합니다."
-    dependsOn(
-        ":modules:iam:generateOpenApiDocs",
-        ":modules:stop:generateOpenApiDocs",
-        ":modules:reservation:generateOpenApiDocs",
-    )
+    description = "모듈러 모놀리스 app 의 통합 OpenAPI YAML 문서를 생성합니다."
+    dependsOn(":modules:app:generateOpenApiDocs")
 }

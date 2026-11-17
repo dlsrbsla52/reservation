@@ -1,6 +1,6 @@
 package com.media.bus.iam.admin.dto
 
-import com.media.bus.iam.client.stop.dto.StopBulkRegisterApiResponse
+import com.media.bus.iam.port.dto.stop.StopBulkRegisterInfo
 import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "정류소 일괄 등록 결과")
@@ -17,7 +17,7 @@ data class StopBulkRegisterResponse(
     val totalCount: Int,
 ) {
     companion object {
-        fun of(info: StopBulkRegisterApiResponse.StopBulkRegisterInfo) = StopBulkRegisterResponse(
+        fun of(info: StopBulkRegisterInfo) = StopBulkRegisterResponse(
             savedCount = info.savedCount,
             updatedCount = info.updatedCount,
             skippedCount = info.skippedCount,

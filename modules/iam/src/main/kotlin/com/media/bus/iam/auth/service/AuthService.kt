@@ -38,7 +38,7 @@ import java.util.*
  * 핵심 비즈니스 규칙:
  * 1. 입력 검증은 `RegisterRequestValidator`(Guard 계층)에 위임한다.
  * 2. 이메일 인증 전 로그인은 허용하나, `emailVerified = false` 상태의 토큰을 발급하여
- *    Gateway / 각 서비스에서 이메일 미인증 사용자를 주요 기능에서 차단한다.
+ *    `@Authorize(requireEmailVerified = true)`로 이메일 미인증 사용자를 주요 기능에서 차단한다(이메일 서버 구축 전이라 검사는 꺼져 있음).
  * 3. 이메일 인증 토큰은 UUID로 생성, Redis에 TTL 24h로 저장한다.
  *    보안상 이유로 토큰은 HTTP 응답에 포함하지 않는다 (이메일 발송 전용).
  */

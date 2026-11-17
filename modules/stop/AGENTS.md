@@ -2,7 +2,7 @@
 
 <!-- 이 모듈 지침의 원본. CLAUDE.md는 @AGENTS.md로 가져오고 GEMINI.md는 심볼릭 링크다. -->
 
-`modules/stop`은 버스 정류소 데이터를 관리하는 Spring Boot 마이크로서비스 (port **8182**).
+`modules/stop`은 버스 정류소 데이터를 관리하는 도메인 라이브러리 모듈이다. 실행은 `modules/app`이 한다. 다른 모듈(iam 관리자 기능, reservation)은 `app`의 어댑터를 거쳐 `StopService`·`StopPriceService`·`StopMapQueryService`·`StopRegisterService`를 호출한다.
 서울 열린데이터광장 공공 API 연동을 통한 일괄 등록과 수동 CRUD를 지원한다.
 
 Base package: `com.media.bus.stop`
@@ -10,15 +10,14 @@ Base package: `com.media.bus.stop`
 ## Build
 
 ```bash
-./gradlew :modules:stop:bootJar
-./gradlew :modules:stop:bootRun
 ./gradlew :modules:stop:test
+./gradlew :modules:app:bootRun --args='--spring.profiles.active=local'   # 실행은 app 모듈
 ./gradlew :modules:stop:test --tests "com.media.bus.stop.ClassName.methodName"
 ```
 
 ## Dependencies
 
-- `modules/common` — 공통 인프라 (예외 처리, 응답 래핑, RestClient, Bulkhead)
+- `modules/common` — 공통 인프라 (예외 처리, 응답 래핑, 입력 검증 `InputValidator`, Bulkhead)
 - `modules/auth-contract` — JWT 토큰 검증 (`JwtProvider`), `MemberPrincipal`, `MemberType`
 
 ## Database
@@ -57,7 +56,7 @@ Base package: `com.media.bus.stop`
   - API key: `${seoul.api.key}` (환경변수 `SEOUL_API_KEY`)
   - `fetchTotalCount()` → 전체 건수 조회
   - `fetchStops(start, end)` → 범위 조회 (1-based)
-- **`StopRegisterService.registerAllFromPublicApi()`는 Redis 락(`stop:bulk-register:lock`, TTL 30분)으로 동시에 하나만 실행**한다. 실행 중이면 409. Redis 라이브러리는 auth-contract가 노출하고, 접속 설정은 `application.yml`의 `spring.data.redis`에 있다
+- **`StopRegisterService.registerAllFromPublicApi()`는 Redis 락(`stop:bulk-register:lock`, TTL 30분)으로 동시에 하나만 실행**한다. 실행 중이면 409. Redis 라이브러리는 auth-contract가 노출하고, 접속 설정은 `modules/app`의 `application.yml` `spring.data.redis`에 있다
 
 ### 검색
 
@@ -98,9 +97,7 @@ Base package: `com.media.bus.stop`
 ## Configuration
 
 ```yaml
-# 주요 설정 (application.yml)
-server.port: 8182
-spring.datasource.url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/default?schema=stop
+# 주요 설정 (modules/app/src/main/resources/application.yml — 설정 파일은 app 에만 둔다)
 spring.threads.virtual.enabled: true
 
 # 서울 공공 API

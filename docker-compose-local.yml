@@ -1,35 +1,14 @@
-# 로컬 전체 스택 실행용 compose.
-# 운영 compose와 같은 토폴로지를 유지하되 DB/Valkey/하위 서비스/디버그 포트를 호스트에 노출한다.
+# 로컬 전체 스택 실행용 compose (모듈러 모놀리스).
+# 운영 compose 와 같은 토폴로지를 유지하되 DB/Valkey/디버그 포트를 호스트에 노출한다.
+#
+# 앱을 IDE 에서 직접 띄울 때는 인프라만 올린다:
+#   docker compose -f docker-compose-local.yml up -d database valkey
 
 x-logging: &default-logging
   driver: json-file
   options:
     max-size: "20m"
     max-file: "3"
-
-x-local-app-common: &local-app-common
-  logging: *default-logging
-  environment: &local-app-env
-    TZ: ${TZ:-Asia/Seoul}
-    JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul}"
-    SPRING_PROFILES_ACTIVE: local
-    DB_HOST: database
-    DB_PORT: 5432
-    DB_NAME: ${POSTGRES_DB:-default}
-    DB_USERNAME: ${POSTGRES_USER:-postgres}
-    DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    # 비밀값은 프로젝트 루트 .env 에서 읽는다(git 제외, .env.example 참고). 없으면 기동을 막는다.
-    JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
-    SEOUL_API_KEY: ${SEOUL_API_KEY:-}
-    REDIS_HOST: valkey
-    REDIS_PORT: 6379
-    COOKIE_SECURE: "false"
-    CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
-    # 관리자 사이트 origin. 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다(로컬 단일 Next 앱).
-    CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
-    IAM_SERVICE_URL: http://iam-service:8181
-    STOP_SERVICE_URL: http://stop-service:8182
-    RESERVATION_SERVICE_URL: http://reservation-service:8183
 
 services:
   database:
@@ -69,89 +48,44 @@ services:
       retries: 10
     logging: *default-logging
 
-  iam-service:
-    <<: *local-app-common
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        MODULE_NAME: iam
-    container_name: msa-iam
+    container_name: bus-app
+    logging: *default-logging
     ports:
-      - "${IAM_HOST_PORT:-8181}:8181"
-      - "${IAM_DEBUG_PORT:-18181}:18181"
+      - "${APP_HOST_PORT:-8080}:8080"
+      - "${APP_DEBUG_PORT:-18080}:18080"
     environment:
-      <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18181"
-      LOGGING_LEVEL_COM_HIG_AUTH: DEBUG
-    depends_on:
-      database:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
-
-  stop-service:
-    <<: *local-app-common
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: stop
-    container_name: msa-stop
-    ports:
-      - "${STOP_HOST_PORT:-8182}:8182"
-      - "${STOP_DEBUG_PORT:-18182}:18182"
-    environment:
-      <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18182"
-      LOGGING_LEVEL_COM_HIG_RESERVATION: DEBUG
-    depends_on:
-      database:
-        condition: service_healthy
-
-  reservation-service:
-    <<: *local-app-common
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: reservation
-    container_name: msa-reservation
-    ports:
-      - "${RESERVATION_HOST_PORT:-8183}:8183"
-      - "${RESERVATION_DEBUG_PORT:-18183}:18183"
-    environment:
-      <<: *local-app-env
-      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18183"
-      LOGGING_LEVEL_COM_HIG_RESERVATION: DEBUG
-    depends_on:
-      database:
-        condition: service_healthy
-
-  gateway-service:
-    <<: *local-app-common
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: gateway
-    container_name: msa-gateway
-    ports:
-      - "${GATEWAY_HOST_PORT:-8080}:8080"
-      - "${GATEWAY_DEBUG_PORT:-18080}:18080"
-    environment:
-      <<: *local-app-env
+      TZ: ${TZ:-Asia/Seoul}
       JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:18080"
-      LOGGING_LEVEL_COM_HIG_GATEWAY: DEBUG
+      SPRING_PROFILES_ACTIVE: local
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-default}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # 비밀값은 프로젝트 루트 .env 에서 읽는다(git 제외, .env.example 참고). 없으면 기동을 막는다.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
+      SEOUL_API_KEY: ${SEOUL_API_KEY:-}
+      REDIS_HOST: valkey
+      REDIS_PORT: 6379
+      COOKIE_SECURE: "false"
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      # 관리자 사이트 origin. 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다(로컬 단일 Next 앱).
+      CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     depends_on:
+      database:
+        condition: service_healthy
       valkey:
         condition: service_healthy
-      iam-service:
-        condition: service_started
-      stop-service:
-        condition: service_started
-      reservation-service:
-        condition: service_started
 
 volumes:
   postgres_data:

@@ -40,7 +40,7 @@ data class ReservationDetailResponse(
     val consultationRequestedAt: OffsetDateTime,
 
     @param:Schema(description = "계약 시작 희망 일자")
-    val desiredContractStartDate: LocalDate?,
+    val desiredContractStartDate: LocalDate,
 
     @param:Schema(description = "예약 생성 일시")
     val createdAt: OffsetDateTime,
@@ -52,7 +52,7 @@ data class ReservationDetailResponse(
     val consultations: List<ConsultationHistory>,
 ) {
 
-    @Schema(description = "상담 이력 항목")
+    @Schema(name = "ReservationConsultationHistory", description = "상담 이력 항목")
     data class ConsultationHistory(
         val consultationId: UUID,
         val status: ReservationStatus,
