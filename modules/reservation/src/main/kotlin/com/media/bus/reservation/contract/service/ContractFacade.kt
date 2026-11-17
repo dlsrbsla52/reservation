@@ -11,9 +11,9 @@ import java.util.*
  * ## 회원 본인 계약 조회를 조율하는 Facade
  *
  * 설계 의도:
- * - S2S 호출(Stop 정류소 정보 결합)은 트랜잭션 외부에서 처리하고,
+ * - 다른 모듈 호출(stop 정류소 정보 결합)은 트랜잭션 외부에서 처리하고,
  *   DB 조회는 `ContractService`의 `@Transactional` 경계 안에서만 한다.
- * - 계약 생성은 관리자 기능이므로 `InternalContractFacade`(iam admin → S2S)가 맡는다.
+ * - 계약 생성은 관리자 기능이므로 `InternalContractFacade`(iam 관리자 API → app 어댑터)가 맡는다.
  */
 @Service
 class ContractFacade(
@@ -25,7 +25,7 @@ class ContractFacade(
      *
      * `ReservationFacade.getMyReservations`와 동일한 패턴:
      * 1단계: DB에서 계약 목록 조회 (stop 정보는 null)
-     * 2단계: 중복 제거된 stopId 집합에 대해 **1회 bulk S2S 조회** → N+1 방지
+     * 2단계: 중복 제거된 stopId 집합에 대해 **1회 일괄 조회**(`StopLookupPort`) → N+1 방지
      * 3단계: 응답 row별 stopName/stopNumber 주입
      *
      * Stop 서비스 장애 시 `StopResolutionService.resolveStops`가 빈 맵으로 fallback 하므로

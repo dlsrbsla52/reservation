@@ -5,7 +5,9 @@ import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
+import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.contract.security.annotation.CurrentMember
 import com.media.bus.iam.admin.dto.*
 import com.media.bus.iam.admin.facade.AdminMemberFacade
 import com.media.bus.iam.admin.service.MemberSearchService
@@ -107,11 +109,11 @@ class AdminMemberController(
     @Operation(summary = "회원 정지", description = "대상 회원의 계정을 정지합니다. 정지 사유를 필수로 입력해야 합니다.")
     @PutMapping("/members/{memberId}/suspend")
     fun suspendMember(
-        @RequestHeader("X-User-Id") requesterId: String,
+        @CurrentMember requester: MemberPrincipal,
         @PathVariable memberId: UUID,
         @RequestBody @Valid request: SuspendMemberRequest,
     ): ApiResponse<Unit?> {
-        adminMemberFacade.suspendMember(UUID.fromString(requesterId), memberId, request.reason)
+        adminMemberFacade.suspendMember(requester.id, memberId, request.reason)
         return ApiResponse.successWithMessage("회원 계정이 정지되었습니다.")
     }
 
@@ -119,11 +121,11 @@ class AdminMemberController(
     @Operation(summary = "회원 정지 해제", description = "정지된 회원의 계정을 다시 활성화합니다. 해제 사유를 필수로 입력해야 합니다.")
     @PutMapping("/members/{memberId}/unsuspend")
     fun unsuspendMember(
-        @RequestHeader("X-User-Id") requesterId: String,
+        @CurrentMember requester: MemberPrincipal,
         @PathVariable memberId: UUID,
         @RequestBody @Valid request: UnsuspendMemberRequest,
     ): ApiResponse<Unit?> {
-        adminMemberFacade.unsuspendMember(UUID.fromString(requesterId), memberId, request.reason)
+        adminMemberFacade.unsuspendMember(requester.id, memberId, request.reason)
         return ApiResponse.successWithMessage("회원 계정 정지가 해제되었습니다.")
     }
 

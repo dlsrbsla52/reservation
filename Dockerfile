@@ -34,14 +34,14 @@ RUN chmod +x ./gradlew
 # 하위 모듈 소스 전체 복사
 COPY modules modules
 
-ARG MODULE_NAME
+# 실행 모듈은 modules/app 하나다(모듈러 모놀리스). 도메인 모듈은 app.jar 안에 라이브러리로 들어간다.
 
 # 최신 트렌드: BuildKit Cache Mount 및 Gradle 병렬 처리 적용
 # 1. --mount=type=cache,target=/root/.gradle: 컨테이너 간 Gradle 의존성 저장소를 공유하여 중복 다운로드를 방지합니다.
 # 2. 기존 코드의 clean 태스크를 제거하고 --build-cache 옵션을 활용하여 재컴파일 시간을 단축합니다.
 # 3. --parallel 옵션으로 가용한 시스템 리소스를 활용해 태스크를 병렬로 실행합니다.
 RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
-    ./gradlew :modules:${MODULE_NAME}:bootJar --parallel --build-cache --no-daemon
+    ./gradlew :modules:app:bootJar --parallel --build-cache --no-daemon
 
 # === Runtime Stage ===
 FROM ubuntu:24.04
@@ -64,9 +64,8 @@ ENV JAVA_HOME=/opt/jdk-25
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 WORKDIR /app
-ARG MODULE_NAME
 
-# 빌더 스테이지에서 생성된 결과물 복사 [cite: 8]
-COPY --from=builder /workspace/modules/${MODULE_NAME}/build/libs/*.jar app.jar
+# 빌더 스테이지 결과물. 파일 이름을 app.jar 로 고정했으므로(modules/app/build.gradle.kts) 와일드카드를 쓰지 않는다.
+COPY --from=builder /workspace/modules/app/build/libs/app.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

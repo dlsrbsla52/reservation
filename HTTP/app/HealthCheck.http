@@ -1,0 +1,4 @@
+### 헬스체크 (관리 포트)
+# Actuator 는 공개 8080 이 아니라 127.0.0.1:8081 에만 열린다(공개 포트에서는 404).
+# IDE 에서 app 을 띄웠을 때만 닿는다. 컨테이너는 내부 루프백 전용이라 compose healthcheck 가 안에서 호출한다.
+GET http://localhost:8081/actuator/health

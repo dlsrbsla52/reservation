@@ -22,7 +22,7 @@ import java.util.*
  * ## 계약 도메인의 DB 저장을 담당하는 서비스
  *
  * 설계 의도:
- * - S2S 외부 호출은 `ContractFacade`에서 처리하고, 이 클래스는 트랜잭션 내 DB 작업만 담당한다.
+ * - 다른 모듈 호출은 `ContractFacade`에서 처리하고, 이 클래스는 트랜잭션 내 DB 작업만 담당한다.
  * - `ContractEntity` 저장 후 `ContractDetailEntity`를 저장하여 FK 참조 무결성을 보장한다.
  * - Exposed DAO `new()` 호출 시 트랜잭션 커밋 시점에 자동으로 INSERT된다.
  */
@@ -86,7 +86,7 @@ class ContractService(
      * 본인 계약 목록 조회 (페이지네이션).
      *
      * 정류소 정보는 포함하지 않은 raw 응답을 반환한다 — 결합은 `ContractFacade`에서
-     * 한 번의 bulk S2S 호출로 처리하여 N+1 문제를 방지한다.
+     * 한 번의 일괄 조회로 처리하여 N+1 문제를 방지한다.
      */
     @Transactional(readOnly = true)
     fun getMyContracts(memberId: UUID, page: Int, size: Int): PageResult<ContractResponse> {

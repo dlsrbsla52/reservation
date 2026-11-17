@@ -1,7 +1,7 @@
 package com.media.bus.iam.admin.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.media.bus.iam.client.stop.dto.SimpleStopCreateRequest
+import com.media.bus.iam.port.dto.stop.SimpleStopCreateRequest
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -36,13 +36,13 @@ data class CreateSimpleStopRequest(
     @param:Schema(description = "노드 ID", example = "110000669")
     val nodeId: String,
 
-    // stop 모듈의 StopType enum 은 모듈 경계상 참조하지 않는다. 검증은 stop 모듈이 수행한다.
+    // stop 모듈의 StopType enum 은 모듈 경계상 참조하지 않는다. enum 변환·검증은 app 어댑터가 한다(알 수 없는 값 → 400).
     @field:NotBlank
     @param:Schema(description = "정류소 유형", example = "ROADSIDE_TIMED")
     val stopsType: String,
 ) {
-    /** stop S2S 요청 DTO로 변환한다. */
-    fun toClientRequest() = SimpleStopCreateRequest(
+    /** `StopAdminPort` 입력으로 변환한다. */
+    fun toPortRequest() = SimpleStopCreateRequest(
         stopId = stopId,
         stopName = stopName,
         xCrd = xCrd,

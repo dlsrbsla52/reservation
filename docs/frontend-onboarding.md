@@ -1,6 +1,6 @@
 # 프론트엔드 개발자 온보딩 가이드
 
-> 본 문서는 **프론트엔드 개발자**가 본 예약 시스템(MSA) 백엔드와 통신할 때 필요한 최소한의 정보를 한 곳에 모아둔 가이드입니다.
+> 본 문서는 **프론트엔드 개발자**가 본 예약 시스템 백엔드와 통신할 때 필요한 최소한의 정보를 한 곳에 모아둔 가이드입니다.
 > API 명세는 **Swagger UI(OpenAPI 3.0)** 를 단일 진실의 원천(Single Source of Truth) 으로 사용합니다.
 > 본 문서가 잘못된 경우 항상 **Swagger UI > 코드 > 본 문서** 순으로 신뢰하십시오.
 
@@ -9,25 +9,26 @@
 ## 1. 프로젝트 한눈에 보기
 
 본 프로젝트는 **버스 정류소 광고 예약 시스템**입니다.
-Spring Boot 4.1.0 + Kotlin 2.3.20 기반의 **MSA(Microservices Architecture)** 로, 단일 Repo(Monorepo) 안에 다음 5개 모듈이 독립적인 마이크로서비스로 배포됩니다.
+Spring Boot 4.1 + Kotlin 2.3.20 기반의 **모듈러 모놀리스**로, 애플리케이션 하나(`app`, 포트 8080)가 다음 도메인 모듈을 함께 실행합니다.
+(2026-11 이전에는 gateway + 서비스 3개로 나뉜 MSA였습니다. **URL·요청·응답 형식은 그대로**입니다.)
 
-| 서비스 | 포트 | 역할 |
-|--------|------|------|
-| **gateway** | 8080 | 모든 트래픽의 단일 진입점(Single Entry Point). JWT 검증 후 하위 서비스로 라우팅 |
-| **iam** | 8181 | 회원가입 · 로그인 · 토큰 발급 · 회원/관리자 관리 |
-| **stop** | 8182 | 버스 정류소 데이터 CRUD (서울 열린데이터광장 연동) |
-| **reservation** | 8183 | 정류소 광고 계약 + 예약 핵심 비즈니스 |
-| **common / auth-contract** | — | 모든 서비스가 공유하는 라이브러리 모듈 (런타임 서비스 아님) |
+| 모듈 | 역할 |
+|------|------|
+| **app** | 실행 모듈. JWT 검증, 경로 허용 목록, CORS |
+| **iam** | 회원가입 · 로그인 · 토큰 발급 · 회원/관리자 관리 |
+| **stop** | 버스 정류소 데이터 CRUD (서울 열린데이터광장 연동) |
+| **reservation** | 정류소 광고 계약 + 예약 핵심 비즈니스 |
+| **common / auth-contract** | 공유 라이브러리 모듈 |
 
 추가 인프라:
 
 | 컴포넌트 | 포트 | 용도 |
 |----------|------|------|
-| PostgreSQL 18.3 | 15433 | 주 DB (모듈별 schema 격리: `auth` / `member` / `stop` / `reservation`) |
+| PostgreSQL 18.3 | 15433 | 주 DB (모듈별 schema: `auth` / `audit` / `stop` / `reservation`) |
 | Valkey 8.1.6 (Redis 호환) | 6379 | 캐시 / Refresh Token 저장 / 분산 락 |
 
 > 💡 **프론트엔드 입장에서 알아둘 핵심 한 줄**
-> 클라이언트는 **항상 Gateway(8080)** 만 호출합니다. 각 서비스 포트(8181/8182/8183)는 직접 호출하지 않습니다.
+> 클라이언트는 **8080** 하나만 호출합니다. 예전 서비스 포트(8181/8182/8183)는 더 이상 없습니다.
 
 ---
 
@@ -35,46 +36,49 @@ Spring Boot 4.1.0 + Kotlin 2.3.20 기반의 **MSA(Microservices Architecture)** 
 
 | 환경 | Base URL |
 |------|----------|
-| 로컬 개발 (Docker Compose) | `http://localhost:8080` |
-| 로컬 개발 (개별 서비스 디버그용, 비권장) | `http://localhost:8181` (iam), `http://localhost:8182` (stop), `http://localhost:8183` (reservation) |
+| 로컬 개발 | `http://localhost:8080` |
 | 스테이징 / 운영 | 별도 공유 (AWS 환경, HTTPS 필수) |
 
-모든 API의 prefix는 `/api/v1/`이며, Gateway가 경로 기준으로 라우팅합니다.
+모든 API의 prefix는 `/api/v1/`입니다. 앱은 아래 prefix만 받고, 그 밖의 경로는 **404**입니다.
 
-| 경로 패턴 | 라우팅 대상 |
+| 경로 패턴 | 담당 모듈 |
 |-----------|-------------|
-| `/api/v1/auth/**` | iam (8181) |
-| `/api/v1/admin/**` | iam (8181) |
-| `/api/v1/member/**` | iam (8181) |
-| `/api/v1/internal/**` | 서비스 간(S2S) 전용 — gateway가 403으로 차단 |
-| `/api/v1/stop/**` | stop (8182) |
-| `/api/v1/reservation/**` | reservation (8183) |
-| `/api/v1/contract/**` | reservation (8183) |
+| `/api/v1/auth/**` | iam |
+| `/api/v1/admin/**` | iam (관리자 사이트 토큰 `aud=ADMIN`만 통과, 아니면 403) |
+| `/api/v1/member/**` | iam |
+| `/api/v1/stop/**` | stop |
+| `/api/v1/reservation/**` | reservation |
+| `/api/v1/contract/**` | reservation |
+
+- 토큰이 없거나 잘못되면 **본문 없는 401**, 관리자 경로에 일반 토큰이면 **본문 없는 403**입니다(예전 gateway와 같음).
+- `X-User-*` 헤더는 보내도 무시됩니다. 회원 정보는 `Authorization: Bearer` 토큰에서만 읽습니다.
 
 ---
 
 ## 3. Swagger UI를 통한 API 개발 (가장 중요)
 
-본 프로젝트는 **springdoc-openapi** 기반으로 각 마이크로서비스마다 독립적인 Swagger UI를 제공합니다.
+본 프로젝트는 **springdoc-openapi** 기반으로 **통합 Swagger UI 하나**를 제공합니다(로컬 `local` 프로필에서만 열림).
 API 명세, 요청/응답 스키마, 시도(Try it out)는 **모두 Swagger UI에서 확인**하는 것을 표준 워크플로로 잡습니다.
 
 ### 3-1. Swagger UI 진입점
 
-| 서비스 | Swagger UI | OpenAPI JSON (스펙 다운로드) |
+| 대상 | Swagger UI | OpenAPI JSON (스펙 다운로드) |
 |--------|------------|-------------------------------|
-| iam (인증/회원/관리자) | http://localhost:8181/swagger-ui.html | http://localhost:8181/api-docs |
-| stop (정류소) | http://localhost:8182/swagger-ui.html | http://localhost:8182/api-docs |
-| reservation (예약/계약) | http://localhost:8183/swagger-ui.html | http://localhost:8183/api-docs |
+| 전체 API | http://localhost:8080/swagger-ui.html | http://localhost:8080/api-docs |
 
-> ⚠️ **주의**: Gateway(8080)는 Swagger UI를 제공하지 않습니다. 명세 확인 시에는 **각 서비스 포트로 직접 접근**하세요.
-> 단, 실제 API 호출은 명세에서 본 경로를 그대로 **Gateway(8080)** 에 사용하면 됩니다.
+- 운영(기본 프로필)에서는 Swagger UI와 `/api-docs`가 꺼져 있습니다(404).
+- 빌드로 스펙 파일을 만들 수도 있습니다: `./gradlew generateAllOpenApiDocs` → `modules/app/build/docs/openapi/openapi.yaml`.
+- **스키마 이름 변경(전환 시)**: 같은 이름의 DTO가 한 명세에 섞이지 않도록 다음 스키마 이름을 바꿨습니다. 생성 클라이언트를 쓰면 타입 이름을 갱신하세요.
+  - 관리자 지도 API: `AdminStopBoundsResponse`, `AdminStopMarkerResponse` (`stopsType`은 문자열)
+  - 공개 지도 API: `StopMapBoundsResponse`, `StopMapMarkerResponse` (`stopsType`은 enum)
+  - 예약 상담 이력: `ReservationConsultationHistory`(공개), `AdminConsultationHistory`(관리자)
 
 ### 3-2. 프론트엔드 권장 워크플로
 
-1. **명세 확인** — 각 서비스의 Swagger UI에서 엔드포인트 · Request/Response DTO · 에러 코드를 확인
+1. **명세 확인** — 통합 Swagger UI에서 엔드포인트 · Request/Response DTO · 에러 코드를 확인
 2. **OpenAPI 스펙 다운로드** — `/api-docs` 엔드포인트에서 JSON을 받아 클라이언트 코드 자동 생성
    - 권장 도구: [openapi-typescript](https://github.com/drwpow/openapi-typescript), [orval](https://orval.dev/), [openapi-generator-cli](https://openapi-generator.tech/)
-   - 예: `npx openapi-typescript http://localhost:8183/api-docs -o ./src/api/reservation.ts`
+   - 예: `npx openapi-typescript http://localhost:8080/api-docs -o ./src/api/schema.ts`
 3. **Mock & 시도** — Swagger UI의 `Try it out` 기능으로 실제 응답 확인 후 프론트엔드 구현 시작
 4. **변경 감지** — 백엔드 PR 머지 후 `/api-docs` 스펙을 재생성하여 타입을 동기화 (CI에 자동화 권장)
 
@@ -267,12 +271,23 @@ export default api;
 
 | Method | Path | 설명 |
 |--------|------|------|
-| GET  | `/find/me` | 내 정보 조회 |
+| GET  | `/me` | 내 정보 조회 (토큰 필요) |
+| POST | `/find/me` | 아이디 찾기 (토큰 불필요). 본문에 `memberName` + `phoneNumber` 또는 `email`. 응답은 `loginId`만 |
 | POST | `/modify` | 내 정보 수정 |
 | DELETE | `/withdraw` | 회원 탈퇴 |
 | POST | `/deactivate` | 계정 비활성화 |
 
-### 6-3. 관리자 (iam, `/api/v1/admin`) — ADMIN 권한 필요
+아이디 찾기는 `POST /api/v1/member/find/me`에 JSON 본문을 보낸다. 이전 GET 호출은 지원하지 않는다.
+IP당 1분 5회, 전화번호·이메일 각각 10분 5회를 초과하면 `429 / A0022`를 반환한다.
+ACTIVE·INACTIVE 회원만 조회하며, SUSPENDED·WITHDRAWN 회원은 회원 없음으로 응답한다.
+발송 수단 도입 전까지는 로그인 아이디를 직접 반환하므로, 회원 존재 여부를 숨기는 처리는 후속 과제다.
+
+### 6-3. 관리자 (iam, `/api/v1/admin`) — 관리자 사이트 토큰 필수
+
+단건 정류소 등록은 ADMIN 카테고리 + WRITE 권한을 요구한다(ADMIN_USER 포함).
+정류소 조회·단가 관리·일괄 등록은 ADMIN_MASTER·ADMIN_DEVELOPER + MANAGE 권한을 요구한다.
+회원 생성·조회·정지 등은 ADMIN_MASTER + MANAGE, 역할·권한 관리는 ADMIN_MASTER + MANAGE다.
+메서드별 `@Authorize`가 최종 기준이며, 일반 사이트 토큰(`aud=USER`)은 사용할 수 없다.
 
 | Method | Path | 설명 |
 |--------|------|------|
@@ -284,14 +299,21 @@ export default api;
 | PUT  | `/members/{memberId}/unsuspend` | 정지 해제 |
 | GET  | `/members/{memberId}/status-history` | 상태 변경 이력 |
 | GET/POST/PUT/DELETE | `/authorization/...` | 역할/권한 관리 |
+| POST | `/stop/simple` | 정류소 단건 등록 (수동, ADMIN + WRITE) |
+| POST | `/stop/register/bulk` | 서울 열린데이터광장 일괄 동기화 |
 
 ### 6-4. 정류소 (stop, `/api/v1/stop`)
 
 | Method | Path | 설명 |
 |--------|------|------|
 | GET  | `/api/v1/stop` | 정류소 목록 (검색/필터) |
-| POST | `/api/v1/stop/simple` | 정류소 단건 등록 (수동) |
-| POST | `/api/v1/stop/register/bulk` | 서울 열린데이터광장 일괄 동기화 |
+
+정류소 `stopName`은 공백뿐인 값을 허용하지 않는 최대 200자 접두 검색이고 `%`·`_`·`\`는 문자 그대로 처리한다.
+이름 조회가 100건을 넘으면 400을 반환한다. 이 경우 `stopName` 대신 `keyword`를 사용해 페이지 조회한다.
+페이지 조회는 `page >= 0`, `size=1~100`, `keyword` 최대 200자를 허용한다.
+`keyword`에서도 `%`·`_`·`\`는 문자 그대로 처리한다.
+
+정류소 등록(단건·일괄)은 관리자 기능이라 관리자 사이트에서 `POST /api/v1/admin/stop/simple`, `POST /api/v1/admin/stop/register/bulk`로 호출한다(6-3). 예전 `/api/v1/stop/simple`, `/api/v1/stop/register/bulk`는 없어졌다.
 
 ### 6-5. 계약 (reservation, `/api/v1/contract`) — 회원 본인 계약 조회
 
@@ -315,7 +337,7 @@ export default api;
 
 ## 7. 권한 모델
 
-본 시스템은 두 축으로 권한을 표현합니다. 프론트엔드 라우팅 가드는 **JWT Payload의 클레임** 또는 `GET /api/v1/member/find/me` 응답을 사용해 구현합니다.
+본 시스템은 두 축으로 권한을 표현합니다. 프론트엔드 라우팅 가드는 **JWT Payload의 클레임** 또는 `GET /api/v1/member/me` 응답을 사용해 구현합니다. `find/me`는 아이디 찾기라 `loginId`만 돌려주므로 권한 판단에 쓸 수 없습니다.
 
 | 클레임 | 의미 | 예시 값 |
 |--------|------|---------|
@@ -334,7 +356,7 @@ export default api;
 ### 8-1. 사전 준비
 
 - Docker Desktop (또는 OrbStack)
-- 포트 충돌 확인: `8080`, `8181`, `8182`, `8183`, `15433`, `6379`
+- 포트 충돌 확인: `8080`, `18080`(디버그), `15433`, `6379`
 
 ### 8-2. 실행
 
@@ -342,17 +364,55 @@ export default api;
 # 1. 저장소 클론 후 디렉토리 이동
 cd reservation
 
-# 2. 전체 서비스 기동 (로컬 모드)
-docker-compose -f docker-compose-local.yml up -d --build
+# 2. 전체 스택 기동 (로컬 모드)
+docker compose -f docker-compose-local.yml up -d --build
 
-# 3. 정상 기동 확인 — gateway 헬스체크
-curl http://localhost:8080/api/v1/gateway/health-check
+# 3. 정상 기동 확인 — 컨테이너 healthcheck(Actuator 는 컨테이너 안 8081 에서만 열림)
+docker compose -f docker-compose-local.yml ps
 
-# 4. Swagger UI 접속 — 예: 예약 서비스
-open http://localhost:8183/swagger-ui.html
+# 4. Swagger UI 접속
+open http://localhost:8080/swagger-ui.html
 ```
 
-### 8-3. 종료
+### 8-3. 기존 DB 볼륨의 비밀번호 인증 실패
+
+`FATAL: password authentication failed for user "postgres"`가 발생하면 `.env`의
+`POSTGRES_PASSWORD`(Compose)와 `DB_PASSWORD`(IDE/bootRun)를 먼저 확인한다.
+같은 DB를 사용하면 두 값이 같아야 한다.
+
+두 값이 같아도 기존 볼륨의 DB 비밀번호는 다를 수 있다. `POSTGRES_PASSWORD`는 빈 데이터 디렉터리를
+처음 초기화할 때만 적용되므로, `.env`를 바꾸거나 컨테이너를 재생성해도 기존 계정 비밀번호는 바뀌지 않는다.
+
+데이터를 보존하면서 로컬 DB 비밀번호를 맞추려면 다음처럼 접속한다(기본 계정·DB 기준).
+
+```bash
+docker exec -it msa-postgres psql -U postgres -d default
+```
+
+psql에서 `\password postgres`를 실행하고 현재 `.env`에 지정한 비밀번호를 두 번 입력한 뒤
+`\q`로 종료한다. 비밀번호를 명령행이나 SQL 문자열에 직접 쓰지 않는다.
+이는 로컬 계정의 인증 정보 변경이며 스키마 마이그레이션은 아니다.
+
+이후 IDE/bootRun을 다시 실행한다. 컨테이너 내부의 소켓·루프백 접속은 `trust` 규칙으로
+비밀번호 검사를 생략할 수 있으므로, 내부 `SELECT 1` 성공만으로 호스트의 비밀번호 인증이 정상이라고 판단하지 않는다.
+
+### 8-4. 요청·응답 로그 확인
+
+`local` 프로필은 `AccessLoggingFilter`를 DEBUG로 설정하여 성공·실패 모두 `ACCESS` 로그에
+`req=`(요청 본문)와 `res=`(응답 본문)를 기록한다. 같은 `[req:요청ID]`로 진입 로그·업무 로그·응답 로그를 연결한다.
+GET 검색 조건은 URL 쿼리에서 확인하고, 본문이 없는 요청·응답에는 해당 항목이 붙지 않는다.
+비밀번호·토큰은 마스킹하고 본문은 최대 2KB로 제한한다. 아이디 찾기 요청 본문과 파일 본문은 기록 대상에서 제외한다.
+
+기본 프로필은 오류 본문을 기록하고, 성공 본문은 해당 로거가 DEBUG일 때 기록한다.
+관리 포트의 로거 설정으로 재시작 없이 본문 로깅을 켜고 끌 수 있다.
+
+```bash
+curl -X POST http://127.0.0.1:8081/actuator/loggers/com.media.bus.common.logging.AccessLoggingFilter \
+  -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}'
+# 본문 로깅을 끄려면 DEBUG 대신 INFO를 지정한다(오류 본문은 계속 기록).
+```
+
+### 8-5. 종료
 
 ```bash
 docker-compose -f docker-compose-local.yml down
@@ -384,9 +444,7 @@ docker-compose -f docker-compose-local.yml down
   - iam: [`modules/iam/CLAUDE.md`](../modules/iam/CLAUDE.md)
   - stop: [`modules/stop/CLAUDE.md`](../modules/stop/CLAUDE.md)
   - reservation: [`modules/reservation/CLAUDE.md`](../modules/reservation/CLAUDE.md)
-  - gateway: [`modules/gateway/CLAUDE.md`](../modules/gateway/CLAUDE.md)
+  - app(실행 모듈·보안): [`modules/app/AGENTS.md`](../modules/app/AGENTS.md)
   - common: [`modules/common/CLAUDE.md`](../modules/common/CLAUDE.md)
 - OpenAPI 스펙
-  - iam: http://localhost:8181/api-docs
-  - stop: http://localhost:8182/api-docs
-  - reservation: http://localhost:8183/api-docs
+  - 전체: http://localhost:8080/api-docs (local 프로필)

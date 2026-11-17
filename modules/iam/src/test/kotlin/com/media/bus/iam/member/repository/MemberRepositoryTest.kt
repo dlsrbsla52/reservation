@@ -102,4 +102,26 @@ class MemberRepositoryTest {
             assertThat(memberRepository.existsByLoginId("nonexistent_$ts")).isFalse
         }
     }
+    @Test
+    fun `아이디 찾기는 활성과 비활성 회원만 조회한다`() {
+        transaction {
+            MemberStatus.entries.forEach { state ->
+                val key = "lookup_${state.name}"
+                MemberEntity.new {
+                    loginId = key
+                    password = "dummy-password"
+                    email = "$key@example.test"
+                    phoneNumber = "01000000000"
+                    emailVerified = false
+                    status = state
+                    memberName = "찾기테스트"
+                }
+                val found = memberRepository.findMe(
+                    com.media.bus.iam.member.dto.FindMeRequest("찾기테스트", null, "$key@example.test"),
+                )
+                assertThat(found != null).isEqualTo(state in listOf(MemberStatus.ACTIVE, MemberStatus.INACTIVE))
+            }
+        }
+    }
+
 }

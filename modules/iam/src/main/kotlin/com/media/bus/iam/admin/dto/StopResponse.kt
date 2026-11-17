@@ -1,7 +1,7 @@
 package com.media.bus.iam.admin.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.media.bus.iam.client.stop.dto.StopInfo
+import com.media.bus.iam.port.dto.stop.StopInfo
 import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 import java.time.OffsetDateTime

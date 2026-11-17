@@ -6,6 +6,7 @@ import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.MemberPrincipal
+import com.media.bus.contract.security.TokenAudience
 import com.media.bus.contract.security.annotation.Authorize
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -107,11 +108,17 @@ class AuthorizeHandlerInterceptorTest {
     }
 
     private fun principal(type: MemberType, permissions: Set<Permission> = emptySet()) =
-        MemberPrincipal(UUID.randomUUID(), "user", "user@test.com", type, true, permissions)
+        MemberPrincipal(UUID.randomUUID(), "user", "user@test.com", type, true, permissions, if (type.isAdmin) TokenAudience.ADMIN else TokenAudience.USER)
 
     @Suppress("unused")
     class DummyController {
         fun noAnnotation() {}
+
+        @Authorize(permissions = [Permission.MANAGE])
+        fun manageOnly() {}
+
+        @AdminRule
+        fun composedAdmin() {}
 
         @Authorize(categories = [MemberCategory.ADMIN])
         fun adminOnly() {}
@@ -125,4 +132,23 @@ class AuthorizeHandlerInterceptorTest {
         @Authorize
         fun authenticatedOnly() {}
     }
+    @Test
+    fun `일반 사이트 토큰은 관리자 카테고리와 MANAGE 단독 규칙을 통과하지 못한다`() {
+        val admin = principal(MemberType.ADMIN_MASTER, setOf(Permission.MANAGE))
+        request.setAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY, admin.copy(audience = TokenAudience.USER))
+        listOf("adminOnly", "manageOnly", "composedAdmin").forEach { method ->
+            assertThatThrownBy { interceptor.preHandle(request, response, handlerMethod(method)) }
+                .isInstanceOf(NoAuthorizationException::class.java)
+        }
+        request.setAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY, admin)
+        listOf("adminOnly", "manageOnly", "composedAdmin").forEach { method ->
+            assertThat(interceptor.preHandle(request, response, handlerMethod(method))).isTrue()
+        }
+    }
+
+    @Target(AnnotationTarget.FUNCTION)
+    @Retention(AnnotationRetention.RUNTIME)
+    @Authorize(categories = [MemberCategory.ADMIN])
+    annotation class AdminRule
+
 }

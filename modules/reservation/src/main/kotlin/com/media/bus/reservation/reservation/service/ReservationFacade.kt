@@ -1,8 +1,10 @@
 package com.media.bus.reservation.reservation.service
 
 import com.media.bus.common.exceptions.BaseException
+import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.Result
 import com.media.bus.common.result.type.CommonResult
+import com.media.bus.common.validation.InputValidator
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.reservation.reservation.dto.request.CompleteToContractRequest
@@ -28,7 +30,7 @@ import java.util.*
  *
  * 예약 생성 흐름(정류소마다 독립 수행):
  * 1단계: `StopHoldGate` → Redis 게이트. 같은 광고면에 몰린 요청 중 1건만 통과 (트랜잭션 외부)
- * 2단계: `StopResolutionService` → 정류소 유효성 확인 (S2S, 트랜잭션 외부)
+ * 2단계: `StopResolutionService` → 정류소 유효성 확인 (`StopLookupPort`, 트랜잭션 외부)
  * 3단계: `ReservationService` → 선점 판정 + 예약/상담 DB 저장 (`@Transactional`)
  * 4단계: 커밋 결과에 따라 게이트 키를 점유 캐시로 바꾸거나 해제
  *
@@ -63,12 +65,12 @@ class ReservationFacade(
     ): CreateReservationResponse.Item {
         val slotNo = StopSlot.DEFAULT_NO
 
-        // 1단계: 게이트. 못 잡으면 다른 요청이 처리 중이거나 이미 선점된 광고면이다 — S2S·DB 를 쓰지 않고 끝낸다.
+        // 1단계: 게이트. 못 잡으면 다른 요청이 처리 중이거나 이미 선점된 광고면이다 — 정류소 조회·DB 를 쓰지 않고 끝낸다.
         val pass = stopHoldGate.tryEnter(stopId, slotNo)
             ?: return failure(stopId, ReservationResult.STOP_ALREADY_HELD)
 
         return try {
-            // 2단계: 정류소 존재 확인 (stop S2S 호출은 트랜잭션 외부)
+            // 2단계: 정류소 존재 확인 (stop 조회는 트랜잭션 외부)
             val stop = stopResolutionService.resolveStop(stopId)
             // 3단계: 선점 판정 + 예약/초기 상담 row 저장 (단일 트랜잭션)
             val reservation = reservationService.createReservation(memberId, stop, request, slotNo)
@@ -109,7 +111,7 @@ class ReservationFacade(
      *
      * 흐름:
      * 1단계: DB에서 예약 목록 조회 (단일 트랜잭션, stop 정보는 null 상태)
-     * 2단계: 중복 제거된 stopId 집합에 대해 **1회 S2S 일괄 조회** → N+1 방지
+     * 2단계: 중복 제거된 stopId 집합에 대해 **1회 일괄 조회** → N+1 방지
      * 3단계: 응답 row별로 stopName/stopNumber를 주입
      *
      * Stop 서비스 장애 시 `StopResolutionService.resolveStops`가 빈 맵으로 fallback 하므로
@@ -136,7 +138,7 @@ class ReservationFacade(
     /**
      * 예약 목록 페이지의 각 row에 정류소 정보(stopNumber/stopName)를 결합한다.
      *
-     * 중복 제거된 stopId 집합에 대해 **1회 S2S 일괄 조회**로 N+1을 방지하며,
+     * 중복 제거된 stopId 집합에 대해 **1회 일괄 조회**로 N+1을 방지하며,
      * stop 서비스 장애 시 `resolveStops`가 빈 맵으로 fallback 하여 목록 자체는 정상 반환된다.
      */
     private fun enrichWithStops(raw: PageResult<MyReservationResponse>): PageResult<MyReservationResponse> {
@@ -168,7 +170,9 @@ class ReservationFacade(
 
     /**
      * 어드민용 전체 예약 목록 검색 및 정류소 정보 일괄 결합 페이징 조회.
-     * N+1 방지를 위해 정류소 정보는 1회 S2S 벌크 호출로 주입한다.
+     * N+1 방지를 위해 정류소 정보는 1회 일괄 조회로 주입한다.
+     *
+     * `page`는 0 이상, `size`는 1..[ADMIN_MAX_PAGE_SIZE]로 보정한다(예전 internal 컨트롤러 규칙).
      */
     fun searchAdminReservations(
         status: ReservationStatus?,
@@ -176,9 +180,11 @@ class ReservationFacade(
         stopId: UUID?,
         createdFrom: OffsetDateTime?,
         createdTo: OffsetDateTime?,
-        page: Int,
-        size: Int
+        rawPage: Int,
+        rawSize: Int
     ): PageResult<AdminReservationListResponse> {
+        val page = rawPage.coerceAtLeast(0)
+        val size = rawSize.coerceIn(1, ADMIN_MAX_PAGE_SIZE)
         val (reservations, total) = reservationService.searchAdminReservations(status, assigneeId, stopId, createdFrom, createdTo, page, size)
 
         val stopIds = reservations.map { it.stopId }.toSet()
@@ -202,8 +208,14 @@ class ReservationFacade(
         reservationService.assignReservation(reservationId, assigneeId)
     }
 
-    /** 예약 상태 변경 및 상담 기록 추가. 선점이 풀리는 전이면 커밋 후 점유 캐시를 지운다. */
+    /**
+     * 예약 상태 변경 및 상담 기록 추가. 선점이 풀리는 전이면 커밋 후 점유 캐시를 지운다.
+     *
+     * @throws BusinessException `note`가 [MAX_NOTE_LENGTH]자를 넘으면 400 `VALIDATION_FAIL`
+     */
     fun updateReservationStatus(reservationId: UUID, targetStatus: ReservationStatus, note: String?) {
+        // UpdateReservationStatusRequest.note 의 @Size(max = 1000) 과 같은 규칙. 직접 호출 경로에서도 실행되도록 여기서 검사한다.
+        if (note != null && note.length > MAX_NOTE_LENGTH) throw BusinessException(CommonResult.VALIDATION_FAIL)
         reservationService.updateReservationStatus(reservationId, targetStatus, note)?.let(stopHoldGate::evict)
     }
 
@@ -233,10 +245,13 @@ class ReservationFacade(
     /**
      * 예약을 완료 처리하고 해당 예약건을 기반으로 즉시 광고 계약을 생성한다.
      *
-     * S2S 정류소 유효성 검증은 트랜잭션 외부에서 수행하고, 예약 완료와 계약 생성은
+     * 정류소 유효성 검증(`StopLookupPort`)은 트랜잭션 외부에서 수행하고, 예약 완료와 계약 생성은
      * `ReservationService.completeToContract` 의 단일 트랜잭션으로 함께 커밋한다.
+     *
+     * @throws BusinessException `request`가 DTO 제약(빈 계약명, 0 이하 금액 등)을 어기면 400 `VALIDATION_FAIL`
      */
     fun completeReservationToContract(reservationId: UUID, request: CompleteToContractRequest) {
+        InputValidator.validate(request)
         val detail = reservationService.getReservationDetailForAdmin(reservationId)
         val stopInfo = stopResolutionService.resolveStop(detail.stopId)
 
@@ -245,6 +260,12 @@ class ReservationFacade(
     }
 
     private companion object {
+        /** 어드민 예약 검색의 최대 페이지 크기. */
+        const val ADMIN_MAX_PAGE_SIZE = 100
+
+        /** 상담 기록 최대 길이. `UpdateReservationStatusRequest.note` 제약과 같다. */
+        const val MAX_NOTE_LENGTH = 1000
+
         /** DB 가 "이 광고면은 이미 선점됐다"고 판정한 결과 코드. */
         val OCCUPIED_RESULTS: Set<Result> =
             setOf(ReservationResult.STOP_ALREADY_HELD, ReservationResult.RESERVATION_ALREADY_EXISTS)

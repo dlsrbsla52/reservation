@@ -1,35 +1,14 @@
-# EC2 같은 단일 서버 배포용 compose.
-# DB/Valkey/하위 서비스는 Docker 내부망에 두고, 외부 노출은 Gateway 및 별도 프론트 컨테이너로 제한한다.
+# EC2 같은 단일 서버 배포용 compose (모듈러 모놀리스).
+# DB/Valkey 는 Docker 내부망에 두고, 외부에는 app 의 8080 만 연다.
+# Actuator(8081)는 컨테이너 안 루프백에만 열려 있어 healthcheck 만 쓴다.
+#
+# 볼륨 이름(postgres_data, valkey_data)과 compose 프로젝트 이름은 바꾸지 않는다 — 바꾸면 새 빈 볼륨이 생긴다.
 
 x-logging: &default-logging
   driver: json-file
   options:
     max-size: "50m"
     max-file: "5"
-
-x-app-common: &app-common
-  restart: unless-stopped
-  logging: *default-logging
-  environment: &app-env
-    TZ: ${TZ:-Asia/Seoul}
-    JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul}"
-    DB_HOST: database
-    DB_PORT: 5432
-    DB_NAME: ${POSTGRES_DB:-default}
-    DB_USERNAME: ${POSTGRES_USER:-postgres}
-    DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    # 비밀값은 프로젝트 루트 .env 에서 읽는다(git 제외, .env.example 참고). 없으면 기동을 막는다.
-    JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
-    SEOUL_API_KEY: ${SEOUL_API_KEY:-}
-    REDIS_HOST: valkey
-    REDIS_PORT: 6379
-    COOKIE_SECURE: ${COOKIE_SECURE:-false}
-    CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
-    # 관리자 사이트 origin (예: https://admin.mbus.kr). 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다.
-    CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
-    IAM_SERVICE_URL: http://iam-service:8181
-    STOP_SERVICE_URL: http://stop-service:8182
-    RESERVATION_SERVICE_URL: http://reservation-service:8183
 
 services:
   database:
@@ -39,7 +18,7 @@ services:
     environment:
       TZ: ${TZ:-Asia/Seoul}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?루트 .env에 POSTGRES_PASSWORD를 설정하세요}
       POSTGRES_DB: ${POSTGRES_DB:-default}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -67,69 +46,48 @@ services:
       retries: 10
     logging: *default-logging
 
-  iam-service:
-    <<: *app-common
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        MODULE_NAME: iam
-    container_name: msa-iam
-    expose:
-      - "8181"
-    depends_on:
-      database:
-        condition: service_healthy
-      valkey:
-        condition: service_healthy
-
-  stop-service:
-    <<: *app-common
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: stop
-    container_name: msa-stop
-    expose:
-      - "8182"
-    depends_on:
-      database:
-        condition: service_healthy
-
-  reservation-service:
-    <<: *app-common
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: reservation
-    container_name: msa-reservation
-    expose:
-      - "8183"
-    depends_on:
-      database:
-        condition: service_healthy
-
-  gateway-service:
-    <<: *app-common
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_NAME: gateway
-    container_name: msa-gateway
+    container_name: bus-app
+    restart: unless-stopped
+    logging: *default-logging
+    # 힙 상한은 mem_limit 과 -Xmx 를 함께 줘야 보장된다. 제한 없이 MaxRAMPercentage 만 주면 호스트 메모리 기준으로 잡힌다.
+    # 메타스페이스·코드 캐시·스레드 스택 등 힙 밖 메모리를 위해 제한과 힙 사이에 여유를 둔다. 값은 측정으로 조정한다.
+    mem_limit: 1g
     ports:
-      - "${GATEWAY_PORT:-8080}:8080"
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=${TZ:-Asia/Seoul} -Xmx640m"
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-default}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?루트 .env에 POSTGRES_PASSWORD를 설정하세요}
+      # 비밀값은 프로젝트 루트 .env 에서 읽는다(git 제외, .env.example 참고). 없으면 기동을 막는다.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
+      SEOUL_API_KEY: ${SEOUL_API_KEY:-}
+      REDIS_HOST: valkey
+      REDIS_PORT: 6379
+      COOKIE_SECURE: ${COOKIE_SECURE:?루트 .env에 COOKIE_SECURE를 설정하세요}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:?루트 .env에 CORS_ALLOWED_ORIGIN을 설정하세요}
+      # 관리자 사이트 origin (예: https://admin.mbus.kr). 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다.
+      CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
+    # restart: unless-stopped 는 프로세스 종료에만 반응한다. unhealthy 여도 프로세스가 살아 있으면 재시작하지 않으므로
+    # 응답 불능은 외부 감시·알림으로 대응한다.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     depends_on:
+      database:
+        condition: service_healthy
       valkey:
         condition: service_healthy
-      iam-service:
-        condition: service_started
-      stop-service:
-        condition: service_started
-      reservation-service:
-        condition: service_started
 
 volumes:
   postgres_data:

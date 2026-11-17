@@ -20,12 +20,12 @@ Base package: `com.media.bus.common`
 |---|---|---|
 | `CommonCoreAutoConfiguration` | `@ConditionalOnClass(Aspect.class)` | `TransactionalBulkheadAspect`, `BoundedConcurrencyAspect` |
 | `CommonWebMvcAutoConfiguration` | Servlet 환경 | `ResponseBodyWrapper` 빈들, `ResponseAdvisor`, `ExceptionAdvisor` |
-| `CommonSecurityAutoConfiguration` | Servlet 환경 | Spring Security 기본 필터 체인 |
 | `CommonLoggingAutoConfiguration` | Servlet 환경 | `MdcLoggingFilter` (requestId + memberId → MDC) |
-| `RestClientConfig` | Servlet 환경 | `internalRestClient` 빈 |
 | `ThreadPoolConfig` | 항상 | 공유 Executor 설정 (`getForkJoinPoolExecutor`, `getIoBoundExecutor`) |
 
-`JwtProvider` 빈은 `auth-contract`의 `AuthContractAutoConfiguration`이 제공한다 (common의 `TokenProvider` 구현체).
+`JwtProvider` 빈은 `auth-contract`의 `AuthContractAutoConfiguration`이 제공한다.
+
+보안 필터 체인은 등록하지 않는다. 체인은 `modules/app`의 `SecurityConfig` 하나뿐이다. 예전에 두던 "체인이 없으면 permitAll" 기본 체인은 `app` 체인이 빠졌을 때 인증 없이 열리는 구조라 지웠다.
 
 ## 소비 모듈 필수 설정
 
@@ -51,11 +51,18 @@ hig:
 | 예외 | HTTP 상태 |
 |------|-----------|
 | `BusinessException` | `Result.httpStatus()` (기본 400) |
+| `MethodArgumentNotValidException` · `HttpMessageNotReadableException` · `MethodArgumentTypeMismatchException` · `MissingServletRequestParameterException` | 400 (`00260`) |
+| `NoResourceFoundException` · `NoHandlerFoundException` (매핑 없는 경로) | 404 (`00280`) |
+| `HttpRequestMethodNotSupportedException` | 405 (`00281`, `Allow` 헤더) |
+| `HttpMediaTypeNotSupportedException` | 415 (`00282`) |
+| `BulkheadFullException` | 429 (`00270`, `Retry-After: 1`) |
 | `NoAuthenticationException` | 401 |
 | `NoAuthorizationException` / `AccessDeniedException` | 403 |
 | `StorageException` | 404 |
 | `BaseException` | 500 |
 | `Exception` (catch-all) | 500 |
+
+`Exception` catch-all은 Spring MVC가 원래 4xx로 처리하던 예외까지 먼저 잡는다. 클라이언트 오류 예외는 전용 처리기를 둬야 500이 되지 않는다(`ExceptionAdvisorRequestErrorTest`).
 
 새 예외 추가: `BaseException(result, message, cause)` 상속. Kotlin 기본 인수 사용. `Result` 인터페이스는 `CommonResult` enum이 구현 — 모듈별 enum도 구현 가능.
 
@@ -103,14 +110,14 @@ self-invocation (`this.method()`)은 AOP 우회 → 비동기 메서드는 별�
 - `getIoBoundExecutor` — IO-bound 작업용 Virtual Thread 실행기
 - 두 실행기 모두 `MdcContextUtil.wrap()`으로 MDC 컨텍스트를 자동 전파
 
-## 서비스 간 HTTP 통신
+## 진입점 입력 검증 (`InputValidator`)
 
-`internalRestClient` 빈: `Authorization` 헤더를 신뢰 내부 호스트에만 자동 전파.
-신뢰 호스트 패턴: `*.local`, `*.internal`, `*service*`, `localhost`, `10.*`
+모듈 간 호출은 HTTP가 아니라 같은 프로세스 안의 직접 호출이라 제공 모듈 컨트롤러의 `@Valid`가 실행되지 않는다.
+다른 모듈이 부르는 Service·Facade 진입점에서 `InputValidator.validate(request)`로 DTO 제약을 실행한다.
+실패하면 `BusinessException(CommonResult.VALIDATION_FAIL)`(400/`00260`, 기본 메시지)을 던진다.
+`@Validated` 프록시 검증은 `ConstraintViolationException` 처리기가 없어 500이 되므로 쓰지 않는다.
 
-비동기/스케줄러 등 요청 컨텍스트 없는 호출은 `TokenProvider.generateS2SToken()`으로 S2S 토큰을 자동 주입.
-
-`S2SRestClientFactory`로 만든 클라이언트는 하위 서비스 4xx를 **같은 상태의 `BusinessException`**으로 바꿔 호출자에게 전달한다. 하위 응답의 `code`와 `message`는 `DownstreamResult`에 실어 그대로 내보내고, 본문에 `code`가 없으면 `CommonResult.FAIL`을 쓴다. 401/403은 사용자 인증이 아니라 S2S 설정 문제이므로 `ServiceException`(500)으로 바꾼다. 프론트가 이를 자기 토큰 만료로 오인하지 않게 하기 위함이다.
+(예전 S2S HTTP 인프라 `S2SRestClientFactory`·`TokenProvider`·`internalRestClient`는 모듈러 모놀리스 전환 때 제거했다.)
 
 ## Exposed 기본 엔티티
 
@@ -124,7 +131,7 @@ UUID v7은 시간 정렬 가능한 monotonically increasing UUID. B-tree 인덱�
 ## 로깅
 
 - **Log4j2** + **LMAX Disruptor 4.0** — `AsyncRoot` 락프리 비동기 로깅 (Virtual Thread 핀닝 방지)
-- **`MdcLoggingFilter`** — `requestId`, `memberId` MDC 주입 (X-User-Id 헤더 기반, Virtual Thread 안전)
+- **`MdcLoggingFilter`** — `requestId` MDC 주입, 요청 끝에 `requestId`·`memberId` 제거. `memberId`는 `app` 인증 필터가 토큰 검증 후 `MDC_MEMBER_ID`로 넣는다(헤더를 읽지 않는다)
 
 MDC는 ThreadLocal 기반이므로 새 스레드에서 자동 전파 안 됨.
 `@Async` 메서드는 `mdcTaskDecorator`가 자동 처리. 수동 스레드 생성 시 `MdcContextUtil.wrap()` 사용.

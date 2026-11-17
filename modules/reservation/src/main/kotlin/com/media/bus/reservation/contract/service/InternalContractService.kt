@@ -19,7 +19,7 @@ import java.util.*
  * - 일반 사용자 흐름(`ContractService.getMyContracts`)이 본인 검증을 포함하는 것과 달리,
  *   이 서비스는 호출 측(iam 어드민)이 이미 권한 검증을 완료했다고 전제한다.
  * - Contract 페이지 조회 → 같은 페이지 내 ContractDetail을 bulk 조회로 결합하여 N+1을 피한다.
- * - 정류소 정보 결합은 트랜잭션 외부(`InternalContractFacade`)에서 처리한다 — DB와 S2S 호출의 경계를 분리.
+ * - 정류소 정보 결합은 트랜잭션 외부(`InternalContractFacade`)에서 처리한다 — DB 작업과 다른 모듈 호출의 경계를 분리.
  */
 @Service
 class InternalContractService(
@@ -75,7 +75,7 @@ class InternalContractService(
         )
     }
 
-    /** 소유자 제한 없이 계약과 계약 상세를 조회한다. 접근 제어는 internal S2S 경계에서 수행한다. */
+    /** 소유자 제한 없이 계약과 계약 상세를 조회한다. 접근 제어는 호출 경로가 맡는다(iam 관리자 API의 `@Authorize`와 app 인증 필터의 관리자 발급처 검사). */
     @Transactional(readOnly = true)
     fun getContractDetail(contractId: UUID): AdminContractView {
         val contract = contractRepository.findById(contractId)

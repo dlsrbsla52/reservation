@@ -10,7 +10,7 @@ import java.util.*
  *
  * 설계 의도:
  * - 어드민이 매니저 한 명의 계약 현황을 한 번에 확인할 수 있도록 매니저 요약 정보와 계약 목록을 함께 반환한다.
- * - 매니저 정보는 iam 내부 `MemberService`에서, 계약 정보는 reservation S2S 호출로 결합한다.
+ * - 매니저 정보는 iam 내부 `MemberService`에서, 계약 정보는 `ReservationAdminPort`로 조회해 결합한다.
  *
  * 호출 측 어드민 UI는 응답 한 번으로 매니저 컨텍스트와 계약 리스트를 동시 렌더할 수 있다.
  */

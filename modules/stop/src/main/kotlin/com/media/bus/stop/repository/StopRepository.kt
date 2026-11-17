@@ -32,10 +32,11 @@ class StopRepository {
 
     @Transactional(readOnly = true)
     fun findByStopNameStartingWith(stopName: String): List<StopEntity> =
-        StopEntity.find { StopTable.stopName like "$stopName%" }.toList()
+        StopEntity.find { StopTable.stopName like "${escapeLike(stopName)}%" }
+            .limit(MAX_NAME_RESULTS + 1).toList()
 
     /**
-     * pk(UUID) 복수 기반 일괄 조회 — 예약 서비스의 N+1 S2S 호출 제거용.
+     * pk(UUID) 복수 기반 일괄 조회 — 예약 모듈의 N+1 정류소 조회 제거용.
      * 빈 컬렉션은 DB 쿼리 없이 빈 리스트를 반환한다.
      */
     @Transactional(readOnly = true)
@@ -56,7 +57,7 @@ class StopRepository {
     private fun listPredicate(keyword: String?, stopsType: StopType?): Op<Boolean> {
         val conditions = mutableListOf<Op<Boolean>>()
         keyword?.let {
-            conditions += (StopTable.stopName like "%$it%") or (StopTable.stopId like "%$it%")
+            conditions += (StopTable.stopName like "%${escapeLike(it)}%") or (StopTable.stopId like "%${escapeLike(it)}%")
         }
         // 유형은 enum 컬럼이라 동등 비교 한 번이면 된다.
         stopsType?.let { conditions += StopTable.stopsType eq it }
@@ -77,4 +78,12 @@ class StopRepository {
             .limit(size)
             .offset((page.toLong()) * size)
             .map { StopEntity.wrapRow(it) }
+
+    companion object {
+        const val MAX_NAME_RESULTS = 100
+
+        /** PostgreSQL의 기본 LIKE 이스케이프 문자부터 처리하여 리터럴 접두·부분 검색을 보장한다. */
+        internal fun escapeLike(value: String): String =
+            value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    }
 }

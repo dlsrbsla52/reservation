@@ -19,7 +19,13 @@ sealed interface StopSearchCriteria {
     data class ByStopId(val stopId: String) : StopSearchCriteria
 
     /** 정류소 이름 전방 일치 조회 (idx_stop_name 인덱스 활용, 'text%' 패턴) */
-    data class ByStopName(val stopName: String) : StopSearchCriteria
+    data class ByStopName(val stopName: String) : StopSearchCriteria {
+        init {
+            if (stopName.isBlank() || stopName.length > 200) {
+                throw BusinessException(CommonResult.VALIDATION_FAIL, "정류소 이름은 공백이 아닌 200자 이하여야 합니다.")
+            }
+        }
+    }
 
     companion object {
         /**

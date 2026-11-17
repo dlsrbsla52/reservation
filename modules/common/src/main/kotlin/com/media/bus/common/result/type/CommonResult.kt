@@ -63,6 +63,11 @@ enum class CommonResult(
     USER_NOT_DENY_ADMIN("00257", "어드민 회원은 신청할 수 없습니다.", HttpStatus.FORBIDDEN),
     VALIDATION_FAIL("00260","입력 값 검증에 실패하였습니다."),
     BULKHEAD_FULL("00270", "서버가 처리할 수 있는 최대 동시 요청 수를 초과하였습니다. 잠시 후 다시 시도해 주세요."),
+
+    // 요청 경로·메서드·본문 형식 (Spring MVC 가 핸들러를 찾기 전에 거절하는 요청)
+    ROUTE_NOT_FOUND_FAIL("00280", "요청한 경로를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    METHOD_NOT_ALLOWED_FAIL("00281", "지원하지 않는 요청 메서드입니다.", HttpStatus.METHOD_NOT_ALLOWED),
+    UNSUPPORTED_MEDIA_TYPE_FAIL("00282", "지원하지 않는 요청 본문 형식입니다.", HttpStatus.UNSUPPORTED_MEDIA_TYPE),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

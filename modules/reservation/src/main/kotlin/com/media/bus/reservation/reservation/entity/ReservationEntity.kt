@@ -35,7 +35,7 @@ class ReservationEntity(id: EntityID<UUID>) : DateBaseEntity(id, ReservationTabl
             stopId: UUID,
             slotNo: Short,
             consultationRequestedAt: OffsetDateTime,
-            desiredContractStartDate: LocalDate?,
+            desiredContractStartDate: LocalDate,
             holdExpiresAt: OffsetDateTime,
         ): ReservationEntity = new(UuidV7.generate()) {
             this.memberId = memberId

@@ -18,7 +18,7 @@ import java.util.*
  * 또한 게터명이 `getLat()`/`getLng()` 이라 Jackson 기본 네이밍에서도 직렬화명이 그대로 유지된다
  * (`xCrd` → `getXCrd()` → `xcrd` 로 깨지던 문제가 발생하지 않는다).
  */
-@Schema(description = "지도 마커용 정류소 좌표")
+@Schema(name = "StopMapMarkerResponse", description = "지도 마커용 정류소 좌표")
 data class StopMarkerResponse(
     @get:Schema(description = "정류소 PK (UUID)", example = "ac130005-9cf0-14ae-819c-f08586140000")
     val id: UUID,

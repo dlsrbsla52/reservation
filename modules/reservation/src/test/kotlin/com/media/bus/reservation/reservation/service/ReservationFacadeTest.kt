@@ -24,13 +24,14 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.*
 
 /**
  * ## ReservationFacade 단위 테스트
  *
- * - 예약 생성: Redis 게이트 → stop S2S → DB 저장 순서와, 정류소별 부분 성공/실패 집계를 검증한다.
+ * - 예약 생성: Redis 게이트 → stop 정류소 조회(포트) → DB 저장 순서와, 정류소별 부분 성공/실패 집계를 검증한다.
  * - 선점 해제: 취소·상태 변경·만료가 커밋된 뒤 점유 캐시를 지우는지 검증한다.
  * - 어드민 회원별 예약 조회(`getMemberReservations`)의 정류소 결합과 graceful fallback 을 검증한다.
  */
@@ -60,7 +61,7 @@ class ReservationFacadeTest {
     private fun request(vararg stopIds: UUID) = CreateStopReservationRequest(
         stopId = linkedSetOf(*stopIds),
         consultationRequestedAt = OffsetDateTime.parse("2026-11-20T10:00:00+09:00"),
-        desiredContractStartDate = null,
+        desiredContractStartDate = LocalDate.of(2027, 1, 1),
     )
 
     private fun pass(id: UUID) = StopHoldGate.Pass(StopHoldGate.keyOf(id, slotNo), "token-$id")
@@ -84,7 +85,7 @@ class ReservationFacadeTest {
             status = ReservationStatus.PENDING,
             holdExpiresAt = null,
             consultationRequestedAt = OffsetDateTime.now(),
-            desiredContractStartDate = null,
+            desiredContractStartDate = LocalDate.of(2027, 1, 1),
             createdAt = OffsetDateTime.now(),
         )
 
@@ -114,7 +115,7 @@ class ReservationFacadeTest {
     }
 
     @Test
-    @DisplayName("게이트에서 막히면 stop S2S 와 DB 를 호출하지 않고 선점됨으로 실패한다")
+    @DisplayName("게이트에서 막히면 stop 정류소 조회와 DB 를 호출하지 않고 선점됨으로 실패한다")
     fun `게이트 거절`() {
         every { stopHoldGate.tryEnter(stopId, slotNo) } returns null
 

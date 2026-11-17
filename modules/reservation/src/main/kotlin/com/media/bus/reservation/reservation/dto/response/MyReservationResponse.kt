@@ -36,7 +36,7 @@ data class MyReservationResponse(
     val consultationRequestedAt: OffsetDateTime,
 
     @param:Schema(description = "계약 시작 희망 일자")
-    val desiredContractStartDate: LocalDate?,
+    val desiredContractStartDate: LocalDate,
 
     @param:Schema(description = "예약 생성 일시")
     val createdAt: OffsetDateTime,

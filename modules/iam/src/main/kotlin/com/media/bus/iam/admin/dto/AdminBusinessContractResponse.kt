@@ -1,6 +1,6 @@
 package com.media.bus.iam.admin.dto
 
-import com.media.bus.iam.client.reservation.dto.AdminContractView
+import com.media.bus.iam.port.dto.reservation.AdminContractView
 import io.swagger.v3.oas.annotations.media.Schema
 import java.math.BigDecimal
 import java.time.OffsetDateTime
@@ -10,7 +10,7 @@ import java.util.*
  * ## 어드민 사이트 전용 계약 결합 응답 DTO
  *
  * 설계 의도:
- * - reservation 내부 API의 응답(`AdminContractView`)을 어드민 API의 공개 응답으로 변환한다.
+ * - `ReservationAdminPort`의 응답(`AdminContractView`)을 어드민 API의 공개 응답으로 변환한다.
  * - client 패키지의 DTO는 외부 노출하지 않고, 어드민 API 계약 변경 시 영향 범위를 이 클래스로 한정한다.
  * - 도메인 Enum은 모듈 경계 원칙에 따라 String으로 직렬화한다.
  */

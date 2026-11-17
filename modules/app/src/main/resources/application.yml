@@ -1,0 +1,113 @@
+# 모듈러 모놀리스 실행 설정. iam·stop·reservation 의 application.yml 을 하나로 합쳤다.
+# 라이브러리 모듈에는 application*.yml 을 두지 않는다 — 같은 이름 리소스는 병합되지 않고 클래스패스 첫 번째만 쓰인다.
+server:
+  port: 8080   # 프런트가 보던 gateway 포트와 같다
+
+spring:
+  config:
+    # 비밀값(JWT_SECRET, SEOUL_API_KEY 등)은 프로젝트 루트 .env(git 제외)에서 읽는다.
+    # bootRun 은 모듈 디렉터리, IDE 는 프로젝트 루트에서 실행되므로 두 위치를 모두 둔다.
+    # 컨테이너에는 .env 가 없고(optional) compose 가 환경변수로 주입한다 — 환경변수가 이 파일보다 우선한다.
+    import: "optional:file:.env[.properties],optional:file:../../.env[.properties]"
+  application:
+    name: bus
+  main:
+    # 모듈을 합치면서 생길 수 있는 빈 이름 충돌을 조용히 덮어쓰지 않고 기동 실패로 드러낸다
+    allow-bean-definition-overriding: false
+  datasource:
+    hikari:
+      maximum-pool-size: 20   # 예전 서비스 3개 × 20 → 1개 풀 20
+    # 테이블이 스키마를 명시하므로("auth.member", "stop.stop" 등) ?schema= 가 필요 없다
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}"
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+    driverClassName: "org.postgresql.Driver"
+  liquibase:
+    enabled: true
+    # iam → stop → reservation 순서로 각 모듈 master 를 include 한다
+    changeLog: classpath:/db/changelog/db.changelog-master.xml
+    parameters:
+      log-level: FINE
+  jackson:
+    default-property-inclusion: NON_NULL
+  threads:
+    virtual: # 기본 Thread를 Virtual Thread 설정
+      enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+# Actuator 는 공개 포트(8080)와 분리해 루프백 8081 에만 연다.
+# 공개 포트에 두면 POST /actuator/loggers 로 외부에서 로그 레벨을 바꿀 수 있다.
+# 런타임 로그레벨 토글(컨테이너 안에서):
+#   curl -X POST localhost:8081/actuator/loggers/com.media.bus.common.logging.AccessLoggingFilter \
+#        -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}'
+management:
+  server:
+    port: 8081
+    address: 127.0.0.1
+  endpoints:
+    web:
+      exposure:
+        include: health, loggers
+  endpoint:
+    loggers:
+      access: unrestricted # POST 레벨 변경 허용 (기본값이지만 명시)
+
+hig:
+  bulkhead:
+    database-name: orderDatabase # resilience4j.bulkhead.instances 이름과 반드시 일치해야 함
+
+resilience4j:
+  bulkhead:
+    instances:
+      orderDatabase: # 벌크헤드 이름. 이제 모든 모듈이 이 퍼밋 하나를 나눠 쓴다
+        maxConcurrentCalls: 19 # 풀 크기 - 1
+        maxWaitDuration: 200ms # 진입을 위해 기다릴 최대 시간 (초과 시 에러)
+
+# 정류소 선점(hold) 정책. 값을 바꾸면 이후 생성·전이되는 예약부터 적용된다.
+reservation:
+  hold:
+    duration: 7d # 선점 유지 기간. 예약 시점과 상담 시작 시점에 이만큼 만료가 설정된다
+    max-active-per-member: 100 # 회원 1명이 동시에 가질 수 있는 진행 중 예약 수
+    gate-ttl: 5s # Redis 게이트 락 TTL (예약 1건의 정류소 확인 + DB 저장이 끝나기에 충분한 시간)
+    occupied-cache-ttl: 30s # 예약 성공 후 게이트 키를 "점유됨" 캐시로 유지하는 시간
+    expiry-interval: PT1M # 만료 스케줄러 주기 (ISO-8601)
+    expiry-batch-size: 100 # 만료 스케줄러가 한 번에 처리하는 예약 수
+
+seoul:
+  api:
+    key: ${SEOUL_API_KEY:}
+    base-url: http://openapi.seoul.go.kr:8088
+
+# JWT 설정. 운영 환경에서는 반드시 AWS Secrets Manager 또는 환경변수로 주입해야 합니다.
+jwt:
+  secret: ${JWT_SECRET}
+
+# Cookie 설정. HTTPS 환경에서는 COOKIE_SECURE=true 환경변수로 주입해야 합니다.
+cookie:
+  secure: ${COOKIE_SECURE}
+
+# CORS. 일반 사이트 origin 과 관리자 사이트 origin(비우면 일반 origin 과 같게 동작)
+cors:
+  allowed-origin: ${CORS_ALLOWED_ORIGIN}
+  admin-allowed-origin: ${CORS_ADMIN_ALLOWED_ORIGIN:}
+
+# 공개 포트 경로 정책(app SecurityConfig). Swagger·api-docs 는 기본으로 막는다(404).
+app:
+  security:
+    expose-api-docs: false
+
+springdoc:
+  api-docs:
+    enabled: false
+    path: /api-docs # OpenAPI JSON 문서 경로
+  swagger-ui:
+    enabled: false
+    path: /swagger-ui.html # Swagger UI 접속 경로
+    groups-order: DESC # 그룹 표시 순서
+    operations-sorter: method # API 정렬 기준 (method, alpha 등)
+    disable-swagger-default-url: true # 기본 petstore URL 비활성화
+    display-request-duration: true # API 응답 시간 표시
+  show-actuator: false

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
  * ## 지도 연동 전용 정류소 컨트롤러
  *
  * 경로를 `/api/v1/stop/map` 하위에 둔 이유:
- * 게이트웨이가 `/api/v1/stop` 하위 전체를 8182로 라우팅하므로 라우트 추가가 필요 없고,
+ * `/api/v1/stop` prefix 가 이미 라우트 허용 목록(app `ApiPathPolicy`)에 있어 추가 설정이 필요 없고,
  * 지도 전용 API 묶음이라는 사실이 URL에도 드러난다.
  */
 @Tag(name = "정류장 지도 API", description = "지도 화면 전용 정류소 좌표 조회")

@@ -14,10 +14,15 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.HttpMediaTypeNotSupportedException
+import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.servlet.NoHandlerFoundException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import java.time.Instant
 
 /**
@@ -96,6 +101,61 @@ class ExceptionAdvisor {
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, "요청 파라미터 값이 올바르지 않습니다.", request, fieldErrors,
         )
+    }
+
+    /**
+     * 필수 요청 파라미터 누락(400).
+     *
+     * 필수 `@RequestParam`이 빠지면 발생한다. 처리기가 없으면 catch-all이 500으로 응답하므로 400으로 바로잡는다.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException::class)
+    fun missingParameterHandler(
+        request: HttpServletRequest,
+        error: MissingServletRequestParameterException,
+    ): ResponseEntity<ErrorView> {
+        val fieldErrors = listOf(ErrorView.FieldErrorDetail(error.parameterName, "필수 값입니다."))
+        log.warn("missingParameterHandler: {} {} -> {}", request.method, request.requestURI, fieldErrors)
+        return buildErrorResponse(
+            HttpStatus.BAD_REQUEST, CommonResult.VALIDATION_FAIL, "필수 요청 파라미터가 없습니다.", request, fieldErrors,
+        )
+    }
+
+    /**
+     * 매핑된 핸들러가 없는 경로(404).
+     *
+     * Spring MVC는 매핑이 없으면 정적 리소스 처리로 넘기고 `NoResourceFoundException`을 던진다.
+     * 처리기가 없으면 catch-all이 500과 ERROR 스택트레이스를 남기므로, 클라이언트 오류로 보고 404·`log.warn`으로 처리한다.
+     * 공개 포트에서는 인증 필터가 라우트 prefix 밖 경로를 먼저 404로 끝내므로, 여기 오는 것은 prefix 안의 없는 경로다.
+     */
+    @ExceptionHandler(NoResourceFoundException::class, NoHandlerFoundException::class)
+    fun notFoundHandler(request: HttpServletRequest, error: Exception): ResponseEntity<ErrorView> {
+        log.warn("notFoundHandler: {} {}", request.method, request.requestURI)
+        return buildErrorResponse(HttpStatus.NOT_FOUND, CommonResult.ROUTE_NOT_FOUND_FAIL, null, request)
+    }
+
+    /** 경로는 있지만 메서드가 다른 요청(405). `Allow` 헤더로 허용 메서드를 알린다. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
+    fun methodNotSupportedHandler(
+        request: HttpServletRequest,
+        error: HttpRequestMethodNotSupportedException,
+    ): ResponseEntity<ErrorView> {
+        log.warn("methodNotSupportedHandler: {} {}", request.method, request.requestURI)
+        val status = HttpStatus.METHOD_NOT_ALLOWED
+        val builder = ResponseEntity.status(status)
+        error.supportedHttpMethods?.let { builder.allow(*it.toTypedArray()) }
+        return builder
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(buildErrorView(status, CommonResult.METHOD_NOT_ALLOWED_FAIL, null, request, null))
+    }
+
+    /** 지원하지 않는 `Content-Type`의 요청 본문(415). */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException::class)
+    fun mediaTypeNotSupportedHandler(
+        request: HttpServletRequest,
+        error: HttpMediaTypeNotSupportedException,
+    ): ResponseEntity<ErrorView> {
+        log.warn("mediaTypeNotSupportedHandler: {} {} contentType={}", request.method, request.requestURI, error.contentType)
+        return buildErrorResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, CommonResult.UNSUPPORTED_MEDIA_TYPE_FAIL, null, request)
     }
 
     @ExceptionHandler(StorageException::class)

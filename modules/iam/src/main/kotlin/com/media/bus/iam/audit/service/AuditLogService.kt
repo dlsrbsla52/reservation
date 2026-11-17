@@ -3,6 +3,7 @@ package com.media.bus.iam.audit.service
 import com.media.bus.iam.audit.entity.AuditLogEntity
 import com.media.bus.iam.audit.entity.enumerated.AuditActorType
 import com.media.bus.iam.audit.entity.enumerated.AuditResult
+import com.media.bus.iam.support.ClientIpResolver
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -60,7 +61,7 @@ class AuditLogService {
                 action = action,
                 targetType = targetType,
                 targetId = targetId,
-                ip = request?.let(::extractClientIp),
+                ip = ClientIpResolver.resolve(request),
                 userAgent = request?.getHeader("User-Agent")?.take(500),
                 result = result,
                 detail = detail,
@@ -108,12 +109,4 @@ class AuditLogService {
 
     private fun currentRequest(): HttpServletRequest? =
         (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-
-    private fun extractClientIp(request: HttpServletRequest): String? {
-        val forwarded = request.getHeader("X-Forwarded-For")
-        if (!forwarded.isNullOrBlank()) {
-            return forwarded.substringBefore(",").trim().ifBlank { null }
-        }
-        return request.remoteAddr
-    }
 }

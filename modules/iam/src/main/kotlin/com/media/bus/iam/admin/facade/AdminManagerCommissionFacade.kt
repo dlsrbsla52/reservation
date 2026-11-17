@@ -12,8 +12,8 @@ import java.util.*
  * ## 영업사원 정산 비율 관리 Facade
  *
  * Controller와 Service 사이의 오케스트레이션 계층.
- * 현재 정산 비율 관리는 IAM DB만 사용하므로 S2S 호출 없이 Service를 위임한다.
- * 향후 S2S 호출이 추가될 경우 트랜잭션 외부(Facade)와 내부(Service)를 명시적으로 분리한다.
+ * 현재 정산 비율 관리는 IAM DB만 사용하므로 다른 모듈 호출 없이 Service를 위임한다.
+ * 향후 다른 모듈 포트 호출이 추가될 경우 트랜잭션 외부(Facade)와 내부(Service)를 명시적으로 분리한다.
  */
 @Service
 class AdminManagerCommissionFacade(
@@ -61,13 +61,6 @@ class AdminManagerCommissionFacade(
         reason: String? = null,
     ): ContractCommissionOverrideEntity =
         commissionService.upsertContractCommissionOverride(contractId, memberId, newRate, changedBy, reason)
-
-    /**
-     * 계약에 적용할 최종 정산 비율을 결정한다.
-     * Reservation 모듈의 /internal S2S API에서 호출한다.
-     */
-    fun resolveEffectiveRate(memberId: UUID, contractId: UUID? = null): BigDecimal =
-        commissionService.resolveEffectiveRate(memberId, contractId)
 
     /** 영업사원의 정산 비율 변경 이력 전체를 조회한다. */
     fun getCommissionHistory(memberId: UUID): List<CommissionRateHistoryEntity> =
