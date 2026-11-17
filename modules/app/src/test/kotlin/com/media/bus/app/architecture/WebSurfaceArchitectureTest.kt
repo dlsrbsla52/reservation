@@ -1,7 +1,7 @@
 package com.media.bus.app.architecture
 
-import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.contract.security.annotation.requiresAdminAudience
 import io.swagger.v3.oas.annotations.media.Schema
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
@@ -77,11 +77,7 @@ class WebSurfaceArchitectureTest {
         assertThat(missing.map { "${it.controller.simpleName}.${it.method.name}" }).isEmpty()
     }
 
-    /**
-     * 관리자만 통과시키는 핸들러가 `/api/v1/admin` 밖에 있으면 인증 필터의 발급처 검사(`aud=ADMIN`)를 받지 않는다.
-     * 관리자 계정이 일반 사이트에서 받은 토큰으로도 호출된다. 예전 `POST /api/v1/stop/simple`,
-     * `POST /api/v1/stop/register/bulk`가 그랬다. 관리자 기능은 iam admin API → 포트로 위임한다.
-     */
+    /** 런타임 발급처 검사와 별개로 관리자 기능을 iam admin API에 모으는 모듈 경계를 고정한다. */
     @Test
     fun `관리자만 허용하는 핸들러는 admin 경로 아래에만 있다`() {
         val misplaced = handlers
@@ -144,13 +140,11 @@ class WebSurfaceArchitectureTest {
 
     /** `AuthorizeHandlerInterceptor`와 같은 규칙: 메서드에 있으면 클래스 것을 무시한다. */
     private fun effectiveAuthorize(h: Handler): Authorize? =
-        h.method.getAnnotation(Authorize::class.java) ?: h.controller.getAnnotation(Authorize::class.java)
+        AnnotatedElementUtils.findMergedAnnotation(h.method, Authorize::class.java)
+            ?: AnnotatedElementUtils.findMergedAnnotation(h.controller, Authorize::class.java)
 
-    /** 관리자 회원만 통과하는 규칙인가. categories·types가 모두 비면 "인증된 회원 누구나"라 해당하지 않는다. */
-    private fun isAdminOnly(authorize: Authorize?): Boolean {
-        if (authorize == null || (authorize.categories.isEmpty() && authorize.types.isEmpty())) return false
-        return authorize.categories.all { it == MemberCategory.ADMIN } && authorize.types.all { it.isAdmin }
-    }
+    /** 런타임 인가와 동일한 기준으로 관리자 전용 규칙을 식별한다. */
+    private fun isAdminOnly(authorize: Authorize?): Boolean = authorize?.requiresAdminAudience() == true
 
     private fun schemaName(type: Class<*>): String =
         type.getAnnotation(Schema::class.java)?.name?.takeIf { it.isNotBlank() } ?: type.simpleName

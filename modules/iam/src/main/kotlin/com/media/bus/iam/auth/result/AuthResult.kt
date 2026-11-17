@@ -34,6 +34,7 @@ enum class AuthResult(
     COMMISSION_ALREADY_EXISTS("A0018", "이미 정산 비율이 등록된 영업사원입니다.", HttpStatus.CONFLICT),
     ADMIN_SITE_LOGIN_REQUIRED("A0019", "관리자 계정은 관리자 사이트에서 로그인해주세요.", HttpStatus.FORBIDDEN),
     ADMIN_ACCOUNT_REQUIRED("A0020", "관리자 계정만 로그인할 수 있습니다.", HttpStatus.FORBIDDEN),
+    LOGIN_ID_LOOKUP_RATE_LIMITED("A0022", "아이디 찾기 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.", HttpStatus.TOO_MANY_REQUESTS),
     TOKEN_AUDIENCE_MISMATCH("A0021", "다른 사이트에서 발급된 인증 정보입니다. 다시 로그인해주세요.", HttpStatus.UNAUTHORIZED),
     ;
 

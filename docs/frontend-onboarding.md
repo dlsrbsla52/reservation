@@ -272,12 +272,22 @@ export default api;
 | Method | Path | 설명 |
 |--------|------|------|
 | GET  | `/me` | 내 정보 조회 (토큰 필요) |
-| GET  | `/find/me` | 아이디 찾기 (토큰 불필요). 본문에 `memberName` + `phoneNumber` 또는 `email`. 응답은 `loginId`만 |
+| POST | `/find/me` | 아이디 찾기 (토큰 불필요). 본문에 `memberName` + `phoneNumber` 또는 `email`. 응답은 `loginId`만 |
 | POST | `/modify` | 내 정보 수정 |
 | DELETE | `/withdraw` | 회원 탈퇴 |
 | POST | `/deactivate` | 계정 비활성화 |
 
-### 6-3. 관리자 (iam, `/api/v1/admin`) — ADMIN 권한 필요
+아이디 찾기는 `POST /api/v1/member/find/me`에 JSON 본문을 보낸다. 이전 GET 호출은 지원하지 않는다.
+IP당 1분 5회, 전화번호·이메일 각각 10분 5회를 초과하면 `429 / A0022`를 반환한다.
+ACTIVE·INACTIVE 회원만 조회하며, SUSPENDED·WITHDRAWN 회원은 회원 없음으로 응답한다.
+발송 수단 도입 전까지는 로그인 아이디를 직접 반환하므로, 회원 존재 여부를 숨기는 처리는 후속 과제다.
+
+### 6-3. 관리자 (iam, `/api/v1/admin`) — 관리자 사이트 토큰 필수
+
+단건 정류소 등록은 ADMIN 카테고리 + WRITE 권한을 요구한다(ADMIN_USER 포함).
+정류소 조회·단가 관리·일괄 등록은 ADMIN_MASTER·ADMIN_DEVELOPER + MANAGE 권한을 요구한다.
+회원 생성·조회·정지 등은 ADMIN_MASTER + MANAGE, 역할·권한 관리는 ADMIN_MASTER + MANAGE다.
+메서드별 `@Authorize`가 최종 기준이며, 일반 사이트 토큰(`aud=USER`)은 사용할 수 없다.
 
 | Method | Path | 설명 |
 |--------|------|------|
@@ -289,7 +299,7 @@ export default api;
 | PUT  | `/members/{memberId}/unsuspend` | 정지 해제 |
 | GET  | `/members/{memberId}/status-history` | 상태 변경 이력 |
 | GET/POST/PUT/DELETE | `/authorization/...` | 역할/권한 관리 |
-| POST | `/stop/simple` | 정류소 단건 등록 (수동) |
+| POST | `/stop/simple` | 정류소 단건 등록 (수동, ADMIN + WRITE) |
 | POST | `/stop/register/bulk` | 서울 열린데이터광장 일괄 동기화 |
 
 ### 6-4. 정류소 (stop, `/api/v1/stop`)
@@ -297,6 +307,11 @@ export default api;
 | Method | Path | 설명 |
 |--------|------|------|
 | GET  | `/api/v1/stop` | 정류소 목록 (검색/필터) |
+
+정류소 `stopName`은 공백뿐인 값을 허용하지 않는 최대 200자 접두 검색이고 `%`·`_`·`\`는 문자 그대로 처리한다.
+이름 조회가 100건을 넘으면 400을 반환한다. 이 경우 `stopName` 대신 `keyword`를 사용해 페이지 조회한다.
+페이지 조회는 `page >= 0`, `size=1~100`, `keyword` 최대 200자를 허용한다.
+`keyword`에서도 `%`·`_`·`\`는 문자 그대로 처리한다.
 
 정류소 등록(단건·일괄)은 관리자 기능이라 관리자 사이트에서 `POST /api/v1/admin/stop/simple`, `POST /api/v1/admin/stop/register/bulk`로 호출한다(6-3). 예전 `/api/v1/stop/simple`, `/api/v1/stop/register/bulk`는 없어졌다.
 

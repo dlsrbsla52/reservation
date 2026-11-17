@@ -50,6 +50,7 @@ class JwtProviderAudienceTest {
         val claims = jwtProvider.parseClaimsFromToken(token)
 
         assertThat(TokenAudience.fromClaims(claims)).isEqualTo(TokenAudience.ADMIN)
+        assertThat(MemberPrincipal.fromClaims(claims).audience).isEqualTo(TokenAudience.ADMIN)
         assertThat(ttlOf(token).toSeconds()).isCloseTo(Duration.ofMinutes(15).toSeconds(), within(1L))
     }
 

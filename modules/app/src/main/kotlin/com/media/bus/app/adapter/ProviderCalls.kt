@@ -1,9 +1,6 @@
 package com.media.bus.app.adapter
 
-import com.media.bus.common.exceptions.BaseException
-import com.media.bus.common.exceptions.BusinessException
-import com.media.bus.common.exceptions.ServiceException
-import com.media.bus.common.exceptions.StorageException
+import com.media.bus.common.exceptions.*
 import com.media.bus.common.result.type.CommonResult
 import io.github.resilience4j.bulkhead.BulkheadFullException
 import org.springframework.http.HttpStatus
@@ -16,6 +13,7 @@ import org.springframework.http.HttpStatus
  * | 제공자 예외 | 예전 S2S 경로의 결과 | 여기서 바꾸는 예외 |
  * |---|---|---|
  * | `BusinessException`(4xx) | 같은 상태·코드·메시지로 전달 | 그대로 전파 |
+ * | `NoAuthenticationException`(401)·`NoAuthorizationException`(403) | 같은 상태·코드·메시지로 전달 | 그대로 전파 |
  * | `StorageException`(404) | 같은 상태·코드·메시지로 전달 | 그대로 전파 |
  * | `BulkheadFullException` | 429/`00270` | `BusinessException(BULKHEAD_FULL, 429)`. `httpStatus`를 빼면 `CommonResult` 기본값 때문에 400이 된다 |
  * | 그 밖의 `BaseException`(`ServiceException` 등, 500) | 소비자 쪽 catch-all 500/`00100`, 일반 메시지 | `ServiceException(ERROR)`. 원인은 `cause`로 남겨 로그에서 볼 수 있다 |
@@ -33,6 +31,10 @@ internal inline fun <T> callProvider(block: () -> T): T =
     } catch (e: BusinessException) {
         throw e
     } catch (e: StorageException) {
+        throw e
+    } catch (e: NoAuthenticationException) {
+        throw e
+    } catch (e: NoAuthorizationException) {
         throw e
     } catch (e: BulkheadFullException) {
         throw BusinessException(result = CommonResult.BULKHEAD_FULL, cause = e, httpStatus = HttpStatus.TOO_MANY_REQUESTS)

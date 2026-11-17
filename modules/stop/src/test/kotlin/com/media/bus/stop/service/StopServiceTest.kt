@@ -159,4 +159,31 @@ class StopServiceTest {
             every { updatedAt } returns now
         }
     }
+    @Test
+    fun `정류소 이름이 비어 있으면 직접 기준 생성도 거부한다`() {
+        listOf("", " ", "x".repeat(201)).forEach { name ->
+            org.junit.jupiter.api.assertThrows<BusinessException> { StopSearchCriteria.ByStopName(name) }
+            org.junit.jupiter.api.assertThrows<BusinessException> { StopSearchCriteria.of(null, null, name) }
+        }
+    }
+
+    @Test
+    fun `이름 검색이 100건을 넘으면 단가 조회 전에 명시적으로 거부한다`() {
+        every { stopRepository.findByStopNameStartingWith("역") } returns List(101) { mockk() }
+        org.junit.jupiter.api.assertThrows<BusinessException> {
+            stopService.getBusStop(StopSearchCriteria.ByStopName("역"))
+        }
+        verify(exactly = 0) { stopPriceRepository.findUnitPriceMapByStopIds(any()) }
+    }
+
+    @Test
+    fun `페이지 크기와 검색어 길이를 제공자 진입점에서 제한한다`() {
+        listOf(0, 101, Int.MAX_VALUE).forEach { size ->
+            org.junit.jupiter.api.assertThrows<BusinessException> { stopService.getBusStopPage(0, size, null) }
+        }
+        org.junit.jupiter.api.assertThrows<BusinessException> { stopService.getBusStopPage(-1, 20, null) }
+        org.junit.jupiter.api.assertThrows<BusinessException> { stopService.getBusStopPage(0, 20, "x".repeat(201)) }
+        verify(exactly = 0) { stopRepository.findListPaged(any(), any(), any(), any()) }
+    }
+
 }

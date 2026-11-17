@@ -56,6 +56,9 @@ class StopService(
             is StopSearchCriteria.ByStopId   -> listOfNotNull(stopRepository.findByStopId(criteria.stopId))
             is StopSearchCriteria.ByStopName -> stopRepository.findByStopNameStartingWith(criteria.stopName)
         }
+        if (criteria is StopSearchCriteria.ByStopName && entities.size > StopRepository.MAX_NAME_RESULTS) {
+            throw BusinessException(CommonResult.VALIDATION_FAIL, "정류소 이름 조회는 최대 100건입니다. keyword와 페이지 조회를 사용해주세요.")
+        }
         return withUnitPrice(entities)
     }
 
@@ -75,6 +78,9 @@ class StopService(
         keyword: String?,
         stopsType: String? = null,
     ): PageResult<BusStopResponse> {
+        if (page < 0 || size !in 1..100 || (keyword?.length ?: 0) > 200) {
+            throw BusinessException(CommonResult.VALIDATION_FAIL, "page는 0 이상, size는 1~100, keyword는 200자 이하여야 합니다.")
+        }
         val kw = keyword?.trim()?.takeIf { it.isNotEmpty() }
         val type = StopType.parseFilter(stopsType)
         return PageResult(

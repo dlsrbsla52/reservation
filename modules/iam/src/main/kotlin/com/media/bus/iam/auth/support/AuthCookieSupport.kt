@@ -1,6 +1,7 @@
 package com.media.bus.iam.auth.support
 
 import com.media.bus.contract.security.TokenAudience
+import com.media.bus.iam.support.ClientIpResolver
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
@@ -78,5 +79,5 @@ class AuthCookieSupport(
      * 헤더만 반영해 `remoteAddr`를 바꾸므로 이 코드는 그대로 둔다. 기본 `internal-proxies`는 사설 대역 전체(Docker 브리지 포함)를
      * 믿으니 좁히지 않고 켜면 안 된다.
      */
-    fun extractClientIp(request: HttpServletRequest): String? = request.remoteAddr
+    fun extractClientIp(request: HttpServletRequest): String? = ClientIpResolver.resolve(request)
 }

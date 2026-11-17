@@ -7,6 +7,7 @@ import com.media.bus.iam.member.dto.MemberSearchCondition
 import com.media.bus.iam.member.dto.MemberWithRole
 import com.media.bus.iam.member.entity.MemberEntity
 import com.media.bus.iam.member.entity.MemberTable
+import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.springframework.stereotype.Repository
@@ -41,11 +42,13 @@ class MemberRepository {
     /**
      * 회원이 아이디를 분실했을 경우 회원 조회.
      * memberName은 필수, phoneNumber/email은 존재하는 것만 AND 조건으로 추가.
+     * 재활성화할 수 있는 INACTIVE는 포함하고 정지·탈퇴 회원은 제외한다.
      */
     fun findMe(request: FindMeRequest): MemberEntity? =
         MemberTable.selectAll()
             .where {
-                var condition = MemberTable.memberName eq request.memberName
+                var condition = (MemberTable.memberName eq request.memberName) and
+                    (MemberTable.status inList listOf(MemberStatus.ACTIVE, MemberStatus.INACTIVE))
 
                 request.phoneNumber?.let {
                     condition = condition and (MemberTable.phoneNumber eq it)

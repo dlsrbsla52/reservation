@@ -2,6 +2,7 @@ package com.media.bus.iam.admin.controller
 
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
+import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
 import com.media.bus.contract.security.MemberPrincipal
@@ -23,7 +24,7 @@ import java.util.*
  */
 @Tag(
     name = "어드민 정류소 관리",
-    description = "어드민 사이트 전용 정류소 조회·가격 관리 API. ADMIN_MASTER/ADMIN_DEVELOPER + MANAGE 권한 필요.",
+    description = "관리자 사이트 전용. 기본 ADMIN_MASTER/ADMIN_DEVELOPER + MANAGE, 단건 등록은 ADMIN + WRITE 권한 필요.",
 )
 @RestController
 @Authorize(types = [MemberType.ADMIN_MASTER, MemberType.ADMIN_DEVELOPER], permissions = [Permission.MANAGE])
@@ -135,8 +136,9 @@ class AdminStopPriceController(
             StopBoundsResponse.of(adminStopPriceFacade.getStopsInBounds(swLat, swLng, neLat, neLng, limit, stopsType)),
         )
 
-    /** 정류소를 단건 수기 등록한다. 등록자는 요청 헤더의 관리자 id로 기록된다. */
+    /** 정류소를 단건 수기 등록한다. 등록자는 인증된 관리자 id로 기록된다. */
     @Operation(summary = "정류소 단건 등록", description = "정류소를 수기로 단건 등록합니다.")
+    @Authorize(categories = [MemberCategory.ADMIN], permissions = [Permission.WRITE])
     @PostMapping("/simple")
     fun createSimpleStop(
         @CurrentMember requester: MemberPrincipal,

@@ -31,6 +31,7 @@ data class MemberPrincipal(
     val memberType: MemberType,
     val emailVerified: Boolean,
     val permissions: Set<Permission>,
+    val audience: TokenAudience = TokenAudience.USER,
 ) {
     companion object {
         private val log = LoggerFactory.getLogger(MemberPrincipal::class.java)
@@ -97,6 +98,7 @@ data class MemberPrincipal(
             memberType = MemberType.valueOf(claims.get(CLAIM_MEMBER_TYPE, String::class.java)),
             emailVerified = claims.get(CLAIM_EMAIL_VERIFIED, java.lang.Boolean::class.java)?.booleanValue() ?: false,
             permissions = parsePermissions(claims.get(CLAIM_PERMISSIONS, String::class.java)),
+            audience = TokenAudience.fromClaims(claims),
         )
 
         // ──────────────────────────────────────────────────────────────

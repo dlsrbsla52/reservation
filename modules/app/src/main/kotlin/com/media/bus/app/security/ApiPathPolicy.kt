@@ -48,7 +48,7 @@ object ApiPathPolicy {
         "POST /api/v1/auth/password-reset/verify",
         "POST /api/v1/auth/password-reset/confirm",
         "GET /api/v1/auth/verify-email",
-        "GET /api/v1/member/find/me",
+        "POST /api/v1/member/find/me",
     )
 
     /** 관리자 사이트 토큰(`aud=ADMIN`)만 통과시키는 prefix. */

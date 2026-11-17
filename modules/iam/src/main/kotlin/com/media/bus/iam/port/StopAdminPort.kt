@@ -22,7 +22,7 @@ interface StopAdminPort {
     /** stopId(정류소 번호) 기준으로 정류소를 조회한다. 없으면 빈 리스트. */
     fun getStopByStopId(stopId: String): List<StopInfo>
 
-    /** stopName(이름 완전 일치) 기준으로 정류소를 조회한다. 동명 정류소면 다건. */
+    /** stopName(이름 전방 일치) 기준으로 최대 100건을 조회한다. 초과하면 400으로 페이지 검색을 안내한다. */
     fun getStopByStopName(stopName: String): List<StopInfo>
 
     /** pk(UUID) 복수 일괄 조회. 누락된 id는 결과에 포함되지 않는다. */

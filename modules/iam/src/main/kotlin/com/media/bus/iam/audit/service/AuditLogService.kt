@@ -3,6 +3,7 @@ package com.media.bus.iam.audit.service
 import com.media.bus.iam.audit.entity.AuditLogEntity
 import com.media.bus.iam.audit.entity.enumerated.AuditActorType
 import com.media.bus.iam.audit.entity.enumerated.AuditResult
+import com.media.bus.iam.support.ClientIpResolver
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -60,8 +61,7 @@ class AuditLogService {
                 action = action,
                 targetType = targetType,
                 targetId = targetId,
-                // X-Forwarded-For 는 클라이언트가 위조할 수 있어 읽지 않는다(AuthCookieSupport.extractClientIp 와 같은 기준).
-                ip = request?.remoteAddr,
+                ip = ClientIpResolver.resolve(request),
                 userAgent = request?.getHeader("User-Agent")?.take(500),
                 result = result,
                 detail = detail,

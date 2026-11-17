@@ -78,8 +78,8 @@ class MemberService(
      */
     @Transactional(readOnly = true)
     fun findMe(request: FindMeRequest): FindLoginIdResponse {
-        require(request.phoneNumber != null || request.email != null) {
-            "phoneNumber 또는 email 중 하나는 필수입니다."
+        if (request.memberName.isBlank() || (request.phoneNumber.isNullOrBlank() && request.email.isNullOrBlank())) {
+            throw BusinessException(CommonResult.VALIDATION_FAIL, "이름과 phoneNumber 또는 email 중 하나는 필수입니다.")
         }
 
         val member = memberRepository.findMe(request)

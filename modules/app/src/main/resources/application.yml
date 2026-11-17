@@ -20,7 +20,7 @@ spring:
     # 테이블이 스키마를 명시하므로("auth.member", "stop.stop" 등) ?schema= 가 필요 없다
     url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:15433}/${DB_NAME:default}"
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD}
     driverClassName: "org.postgresql.Driver"
   liquibase:
     enabled: true
@@ -87,7 +87,7 @@ jwt:
 
 # Cookie 설정. HTTPS 환경에서는 COOKIE_SECURE=true 환경변수로 주입해야 합니다.
 cookie:
-  secure: ${COOKIE_SECURE:false}
+  secure: ${COOKIE_SECURE}
 
 # CORS. 일반 사이트 origin 과 관리자 사이트 origin(비우면 일반 origin 과 같게 동작)
 cors:

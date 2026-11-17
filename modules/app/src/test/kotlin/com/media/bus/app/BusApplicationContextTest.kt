@@ -55,6 +55,7 @@ import java.util.*
         "spring.data.redis.port=1",
         "management.health.redis.enabled=false",
         "reservation.hold.expiry-enabled=false",
+        "cookie.secure=false",
         "jwt.secret=context-test-only-secret-key-at-least-32-bytes-long",
         "cors.allowed-origin=http://localhost:3000",
         "cors.admin-allowed-origin=http://admin.localhost:3001",

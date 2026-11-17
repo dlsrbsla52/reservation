@@ -62,4 +62,28 @@ class AccessLoggingFilterMaskingTest {
 
         assertThat(filter.maskSensitive(body)).isEqualTo(body)
     }
+    @Test
+    fun `캐시 끝에서 잘린 문자열과 숫자 객체 배열 값을 가린다`() {
+        val truncated = "{\"newPassword\":\"" + "secret".repeat(500)
+        assertThat(filter.maskSensitive(truncated)).isEqualTo("{\"newPassword\":\"***\"")
+        val body = """{"password":12345678,"refreshToken":{"value":"secret"},"accessToken":["hidden"],"ok":true}"""
+        assertThat(filter.maskSensitive(body)).isEqualTo(
+            """{"password":"***","refreshToken":"***","accessToken":"***","ok":true}""",
+        )
+    }
+
+    @Test
+    fun `인코딩된 쿼리 키와 빈 값도 가린다`() {
+        assertThat(filter.maskQueryString("new%50assword=secret&token=&q=normal"))
+            .isEqualTo("new%50assword=***&token=***&q=normal")
+    }
+
+    @Test
+    fun `구분자 없는 긴 쿼리도 제한 시간 안에 처리한다`() {
+        val query = "token".repeat(1600)
+        org.junit.jupiter.api.Assertions.assertTimeout(java.time.Duration.ofSeconds(2)) {
+            repeat(100) { assertThat(filter.maskQueryString(query)).isEqualTo(query) }
+        }
+    }
+
 }

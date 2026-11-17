@@ -10,7 +10,7 @@
 - [x] 정류소 조회 (`GET /api/v1/stop`) — pk/stopId/stopName 기준
 - [x] 정류소 변경 이력 기록 (`stop_update_history`)
 - [x] 서울시 공공 API 연동 기본 구조 (`SeoulBusApiClient`)
-- [x] S2S 내부 API (`InternalStopController`)
+- [x] 모듈 간 조회·관리 포트 (`StopLookupPort`·`StopAdminPort`)와 app 어댑터
 - [x] 공공 API 벌크 등록 접근 제어 (`/api/v1/admin` 하위로 일원화)
 
 ---
@@ -54,7 +54,7 @@
 | 정류소 단가 등록 | `POST /api/v1/stop/{id}/price` — 결제 주기별 단가 설정 (ADMIN) |
 | 정류소 단가 수정 | `PUT /api/v1/stop/{id}/price` — 기존 단가 종료 후 신규 단가 시작 (이력 보존) |
 | 정류소 단가 조회 | `GET /api/v1/stop/{id}/price` — 현행 단가 + 이력 목록 |
-| 계약 생성 시 단가 자동 적용 | `ContractFacade`에서 Stop S2S로 기준 단가 조회 후 `contract_detail.total_amount` 자동 산정 |
+| 계약 생성 시 단가 자동 적용 | `ContractFacade`에서 `StopLookupPort` → app 어댑터로 기준 단가 조회 후 `contract_detail.total_amount` 자동 산정 |
 | 단가 미설정 정류소 예약 차단 | 단가가 없는 정류소는 계약 생성 불가 (Validator에서 검증) |
 | 일괄 단가 설정 | `PUT /api/v1/admin/stop/price/bulk` — `StopType`별 또는 복수 정류소 단가 일괄 적용 |
 

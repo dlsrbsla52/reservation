@@ -16,9 +16,9 @@ import org.springframework.web.util.ContentCachingResponseWrapper
  * 동시 요청이 콘솔에 섞여도 MDC `[req:...]` 로 묶으면 한 요청의 `START ~ ACCESS` 흐름이 시간순으로 보인다.
  *
  * 출력 포맷:
- *   `START GET /api/v1/member/find/me`                                        (요청 진입)
- *   `ACCESS GET /api/v1/member/find/me -> 200 (12ms)`                         (성공: 본문 미기록)
- *   `ACCESS GET /api/v1/member/find/me -> 400 (12ms) res={"code":"...","message":"..."}`  (에러: 본문 기록)
+ *   `START POST /api/v1/member/find/me`                                        (요청 진입)
+ *   `ACCESS POST /api/v1/member/find/me -> 200 (12ms)`                         (성공: 본문 미기록)
+ *   `ACCESS POST /api/v1/member/find/me -> 400 (12ms) res={"code":"...","message":"..."}`  (에러: 본문 기록)
  *   `ACCESS POST /api/v1/auth/login -> 200 (45ms) req={"username":"a","password":"***"} res={"data":{"accessToken":"***"}}`  (DEBUG 토글 시)
  *
  * ### 본문 기록 정책 (비용 제어)
@@ -59,7 +59,6 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         // token 하나로 accessToken·refreshToken(로그인/갱신 응답)도 가린다. tokenType 처럼 민감하지 않은 필드도
         // 함께 가려지지만, 새 필드를 놓쳐 비밀번호가 남는 쪽보다 낫다.
         private val SENSITIVE_KEYWORDS = listOf("password", "token")
-        private val SENSITIVE_KEY = "[A-Za-z0-9_-]*(?:${SENSITIVE_KEYWORDS.joinToString("|")})[A-Za-z0-9_-]*"
         private const val MASKED = "***"
         private const val MAX_BODY_LENGTH = 2048
 
@@ -69,21 +68,8 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         // 응답 본문을 기록할 콘텐츠 타입(텍스트 계열) 접두사. 그 외(이미지/바이너리/스트림)는 제외.
         private val LOGGABLE_RESPONSE_TYPES = listOf("application/json", "text/", "application/xml")
 
-        // JSON 형식: "newPassword":"abc" → "newPassword":"***"
-        // 값은 escape 된 문자(\" 등)까지 포함해 닫는 따옴표까지 매칭한다. [^"]* 로 두면 비밀번호에 따옴표가 있을 때
-        // 그 뒤 부분이 마스킹되지 않고 남는다.
-        // (raw string은 따옴표로 끝낼 수 없어 일반 문자열 + escape 사용)
-        private val JSON_FIELD_PATTERN = Regex(
-            "\"($SENSITIVE_KEY)\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
-            RegexOption.IGNORE_CASE,
-        )
-
-        // x-www-form-urlencoded / 쿼리스트링 형식: newPassword=abc&... → newPassword=***
-        // (?<=^|&) lookbehind 로 키 시작 위치에서만 매칭한다(값 안의 문자열이 키로 잡히지 않게).
-        private val FORM_FIELD_PATTERN = Regex(
-            """(?<=^|&)($SENSITIVE_KEY)=([^&]*)""",
-            RegexOption.IGNORE_CASE,
-        )
+        // 키 인식과 민감 여부 판단을 분리하여 긴 키에서 정규식 백트래킹을 막는다.
+        private val JSON_FIELD_PATTERN = Regex("\"([A-Za-z0-9_-]++)\"\\s*+:\\s*+")
     }
 
     override fun doFilterInternal(
@@ -103,7 +89,8 @@ class AccessLoggingFilter : OncePerRequestFilter() {
 
         // 요청 진입 마커. 동시 요청이 콘솔에 섞여도 `[req:...]` 로 묶으면 START~ACCESS 구간이 명확해진다.
         // (ACCESS 는 소요시간/상태를 측정해 finally 에서 마지막에 남으므로, 시작 지점은 별도 마커가 필요)
-        log.info("START {} {}", request.method, buildPath(request))
+        val path = buildPath(request)
+        log.info("START {} {}", request.method, path)
 
         val startNanos = System.nanoTime()
         try {
@@ -120,7 +107,7 @@ class AccessLoggingFilter : OncePerRequestFilter() {
             log.info(
                 "ACCESS {} {} -> {} ({}ms){}{}",
                 request.method,
-                buildPath(request),
+                path,
                 status,
                 elapsedMs,
                 if (reqSnippet.isBlank()) "" else " req=$reqSnippet",
@@ -147,6 +134,8 @@ class AccessLoggingFilter : OncePerRequestFilter() {
      * - multipart/octet-stream: 파일 업로드 등 대용량 바이너리 → 메모리 폭증 위험
      */
     private fun shouldCacheRequestBody(request: HttpServletRequest): Boolean {
+        // 아이디 찾기의 이름·연락처는 DEBUG에서도 본문 로그에 남기지 않는다.
+        if (request.requestURI == "/api/v1/member/find/me") return false
         if (request.method.uppercase() !in METHODS_WITH_BODY) return false
         val contentType = request.contentType?.lowercase().orEmpty()
         return !contentType.startsWith("multipart/") &&
@@ -199,15 +188,55 @@ class AccessLoggingFilter : OncePerRequestFilter() {
      * 테스트에서 마스킹 규칙을 직접 검증하도록 `internal`로 둔다.
      */
     internal fun maskSensitive(body: String): String {
-        val afterJson = JSON_FIELD_PATTERN.replace(body) { match ->
-            val key = match.groupValues[1]
-            "\"$key\":\"$MASKED\""
+        val result = StringBuilder(body.length)
+        var cursor = 0
+        var match = JSON_FIELD_PATTERN.find(body)
+        while (match != null) {
+            if (isSensitiveKey(match.groupValues[1])) {
+                result.append(body, cursor, match.range.first)
+                result.append('"').append(match.groupValues[1]).append("\":\"$MASKED\"")
+                cursor = jsonValueEnd(body, match.range.last + 1)
+                match = JSON_FIELD_PATTERN.find(body, cursor)
+            } else {
+                match = match.next()
+            }
         }
-        return FORM_FIELD_PATTERN.replace(afterJson) { match ->
-            val key = match.groupValues[1]
-            "$key=$MASKED"
-        }
+        result.append(body, cursor, body.length)
+        return maskQueryString(result.toString())
     }
+
+    /** 닫히지 않은 문자열은 캐시 끝까지 가린다. 객체·배열도 값 전체를 한 번만 순회한다. */
+    private fun jsonValueEnd(body: String, start: Int): Int {
+        var quoted = false
+        var escaped = false
+        var depth = 0
+        for (index in start until body.length) {
+            val char = body[index]
+            if (quoted) {
+                if (escaped) escaped = false
+                else if (char == '\\') escaped = true
+                else if (char == '"') {
+                    quoted = false
+                    if (depth == 0) return index + 1
+                }
+            } else {
+                when (char) {
+                    '"' -> quoted = true
+                    '{', '[' -> depth++
+                    '}', ']' -> {
+                        if (depth == 0) return index
+                        depth--
+                        if (depth == 0) return index + 1
+                    }
+                    ',' -> if (depth == 0) return index
+                }
+            }
+        }
+        return body.length
+    }
+
+    private fun isSensitiveKey(key: String): Boolean =
+        SENSITIVE_KEYWORDS.any { key.contains(it, ignoreCase = true) }
 
     private fun buildPath(request: HttpServletRequest): String {
         val uri = request.requestURI
@@ -215,9 +244,18 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         return if (query.isNullOrBlank()) uri else "$uri?${maskQueryString(query)}"
     }
 
-    private fun maskQueryString(query: String): String =
-        FORM_FIELD_PATTERN.replace(query) { match ->
-            val key = match.groupValues[1]
-            "$key=$MASKED"
+    internal fun maskQueryString(query: String): String =
+        query.split('&').joinToString("&") { field ->
+            val separator = field.indexOf('=')
+            if (separator < 0) field
+            else {
+                val key = field.substring(0, separator)
+                val decodedKey = try {
+                    java.net.URLDecoder.decode(key, Charsets.UTF_8)
+                } catch (_: IllegalArgumentException) {
+                    key
+                }
+                if (isSensitiveKey(decodedKey)) "$key=$MASKED" else field
+            }
         }
 }

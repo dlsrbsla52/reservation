@@ -5,9 +5,12 @@ import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.annotation.Authorize
 import com.media.bus.contract.security.annotation.CurrentMember
 import com.media.bus.iam.member.dto.*
+import com.media.bus.iam.member.guard.LoginIdLookupRateLimiter
 import com.media.bus.iam.member.service.MemberService
+import com.media.bus.iam.support.ClientIpResolver
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v1/member")
 class MemberController(
     private val memberService: MemberService,
+    private val loginIdLookupRateLimiter: LoginIdLookupRateLimiter,
 ) {
 
     /**
@@ -36,9 +40,14 @@ class MemberController(
         summary = "아이디 찾기",
         description = "회원 이름과 전화번호 또는 email로 로그인 아이디를 찾습니다. 토큰 없이 호출하는 공개 API라 로그인 아이디만 돌려줍니다.",
     )
-    @GetMapping("/find/me")
-    fun findMe(@RequestBody @Valid request: FindMeRequest): ApiResponse<FindLoginIdResponse> =
-        ApiResponse.success(memberService.findMe(request))
+    @PostMapping("/find/me")
+    fun findMe(
+        @RequestBody @Valid request: FindMeRequest,
+        servletRequest: HttpServletRequest,
+    ): ApiResponse<FindLoginIdResponse> {
+        loginIdLookupRateLimiter.check(ClientIpResolver.resolve(servletRequest), request)
+        return ApiResponse.success(memberService.findMe(request))
+    }
 
 
     /**

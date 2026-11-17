@@ -18,7 +18,7 @@ services:
     environment:
       TZ: ${TZ:-Asia/Seoul}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?루트 .env에 POSTGRES_PASSWORD를 설정하세요}
       POSTGRES_DB: ${POSTGRES_DB:-default}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -65,14 +65,14 @@ services:
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB:-default}
       DB_USERNAME: ${POSTGRES_USER:-postgres}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?루트 .env에 POSTGRES_PASSWORD를 설정하세요}
       # 비밀값은 프로젝트 루트 .env 에서 읽는다(git 제외, .env.example 참고). 없으면 기동을 막는다.
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
       SEOUL_API_KEY: ${SEOUL_API_KEY:-}
       REDIS_HOST: valkey
       REDIS_PORT: 6379
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:-http://localhost:3000}
+      COOKIE_SECURE: ${COOKIE_SECURE:?루트 .env에 COOKIE_SECURE를 설정하세요}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:?루트 .env에 CORS_ALLOWED_ORIGIN을 설정하세요}
       # 관리자 사이트 origin (예: https://admin.mbus.kr). 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다.
       CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
     # restart: unless-stopped 는 프로세스 종료에만 반응한다. unhealthy 여도 프로세스가 살아 있으면 재시작하지 않으므로

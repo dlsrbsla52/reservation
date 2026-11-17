@@ -191,4 +191,16 @@ class MemberServiceTest {
                 .isInstanceOf(NoAuthenticationException::class.java)
         }
     }
+    @Test
+    fun `아이디 찾기 연락처 누락과 공백은 400 검증 오류이며 저장소를 호출하지 않는다`() {
+        listOf(null, "", "  ").forEach { contact ->
+            val exception = org.junit.jupiter.api.assertThrows<BusinessException> {
+                memberService.findMe(FindMeRequest("홍길동", contact, null))
+            }
+            assertThat(exception.result).isEqualTo(com.media.bus.common.result.type.CommonResult.VALIDATION_FAIL)
+            assertThat(exception.httpStatus.value()).isEqualTo(400)
+        }
+        verify(exactly = 0) { memberRepository.findMe(any()) }
+    }
+
 }

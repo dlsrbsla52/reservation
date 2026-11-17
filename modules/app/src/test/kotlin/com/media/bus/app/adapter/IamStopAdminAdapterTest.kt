@@ -132,4 +132,16 @@ class IamStopAdminAdapterTest {
         assertThat(listOf(result.savedCount, result.updatedCount, result.skippedCount, result.failedCount, result.totalCount))
             .containsExactly(1, 2, 3, 4, 10)
     }
+    @Test
+    fun `제공자의 인증과 인가 오류는 동일한 예외로 전달한다`() {
+        val unauthorized = com.media.bus.common.exceptions.NoAuthenticationException()
+        val forbidden = com.media.bus.common.exceptions.NoAuthorizationException()
+        every { stopRegisterService.registerAllFromPublicApi() } throws unauthorized
+        assertThat(assertThrows<com.media.bus.common.exceptions.NoAuthenticationException> { adapter.registerBulk() })
+            .isSameAs(unauthorized)
+        every { stopRegisterService.registerAllFromPublicApi() } throws forbidden
+        assertThat(assertThrows<com.media.bus.common.exceptions.NoAuthorizationException> { adapter.registerBulk() })
+            .isSameAs(forbidden)
+    }
+
 }

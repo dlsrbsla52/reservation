@@ -21,7 +21,7 @@ import com.media.bus.contract.entity.member.Permission
  * @Authorize(categories = [MemberCategory.ADMIN], permissions = [Permission.WRITE])
  * ```
  */
-@Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS, AnnotationTarget.ANNOTATION_CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
 annotation class Authorize(
@@ -34,3 +34,9 @@ annotation class Authorize(
     /** true이면 이메일 인증 완료된 사용자만 통과 */
     val requireEmailVerified: Boolean = false,
 )
+
+/** 관리자 전용 조건과 MANAGE 권한은 URL과 무관하게 관리자 사이트 토큰을 요구한다. */
+fun Authorize.requiresAdminAudience(): Boolean =
+    Permission.MANAGE in permissions ||
+        ((categories.isNotEmpty() || types.isNotEmpty()) &&
+            categories.all { it == MemberCategory.ADMIN } && types.all { it.isAdmin })

@@ -5,9 +5,12 @@ import com.media.bus.common.exceptions.NoAuthorizationException
 import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.security.MemberPrincipal
+import com.media.bus.contract.security.TokenAudience
 import com.media.bus.contract.security.annotation.Authorize
+import com.media.bus.contract.security.annotation.requiresAdminAudience
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.core.annotation.AnnotatedElementUtils
 import org.springframework.web.method.HandlerMethod
 import org.springframework.web.servlet.HandlerInterceptor
 
@@ -42,7 +45,7 @@ class AuthorizeHandlerInterceptor : HandlerInterceptor {
         // 메서드 레벨 우선, 없으면 클래스 레벨 @Authorize 조회
         var authorize = handler.getMethodAnnotation(Authorize::class.java)
         if (authorize == null) {
-            authorize = handler.beanType.getAnnotation(Authorize::class.java)
+            authorize = AnnotatedElementUtils.findMergedAnnotation(handler.beanType, Authorize::class.java)
         }
 
         // @Authorize 없으면 인가 체크 생략 (공개 엔드포인트)
@@ -53,6 +56,10 @@ class AuthorizeHandlerInterceptor : HandlerInterceptor {
         // 인증 정보 조회 — 없으면 401
         val principal = request.getAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY) as? MemberPrincipal
             ?: throw NoAuthenticationException()
+
+        if (authorize.requiresAdminAudience() && principal.audience != TokenAudience.ADMIN) {
+            throw NoAuthorizationException()
+        }
 
         checkCategoryOrType(principal, authorize)
         checkPermissions(principal, authorize)
