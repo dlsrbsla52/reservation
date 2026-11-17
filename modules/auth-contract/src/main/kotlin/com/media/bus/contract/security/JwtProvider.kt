@@ -220,10 +220,9 @@ class JwtProvider(
      */
     fun listSessions(memberId: String): Map<String, SessionInfo> {
         val entries = redisTemplate.opsForHash<String, String>().entries(REFRESH_TOKEN_KEY_PREFIX + memberId)
-        return entries.mapNotNull { (field, json) ->
-            val sid = field?.toString() ?: return@mapNotNull null
-            val info = readSessionSafe(json?.toString() ?: return@mapNotNull null) ?: return@mapNotNull null
-            sid to info
+        return entries.mapNotNull { (sessionId, json) ->
+            val info = readSessionSafe(json) ?: return@mapNotNull null
+            sessionId to info
         }.toMap()
     }
 
@@ -233,7 +232,7 @@ class JwtProvider(
 
     private fun readSession(key: String, sessionId: String): SessionInfo? {
         val json = redisTemplate.opsForHash<String, String>().get(key, sessionId) ?: return null
-        return readSessionSafe(json.toString())
+        return readSessionSafe(json)
     }
 
     private fun readSessionSafe(json: String): SessionInfo? =

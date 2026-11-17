@@ -17,7 +17,7 @@ import org.springframework.web.client.RestClient
  */
 @Component
 class SeoulBusApiClient(
-    @Value("\${seoul.api.key}") private val apiKey: String,
+    @param:Value("\${seoul.api.key}") private val apiKey: String,
     @Value("\${seoul.api.base-url:http://openapi.seoul.go.kr:8088}") baseUrl: String,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)

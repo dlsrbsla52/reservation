@@ -20,13 +20,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @Configuration
 class CorsConfig(
     /** 일반 사이트 origin(`CORS_ALLOWED_ORIGIN`). 로컬 기본값은 application-local.yml 의 http://localhost:3000 */
-    @Value("\${cors.allowed-origin}")
+    @param:Value("\${cors.allowed-origin}")
     private val allowedOrigin: String,
     /**
      * 관리자 사이트 origin. 비어 있으면 일반 origin과 같다고 본다(로컬 단일 Next 앱).
      * Kotlin 기본값을 두지 않는다 — 생성자가 둘이 되면 @Configuration CGLIB 프록시가 생성자를 고르지 못해 기동이 실패한다.
      */
-    @Value("\${cors.admin-allowed-origin:}")
+    @param:Value("\${cors.admin-allowed-origin:}")
     private val adminAllowedOrigin: String,
 ) {
 

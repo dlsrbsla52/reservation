@@ -13,43 +13,43 @@ import java.util.*
 @Schema(description = "어드민 회원 상세 응답 DTO")
 data class AdminMemberDetailResponse(
 
-    @Schema(description = "회원 ID")
+    @param:Schema(description = "회원 ID")
     val memberId: UUID,
 
-    @Schema(description = "로그인 아이디")
+    @param:Schema(description = "로그인 아이디")
     val loginId: String,
 
-    @Schema(description = "이메일")
+    @param:Schema(description = "이메일")
     val email: String,
 
-    @Schema(description = "핸드폰 번호")
+    @param:Schema(description = "핸드폰 번호")
     val phoneNumber: String,
 
-    @Schema(description = "회원 이름")
+    @param:Schema(description = "회원 이름")
     val memberName: String,
 
-    @Schema(description = "회원 유형")
+    @param:Schema(description = "회원 유형")
     val memberType: MemberType,
 
-    @Schema(description = "계정 상태")
+    @param:Schema(description = "계정 상태")
     val status: MemberStatus,
 
-    @Schema(description = "사업자등록번호")
+    @param:Schema(description = "사업자등록번호")
     val businessNumber: String?,
 
-    @Schema(description = "역할 정보")
+    @param:Schema(description = "역할 정보")
     val role: RoleResponse,
 
-    @Schema(description = "권한 목록")
+    @param:Schema(description = "권한 목록")
     val permissions: List<PermissionResponse>,
 
-    @Schema(description = "이메일 인증 여부")
+    @param:Schema(description = "이메일 인증 여부")
     val emailVerified: Boolean,
 
-    @Schema(description = "생성일시")
+    @param:Schema(description = "생성일시")
     val createdAt: OffsetDateTime,
 
-    @Schema(description = "수정일시")
+    @param:Schema(description = "수정일시")
     val updatedAt: OffsetDateTime,
 ) {
     companion object {

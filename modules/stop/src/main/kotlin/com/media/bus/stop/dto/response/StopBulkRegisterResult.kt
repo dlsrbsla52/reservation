@@ -19,6 +19,6 @@ data class StopBulkRegisterResult(
     @param:Schema(description = "좌표 불량 등으로 등록이 거부된 정류소 수 (변경 없음과 구분됨)")
     val failedCount: Int,
 
-    @Schema(description = "공공 API 전체 정류소 수")
+    @param:Schema(description = "공공 API 전체 정류소 수")
     val totalCount: Int,
 )

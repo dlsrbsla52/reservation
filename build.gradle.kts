@@ -41,7 +41,7 @@ subprojects {
     apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
 
-    val springBootVersion: String by rootProject.extra
+    val springBootVersion = rootProject.extra["springBootVersion"] as String
 
     // Spring Boot 4.1.2 BOM — 모든 하위 모듈에 버전 통일 강제
     // buildscript classpath로 로드된 플러그인은 Kotlin DSL 타입 안전 확장이 자동 생성되지 않으므로
@@ -95,9 +95,9 @@ subprojects {
 
     tasks.named<Test>("test") {
         useJUnitPlatform()
-        // Java 25 환경에서 Mockito가 내부적으로 사용하는 Byte Buddy
-        // 공식 지원 범위 초과 우회 — best-effort experimental 모드
-        jvmArgs("-Dnet.bytebuddy.experimental=true")
+        // 테스트 에이전트가 부트스트랩 경로를 확장하므로 테스트 JVM에서만 CDS를 끈다.
+        // Byte Buddy의 Unsafe 접근을 비활성화해 지원되는 클래스 주입 경로를 사용한다.
+        jvmArgs("-Xshare:off", "-Dnet.bytebuddy.safe=true")
     }
 
     // openapi-gradle-plugin이 적용된 모듈(app)에만 적용.
@@ -105,7 +105,7 @@ subprojects {
     // 소스가 바뀌어도 재실행을 건너뛴다. 매번 output을 지우고 재생성해 최신 스펙을 보장한다.
     pluginManager.withPlugin("org.springdoc.openapi-gradle-plugin") {
         // 각 모듈의 openApi { outputDir } 설정과 동일한 규칙(build/docs/openapi)을 따른다.
-        val cleanOpenApiDocs by tasks.registering(Delete::class) {
+        val cleanOpenApiDocs = tasks.register<Delete>("cleanOpenApiDocs") {
             description = "생성된 OpenAPI YAML 산출물을 삭제해 generateOpenApiDocs가 항상 재실행되도록 한다."
             delete(layout.buildDirectory.dir("docs/openapi"))
         }

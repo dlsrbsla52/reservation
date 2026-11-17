@@ -8,21 +8,21 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * 참고: `http://openapi.seoul.go.kr:8088/{serviceKey}/json/busStopLocationXyInfo/{start}/{end}/`
  */
 data class SeoulBusStopRow(
-    @JsonProperty("STOPS_NO")
+    @param:JsonProperty("STOPS_NO")
     val stopsNo: String,
 
-    @JsonProperty("STOPS_NM")
+    @param:JsonProperty("STOPS_NM")
     val stopsName: String,
 
-    @JsonProperty("XCRD")
+    @param:JsonProperty("XCRD")
     val xCrd: String,
 
-    @JsonProperty("YCRD")
+    @param:JsonProperty("YCRD")
     val yCrd: String,
 
-    @JsonProperty("NODE_ID")
+    @param:JsonProperty("NODE_ID")
     val nodeId: String,
 
-    @JsonProperty("STOPS_TYPE")
+    @param:JsonProperty("STOPS_TYPE")
     val stopsType: String,
 )

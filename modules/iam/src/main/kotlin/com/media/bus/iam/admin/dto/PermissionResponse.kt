@@ -8,13 +8,13 @@ import java.util.*
 @Schema(description = "권한 응답 DTO")
 data class PermissionResponse(
 
-    @Schema(description = "권한 ID")
+    @param:Schema(description = "권한 ID")
     val id: UUID,
 
-    @Schema(description = "권한 이름", example = "READ")
+    @param:Schema(description = "권한 이름", example = "READ")
     val name: String,
 
-    @Schema(description = "권한 전시명", example = "조회")
+    @param:Schema(description = "권한 전시명", example = "조회")
     val displayName: String,
 ) {
     companion object {
