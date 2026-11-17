@@ -87,6 +87,7 @@ docker compose logs -f --tail=200 app
 
 ```bash
 docker compose -f docker-compose-local.yml up --build -d
+docker compose -f docker-compose-local.yml up -d --build --no-deps app
 ```
 
 앱을 IntelliJ나 터미널에서 직접 실행할 때는 인프라만 올린다.

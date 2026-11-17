@@ -12,6 +12,8 @@ spring:
 logging:
   level:
     Exposed: debug
+    # 성공 요청도 req/res 본문을 기록한다. 비밀번호·토큰 마스킹과 길이 제한은 필터에서 적용한다.
+    com.media.bus.common.logging.AccessLoggingFilter: debug
 
 resilience4j:
   bulkhead:

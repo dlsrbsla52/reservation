@@ -374,7 +374,45 @@ docker compose -f docker-compose-local.yml ps
 open http://localhost:8080/swagger-ui.html
 ```
 
-### 8-3. 종료
+### 8-3. 기존 DB 볼륨의 비밀번호 인증 실패
+
+`FATAL: password authentication failed for user "postgres"`가 발생하면 `.env`의
+`POSTGRES_PASSWORD`(Compose)와 `DB_PASSWORD`(IDE/bootRun)를 먼저 확인한다.
+같은 DB를 사용하면 두 값이 같아야 한다.
+
+두 값이 같아도 기존 볼륨의 DB 비밀번호는 다를 수 있다. `POSTGRES_PASSWORD`는 빈 데이터 디렉터리를
+처음 초기화할 때만 적용되므로, `.env`를 바꾸거나 컨테이너를 재생성해도 기존 계정 비밀번호는 바뀌지 않는다.
+
+데이터를 보존하면서 로컬 DB 비밀번호를 맞추려면 다음처럼 접속한다(기본 계정·DB 기준).
+
+```bash
+docker exec -it msa-postgres psql -U postgres -d default
+```
+
+psql에서 `\password postgres`를 실행하고 현재 `.env`에 지정한 비밀번호를 두 번 입력한 뒤
+`\q`로 종료한다. 비밀번호를 명령행이나 SQL 문자열에 직접 쓰지 않는다.
+이는 로컬 계정의 인증 정보 변경이며 스키마 마이그레이션은 아니다.
+
+이후 IDE/bootRun을 다시 실행한다. 컨테이너 내부의 소켓·루프백 접속은 `trust` 규칙으로
+비밀번호 검사를 생략할 수 있으므로, 내부 `SELECT 1` 성공만으로 호스트의 비밀번호 인증이 정상이라고 판단하지 않는다.
+
+### 8-4. 요청·응답 로그 확인
+
+`local` 프로필은 `AccessLoggingFilter`를 DEBUG로 설정하여 성공·실패 모두 `ACCESS` 로그에
+`req=`(요청 본문)와 `res=`(응답 본문)를 기록한다. 같은 `[req:요청ID]`로 진입 로그·업무 로그·응답 로그를 연결한다.
+GET 검색 조건은 URL 쿼리에서 확인하고, 본문이 없는 요청·응답에는 해당 항목이 붙지 않는다.
+비밀번호·토큰은 마스킹하고 본문은 최대 2KB로 제한한다. 아이디 찾기 요청 본문과 파일 본문은 기록 대상에서 제외한다.
+
+기본 프로필은 오류 본문을 기록하고, 성공 본문은 해당 로거가 DEBUG일 때 기록한다.
+관리 포트의 로거 설정으로 재시작 없이 본문 로깅을 켜고 끌 수 있다.
+
+```bash
+curl -X POST http://127.0.0.1:8081/actuator/loggers/com.media.bus.common.logging.AccessLoggingFilter \
+  -H 'Content-Type: application/json' -d '{"configuredLevel":"DEBUG"}'
+# 본문 로깅을 끄려면 DEBUG 대신 INFO를 지정한다(오류 본문은 계속 기록).
+```
+
+### 8-5. 종료
 
 ```bash
 docker-compose -f docker-compose-local.yml down
