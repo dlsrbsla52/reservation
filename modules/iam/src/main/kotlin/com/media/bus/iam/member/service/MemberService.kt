@@ -10,6 +10,7 @@ import com.media.bus.iam.audit.entity.enumerated.AuditActorType
 import com.media.bus.iam.audit.service.AuditLogService
 import com.media.bus.iam.auth.service.AuthService
 import com.media.bus.iam.auth.service.RoleResolutionService
+import com.media.bus.iam.member.dto.FindLoginIdResponse
 import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.dto.MemberModifyRequest
 import com.media.bus.iam.member.dto.MemberResponse
@@ -71,9 +72,12 @@ class MemberService(
     /**
      * 회원이 아이디를 분실했을 경우 처리.
      * phoneNumber, email 중 최소 하나는 필수 — 둘 다 없으면 예외.
+     *
+     * 토큰 없이 호출되는 공개 API라 로그인 아이디만 돌려준다([FindLoginIdResponse]).
+     * [toResponse]를 쓰지 않으므로 회원 유형 조회도 하지 않는다.
      */
     @Transactional(readOnly = true)
-    fun findMe(request: FindMeRequest): MemberResponse {
+    fun findMe(request: FindMeRequest): FindLoginIdResponse {
         require(request.phoneNumber != null || request.email != null) {
             "phoneNumber 또는 email 중 하나는 필수입니다."
         }
@@ -81,7 +85,7 @@ class MemberService(
         val member = memberRepository.findMe(request)
             ?: throw BusinessException(CommonResult.USER_NOT_FOUND_FAIL)
 
-        return toResponse(member)
+        return FindLoginIdResponse(loginId = member.loginId)
     }
 
     /**

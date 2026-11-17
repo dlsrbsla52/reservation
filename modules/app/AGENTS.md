@@ -49,6 +49,6 @@ Base package: `com.media.bus.app` (진입점 `com.media.bus.BusApplication`)
 |---|---|
 | `BusApplicationContextTest` | 앱 전체 기동(H2, Redis 불필요): 빈 충돌, 포트당 어댑터 1개, 보안 체인 1개에 인증 필터 포함, 실제 매핑이 라우트 허용 목록 안, 8080/8081 포트 정책, 없는 경로 404 |
 | `JwtAuthenticationFilterTest` | 헤더 위조 차단, 토큰 검증, 관리자 발급처, 라우트 허용 목록 |
-| `WebSurfaceArchitectureTest` | internal 매핑 0개, 관리자 핸들러 `@Authorize`, 신뢰 헤더 `@RequestHeader` 금지, OpenAPI 스키마 이름 중복 금지 |
+| `WebSurfaceArchitectureTest` | internal 매핑 0개, 관리자 핸들러 `@Authorize`, 관리자 전용 `@Authorize` 핸들러는 `/api/v1/admin` 하위에만, 신뢰 헤더 `@RequestHeader` 금지, OpenAPI 스키마 이름 중복 금지 |
 | `ModuleBoundaryTest` | iam·stop·reservation 사이 Gradle 의존 금지 |
 | `*AdapterTest` | DTO 변환(필드 누락, enum 문자열), 오류 변환 |

@@ -597,5 +597,5 @@ internal API를 없애도 관리자 API(`/api/v1/admin/**`)는 외부에 열려 
 - [ ] 호출자 없는 internal 매핑 4개의 저장소 밖 호출자 유무 (3단계 폐기 전)
 - [ ] 관리 포트 8081의 `loggers` 노출 정책 (2단계)
 - [ ] 프런트(`mbus-front`)가 gateway 고유 동작(예: 401 응답 본문 없음)에 의존하는지
-- [ ] `/api/v1/member/find/me` 응답에 어떤 회원 정보가 담기는지(공개 엔드포인트)
+- [x] `/api/v1/member/find/me` 응답에 어떤 회원 정보가 담기는지(공개 엔드포인트) — `MemberResponse` 전체였다. `loginId`만 돌려주도록 줄였다(`FindLoginIdResponse`)
 - [ ] 3단계 이후 보안 검증은 `security-review`나 별도 리뷰어로 한 번 더 받는다(작성자 자기 검증만으로 끝내지 않음)

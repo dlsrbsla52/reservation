@@ -31,7 +31,8 @@ import org.springframework.web.util.ContentCachingResponseWrapper
  * (ACCESS 라인 자체는 항상 INFO로 남으므로, 토글과 무관하게 모든 요청의 진입/상태/지연은 추적된다.)
  *
  * 보안 처리:
- *   - `password`, `token`, `refreshToken`, `accessToken` 필드는 JSON/폼/쿼리스트링 어디에 있든 `***`로 마스킹
+ *   - 필드명에 `password`·`token`이 들어간 필드(`newPassword`, `currentPassword`, `accessToken`, `refreshToken` 등)는
+ *     JSON/폼/쿼리스트링 어디에 있든 `***`로 마스킹(대소문자 무시)
  *   - 요청/응답 본문은 각각 최대 2KB까지만 잘라서 기록 (대용량 페이로드로 인한 로그 폭증 방지)
  *   - `multipart/...`, `application/octet-stream` 등 바이너리 콘텐츠 타입은 본문 로깅 제외
  *   - 응답은 JSON/텍스트 계열만 본문을 기록한다 (파일 다운로드 등 바이너리 스트림 보호)
@@ -53,9 +54,12 @@ class AccessLoggingFilter : OncePerRequestFilter() {
     private val log = LoggerFactory.getLogger(AccessLoggingFilter::class.java)
 
     companion object {
-        // 마스킹 대상 필드명 (대소문자 무시). 추가 시 정규식이 동적으로 반영된다.
-        // accessToken: 로그인/토큰 갱신 응답 본문에 노출되므로 응답 마스킹을 위해 포함한다.
-        private val SENSITIVE_FIELDS = listOf("password", "accessToken", "refreshToken", "token")
+        // 마스킹 대상 키워드 (대소문자 무시). 필드명에 키워드가 **포함**되면 마스킹한다.
+        // 정확 일치로 두면 newPassword·currentPassword(비밀번호 변경)처럼 변형된 필드명이 평문으로 남는다.
+        // token 하나로 accessToken·refreshToken(로그인/갱신 응답)도 가린다. tokenType 처럼 민감하지 않은 필드도
+        // 함께 가려지지만, 새 필드를 놓쳐 비밀번호가 남는 쪽보다 낫다.
+        private val SENSITIVE_KEYWORDS = listOf("password", "token")
+        private val SENSITIVE_KEY = "[A-Za-z0-9_-]*(?:${SENSITIVE_KEYWORDS.joinToString("|")})[A-Za-z0-9_-]*"
         private const val MASKED = "***"
         private const val MAX_BODY_LENGTH = 2048
 
@@ -65,18 +69,19 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         // 응답 본문을 기록할 콘텐츠 타입(텍스트 계열) 접두사. 그 외(이미지/바이너리/스트림)는 제외.
         private val LOGGABLE_RESPONSE_TYPES = listOf("application/json", "text/", "application/xml")
 
-        // JSON 형식: "password":"abc" → "password":"***"
-        // 따옴표 사이에 escape된 quote가 있으면 매칭 실패하지만, password/token류는 통상 단순 문자열이라 허용 가능.
+        // JSON 형식: "newPassword":"abc" → "newPassword":"***"
+        // 값은 escape 된 문자(\" 등)까지 포함해 닫는 따옴표까지 매칭한다. [^"]* 로 두면 비밀번호에 따옴표가 있을 때
+        // 그 뒤 부분이 마스킹되지 않고 남는다.
         // (raw string은 따옴표로 끝낼 수 없어 일반 문자열 + escape 사용)
         private val JSON_FIELD_PATTERN = Regex(
-            "\"(${SENSITIVE_FIELDS.joinToString("|")})\"\\s*:\\s*\"([^\"]*)\"",
+            "\"($SENSITIVE_KEY)\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
             RegexOption.IGNORE_CASE,
         )
 
-        // x-www-form-urlencoded / 쿼리스트링 형식: password=abc&... → password=***
-        // (?<=^|&) lookbehind 로 단어 경계에서만 매칭하여 다른 키의 접미사가 잘못 잡히는 것을 방지.
+        // x-www-form-urlencoded / 쿼리스트링 형식: newPassword=abc&... → newPassword=***
+        // (?<=^|&) lookbehind 로 키 시작 위치에서만 매칭한다(값 안의 문자열이 키로 잡히지 않게).
         private val FORM_FIELD_PATTERN = Regex(
-            """(?<=^|&)(${SENSITIVE_FIELDS.joinToString("|")})=([^&]*)""",
+            """(?<=^|&)($SENSITIVE_KEY)=([^&]*)""",
             RegexOption.IGNORE_CASE,
         )
     }
@@ -191,8 +196,9 @@ class AccessLoggingFilter : OncePerRequestFilter() {
     /**
      * JSON 및 form-urlencoded 두 가지 포맷의 민감 필드를 모두 마스킹.
      * 두 패턴을 순차 적용하므로 혼합 페이로드(예: JSON 내 일부가 url-encoded)도 보호.
+     * 테스트에서 마스킹 규칙을 직접 검증하도록 `internal`로 둔다.
      */
-    private fun maskSensitive(body: String): String {
+    internal fun maskSensitive(body: String): String {
         val afterJson = JSON_FIELD_PATTERN.replace(body) { match ->
             val key = match.groupValues[1]
             "\"$key\":\"$MASKED\""

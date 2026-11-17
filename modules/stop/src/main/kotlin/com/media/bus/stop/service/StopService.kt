@@ -4,7 +4,6 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.validation.InputValidator
 import com.media.bus.common.web.wrapper.PageResult
-import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.stop.dto.request.SimpleStopCreateRequest
 import com.media.bus.stop.dto.request.StopSearchCriteria
 import com.media.bus.stop.dto.response.BusStopResponse
@@ -25,21 +24,12 @@ class StopService(
 ) {
 
     /**
-     * 정류소 단건 수기 등록.
-     * Guard는 stopId 중복 등 비즈니스 규칙만 검증합니다.
-     *
-     * @param principal 인터셉터가 주입한 인증된 회원 정보
-     * @param request   등록 요청 DTO
-     */
-    @Transactional
-    fun createOneStop(principal: MemberPrincipal, request: SimpleStopCreateRequest) =
-        createOneStop(principal.id, request)
-
-    /**
      * 정류소 단건 수기 등록 (등록자 id 직접 지정).
      *
-     * iam 관리자 기능(app 어댑터 경유)은 회원 컨텍스트(`MemberPrincipal`)를 넘기지 않으므로
-     * 호출자가 전달한 등록자 id를 그대로 감사 필드에 기록한다.
+     * 관리자 기능 전용이다. 진입점은 iam `POST /api/v1/admin/stop/simple` → `StopAdminPort` → app 어댑터 하나뿐이고,
+     * stop 모듈에는 이 기능의 HTTP 엔드포인트를 두지 않는다(관리자 API 는 `/api/v1/admin` 하위에서 발급처 검사를 받아야 한다).
+     * 어댑터는 회원 컨텍스트(`MemberPrincipal`)를 넘기지 않으므로 호출자가 전달한 등록자 id를 그대로 감사 필드에 기록한다.
+     * Guard는 stopId 중복 등 비즈니스 규칙만 검증한다.
      *
      * 파라미터의 `@Valid`는 클래스에 `@Validated`가 없어 실행되지 않았으므로, DTO 제약을 직접 검증한다.
      * 모듈 간 직접 호출에서는 컨트롤러 `@Valid`가 거치지 않기 때문이다.

@@ -271,7 +271,8 @@ export default api;
 
 | Method | Path | 설명 |
 |--------|------|------|
-| GET  | `/find/me` | 내 정보 조회 |
+| GET  | `/me` | 내 정보 조회 (토큰 필요) |
+| GET  | `/find/me` | 아이디 찾기 (토큰 불필요). 본문에 `memberName` + `phoneNumber` 또는 `email`. 응답은 `loginId`만 |
 | POST | `/modify` | 내 정보 수정 |
 | DELETE | `/withdraw` | 회원 탈퇴 |
 | POST | `/deactivate` | 계정 비활성화 |
@@ -288,14 +289,16 @@ export default api;
 | PUT  | `/members/{memberId}/unsuspend` | 정지 해제 |
 | GET  | `/members/{memberId}/status-history` | 상태 변경 이력 |
 | GET/POST/PUT/DELETE | `/authorization/...` | 역할/권한 관리 |
+| POST | `/stop/simple` | 정류소 단건 등록 (수동) |
+| POST | `/stop/register/bulk` | 서울 열린데이터광장 일괄 동기화 |
 
 ### 6-4. 정류소 (stop, `/api/v1/stop`)
 
 | Method | Path | 설명 |
 |--------|------|------|
 | GET  | `/api/v1/stop` | 정류소 목록 (검색/필터) |
-| POST | `/api/v1/stop/simple` | 정류소 단건 등록 (수동) |
-| POST | `/api/v1/stop/register/bulk` | 서울 열린데이터광장 일괄 동기화 |
+
+정류소 등록(단건·일괄)은 관리자 기능이라 관리자 사이트에서 `POST /api/v1/admin/stop/simple`, `POST /api/v1/admin/stop/register/bulk`로 호출한다(6-3). 예전 `/api/v1/stop/simple`, `/api/v1/stop/register/bulk`는 없어졌다.
 
 ### 6-5. 계약 (reservation, `/api/v1/contract`) — 회원 본인 계약 조회
 
@@ -319,7 +322,7 @@ export default api;
 
 ## 7. 권한 모델
 
-본 시스템은 두 축으로 권한을 표현합니다. 프론트엔드 라우팅 가드는 **JWT Payload의 클레임** 또는 `GET /api/v1/member/find/me` 응답을 사용해 구현합니다.
+본 시스템은 두 축으로 권한을 표현합니다. 프론트엔드 라우팅 가드는 **JWT Payload의 클레임** 또는 `GET /api/v1/member/me` 응답을 사용해 구현합니다. `find/me`는 아이디 찾기라 `loginId`만 돌려주므로 권한 판단에 쓸 수 없습니다.
 
 | 클레임 | 의미 | 예시 값 |
 |--------|------|---------|

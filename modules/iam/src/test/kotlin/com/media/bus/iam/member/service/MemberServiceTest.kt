@@ -7,6 +7,7 @@ import com.media.bus.contract.security.JwtProvider
 import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.auth.service.AuthService
 import com.media.bus.iam.auth.service.RoleResolutionService
+import com.media.bus.iam.member.dto.FindLoginIdResponse
 import com.media.bus.iam.member.dto.FindMeRequest
 import com.media.bus.iam.member.dto.MemberModifyRequest
 import com.media.bus.iam.member.entity.MemberEntity
@@ -120,16 +121,17 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("findMe 정상 조회")
+        @DisplayName("findMe 는 로그인 아이디만 돌려준다(공개 API)")
         fun `findMe 정상`() {
             val request = FindMeRequest(memberName = "홍길동", phoneNumber = "01012345678", email = null)
             val member = mockMember()
             every { memberRepository.findMe(request) } returns member
-            every { roleResolutionService.resolveMemberType(testMemberId) } returns MemberType.MEMBER
 
             val result = memberService.findMe(request)
 
-            assertThat(result.id).isEqualTo(testMemberId)
+            assertThat(result).isEqualTo(FindLoginIdResponse(loginId = "testuser"))
+            // 응답에 회원 유형을 담지 않으므로 역할 조회도 하지 않는다.
+            verify(exactly = 0) { roleResolutionService.resolveMemberType(any()) }
         }
     }
 

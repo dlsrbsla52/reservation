@@ -6,12 +6,12 @@
 
 ## 현재 구현 상태
 
-- [x] 정류소 단건 수기 등록 (`POST /api/v1/stop/simple`)
+- [x] 정류소 단건 수기 등록 (`POST /api/v1/admin/stop/simple`, iam 관리자 API → `StopAdminPort`)
 - [x] 정류소 조회 (`GET /api/v1/stop`) — pk/stopId/stopName 기준
 - [x] 정류소 변경 이력 기록 (`stop_update_history`)
 - [x] 서울시 공공 API 연동 기본 구조 (`SeoulBusApiClient`)
 - [x] S2S 내부 API (`InternalStopController`)
-- [ ] 공공 API 벌크 등록 접근 제어 미완성
+- [x] 공공 API 벌크 등록 접근 제어 (`/api/v1/admin` 하위로 일원화)
 
 ---
 
@@ -30,7 +30,7 @@
 
 | 기능 | 설명 |
 |------|------|
-| 벌크 등록 접근 제어 | `StopRegisterController`에 S2S 토큰 검증 필터 적용 |
+| 벌크 등록 접근 제어 | 완료: `POST /api/v1/admin/stop/register/bulk`(관리자 사이트 토큰 + ADMIN_MASTER/ADMIN_DEVELOPER + MANAGE)만 남기고 stop 모듈의 공개 엔드포인트는 삭제 |
 | 벌크 등록 스케줄러 | 주기적으로 서울시 공공 API를 호출해 정류소 데이터 자동 갱신 |
 | 공공 API 변경분 감지 | 기존 정류소와 비교해 변경된 항목만 업데이트 + 이력 기록 |
 | 신규 정류소 자동 감지 | 공공 API에 새로 추가된 정류소 자동 등록 |

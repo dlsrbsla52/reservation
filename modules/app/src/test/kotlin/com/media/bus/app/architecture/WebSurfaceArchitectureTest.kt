@@ -1,5 +1,6 @@
 package com.media.bus.app.architecture
 
+import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.security.annotation.Authorize
 import io.swagger.v3.oas.annotations.media.Schema
 import org.assertj.core.api.Assertions.assertThat
@@ -25,6 +26,7 @@ import java.lang.reflect.WildcardType
  *
  * - `/api/v1/internal` 하위 매핑 0개 — 모듈 간 호출은 포트·어댑터로만 한다.
  * - `/api/v1/admin` 하위 핸들러는 클래스나 메서드에 `@Authorize`가 있어야 한다(인증 필터의 발급처 검사와 2중 방어).
+ * - 반대로 `@Authorize`가 관리자만 허용하는 핸들러는 `/api/v1/admin` 하위에만 둔다(밖에 두면 발급처 검사를 받지 않는다).
  * - 컨트롤러가 `X-User-*` 등 신뢰 헤더를 `@RequestHeader`로 읽지 않는다 — 회원 정보는 `@CurrentMember`로만 받는다.
  * - 통합 OpenAPI 에서 서로 다른 DTO 가 같은 스키마 이름을 쓰지 않는다. swagger-core 는 `@Schema(name)`이 없으면
  *   단순 클래스명을 키로 쓰고 springdoc 은 같은 키를 조용히 합친다. 모듈을 합치면 서로 다른 모듈의 같은 이름 DTO 가
@@ -67,12 +69,25 @@ class WebSurfaceArchitectureTest {
     @Test
     fun `관리자 API 핸들러는 모두 @Authorize 를 가진다`() {
         val missing = handlers
-            .filter { h -> h.paths.any { it == "/api/v1/admin" || it.startsWith("/api/v1/admin/") } }
+            .filter { h -> h.paths.any(::isAdminPath) }
             .filterNot {
                 AnnotatedElementUtils.hasAnnotation(it.controller, Authorize::class.java) ||
                     AnnotatedElementUtils.hasAnnotation(it.method, Authorize::class.java)
             }
         assertThat(missing.map { "${it.controller.simpleName}.${it.method.name}" }).isEmpty()
+    }
+
+    /**
+     * 관리자만 통과시키는 핸들러가 `/api/v1/admin` 밖에 있으면 인증 필터의 발급처 검사(`aud=ADMIN`)를 받지 않는다.
+     * 관리자 계정이 일반 사이트에서 받은 토큰으로도 호출된다. 예전 `POST /api/v1/stop/simple`,
+     * `POST /api/v1/stop/register/bulk`가 그랬다. 관리자 기능은 iam admin API → 포트로 위임한다.
+     */
+    @Test
+    fun `관리자만 허용하는 핸들러는 admin 경로 아래에만 있다`() {
+        val misplaced = handlers
+            .filter { isAdminOnly(effectiveAuthorize(it)) }
+            .filterNot { h -> h.paths.all(::isAdminPath) }
+        assertThat(misplaced.map { "${it.controller.simpleName}.${it.method.name} ${it.paths}" }).isEmpty()
     }
 
     @Test
@@ -123,6 +138,18 @@ class WebSurfaceArchitectureTest {
                     .forEach { collect(it.genericType, out) }
             }
         }
+    }
+
+    private fun isAdminPath(path: String): Boolean = path == "/api/v1/admin" || path.startsWith("/api/v1/admin/")
+
+    /** `AuthorizeHandlerInterceptor`와 같은 규칙: 메서드에 있으면 클래스 것을 무시한다. */
+    private fun effectiveAuthorize(h: Handler): Authorize? =
+        h.method.getAnnotation(Authorize::class.java) ?: h.controller.getAnnotation(Authorize::class.java)
+
+    /** 관리자 회원만 통과하는 규칙인가. categories·types가 모두 비면 "인증된 회원 누구나"라 해당하지 않는다. */
+    private fun isAdminOnly(authorize: Authorize?): Boolean {
+        if (authorize == null || (authorize.categories.isEmpty() && authorize.types.isEmpty())) return false
+        return authorize.categories.all { it == MemberCategory.ADMIN } && authorize.types.all { it.isAdmin }
     }
 
     private fun schemaName(type: Class<*>): String =

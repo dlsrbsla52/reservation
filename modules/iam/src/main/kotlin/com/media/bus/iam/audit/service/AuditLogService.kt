@@ -60,7 +60,8 @@ class AuditLogService {
                 action = action,
                 targetType = targetType,
                 targetId = targetId,
-                ip = request?.let(::extractClientIp),
+                // X-Forwarded-For 는 클라이언트가 위조할 수 있어 읽지 않는다(AuthCookieSupport.extractClientIp 와 같은 기준).
+                ip = request?.remoteAddr,
                 userAgent = request?.getHeader("User-Agent")?.take(500),
                 result = result,
                 detail = detail,
@@ -108,12 +109,4 @@ class AuditLogService {
 
     private fun currentRequest(): HttpServletRequest? =
         (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-
-    private fun extractClientIp(request: HttpServletRequest): String? {
-        val forwarded = request.getHeader("X-Forwarded-For")
-        if (!forwarded.isNullOrBlank()) {
-            return forwarded.substringBefore(",").trim().ifBlank { null }
-        }
-        return request.remoteAddr
-    }
 }
