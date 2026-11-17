@@ -10,22 +10,22 @@ import java.util.*
 @Schema(description = "회원 상태 변경 이력 응답 DTO")
 data class MemberStatusHistoryResponse(
 
-    @Schema(description = "이력 ID")
+    @param:Schema(description = "이력 ID")
     val id: UUID,
 
-    @Schema(description = "변경 전 상태")
+    @param:Schema(description = "변경 전 상태")
     val previousStatus: MemberStatus,
 
-    @Schema(description = "변경 후 상태")
+    @param:Schema(description = "변경 후 상태")
     val newStatus: MemberStatus,
 
-    @Schema(description = "변경 사유")
+    @param:Schema(description = "변경 사유")
     val reason: String,
 
-    @Schema(description = "처리자 ID")
+    @param:Schema(description = "처리자 ID")
     val changedBy: UUID,
 
-    @Schema(description = "변경 일시")
+    @param:Schema(description = "변경 일시")
     val createdAt: OffsetDateTime,
 ) {
     companion object {

@@ -9,16 +9,16 @@ import java.util.*
 @Schema(description = "어드민 멤버 생성 응답 DTO")
 data class AdminMemberResponse(
 
-    @Schema(description = "생성된 멤버 ID")
+    @param:Schema(description = "생성된 멤버 ID")
     val memberId: UUID,
 
-    @Schema(description = "로그인 아이디")
+    @param:Schema(description = "로그인 아이디")
     val loginId: String,
 
-    @Schema(description = "이메일 주소")
+    @param:Schema(description = "이메일 주소")
     val email: String,
 
-    @Schema(description = "부여된 어드민 회원 유형")
+    @param:Schema(description = "부여된 어드민 회원 유형")
     val memberType: MemberType,
 ) {
     companion object {

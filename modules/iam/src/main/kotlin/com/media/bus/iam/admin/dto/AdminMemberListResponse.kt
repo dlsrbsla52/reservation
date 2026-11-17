@@ -11,25 +11,25 @@ import java.util.*
 @Schema(description = "어드민 회원 목록 응답 DTO")
 data class AdminMemberListResponse(
 
-    @Schema(description = "회원 ID")
+    @param:Schema(description = "회원 ID")
     val memberId: UUID,
 
-    @Schema(description = "로그인 아이디")
+    @param:Schema(description = "로그인 아이디")
     val loginId: String,
 
-    @Schema(description = "이메일")
+    @param:Schema(description = "이메일")
     val email: String,
 
-    @Schema(description = "회원 이름")
+    @param:Schema(description = "회원 이름")
     val memberName: String,
 
-    @Schema(description = "회원 유형")
+    @param:Schema(description = "회원 유형")
     val memberType: MemberType,
 
-    @Schema(description = "계정 상태")
+    @param:Schema(description = "계정 상태")
     val status: MemberStatus,
 
-    @Schema(description = "생성일시")
+    @param:Schema(description = "생성일시")
     val createdAt: OffsetDateTime,
 ) {
     companion object {

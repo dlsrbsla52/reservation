@@ -1,5 +1,6 @@
 package com.media.bus.common.utils
 
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.media.bus.common.exceptions.BaseException
 import java.io.IOException
@@ -72,7 +73,7 @@ object FavoriteUtil {
      * @return Map 객체
      */
     fun <T : Any> convertToMap(source: T): Map<String, Any?> =
-        objectMapper.convertValue(source, Map::class.java) as Map<String, Any?>
+        objectMapper.convertValue(source, object : TypeReference<Map<String, Any?>>() {})
 
     /**
      * 구분 문자 이후의 문자열을 반환한다. 전체 문자열 또는 구분 문자열이 null일 경우 공백을 리턴함

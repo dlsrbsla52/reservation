@@ -96,7 +96,7 @@ data class MemberPrincipal(
             loginId = claims.get(CLAIM_LOGIN_ID, String::class.java),
             email = claims.get(CLAIM_EMAIL, String::class.java),
             memberType = MemberType.valueOf(claims.get(CLAIM_MEMBER_TYPE, String::class.java)),
-            emailVerified = claims.get(CLAIM_EMAIL_VERIFIED, java.lang.Boolean::class.java)?.booleanValue() ?: false,
+            emailVerified = claims.get(CLAIM_EMAIL_VERIFIED, Boolean::class.javaObjectType) ?: false,
             permissions = parsePermissions(claims.get(CLAIM_PERMISSIONS, String::class.java)),
             audience = TokenAudience.fromClaims(claims),
         )

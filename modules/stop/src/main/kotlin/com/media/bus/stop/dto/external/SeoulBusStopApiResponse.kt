@@ -17,26 +17,26 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * ```
  */
 data class SeoulBusStopApiResponse(
-    @JsonProperty("busStopLocationXyInfo")
+    @param:JsonProperty("busStopLocationXyInfo")
     val busStopInfo: Body?,
 ) {
 
     data class Body(
-        @JsonProperty("list_total_count")
+        @param:JsonProperty("list_total_count")
         val totalCount: Int,
 
-        @JsonProperty("RESULT")
+        @param:JsonProperty("RESULT")
         val result: ApiResult?,
 
-        @JsonProperty("row")
+        @param:JsonProperty("row")
         val rows: List<SeoulBusStopRow>?,
     )
 
     data class ApiResult(
-        @JsonProperty("CODE")
+        @param:JsonProperty("CODE")
         val code: String,
 
-        @JsonProperty("MESSAGE")
+        @param:JsonProperty("MESSAGE")
         val message: String,
     ) {
         fun isSuccess(): Boolean = SUCCESS_CODE == code
