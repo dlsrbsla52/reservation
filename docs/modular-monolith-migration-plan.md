@@ -2,7 +2,7 @@
 
 - 브랜치: `bigbang/modular-monolith` (기준 `origin/main` `5a64caf`)
 - 작성일: 2026-11-17
-- 상태: 계획 (코드 변경 전). [1차 리뷰](modular-monolith-migration-plan-review.md)·[2차 리뷰](modular-monolith-migration-plan-review_v2.md) 검증 후 반영함 — [리뷰 반영](#리뷰-반영)
+- 상태: 계획 (코드 변경 전). [1차 리뷰](modular-monolith-migration-plan-review.md)·[2차 리뷰](modular-monolith-migration-plan-review_v2.md)·[3차 리뷰](modular-monolith-migration-plan-review_v3.md)·[4차 리뷰](modular-monolith-migration-plan-review_v4.md) 검증 후 반영함 — [리뷰 반영](#리뷰-반영)
 
 ## 결론
 
@@ -17,7 +17,7 @@
 | Gradle 모듈 경계 | 유지 | **유지** — `iam`/`stop`/`reservation`은 서로 컴파일 의존하지 않고, 연결은 `app`에서만 |
 
 - **유지하는 것**: 스키마 분리, 모듈별 패키지, Gradle 모듈 경계, URL 계약(`/api/v1/**`). 다시 쪼갤 때 비용을 낮게 묶어 두기 위해서다.
-- **DB 스키마와 데이터 변경 없음**: 롤백은 이전 compose를 다시 띄우는 것으로 끝난다.
+- **DB 스키마와 데이터 변경 없음**: 같은 이미지·볼륨·환경이라는 전제가 맞으면 이전 compose를 다시 띄우는 것으로 롤백된다([5단계 롤백 전제](#5단계-리허설과-운영-전환롤백)). 리허설 전까지는 검증된 사실이 아니다.
 - **가장 큰 위험**: 하위 서비스가 gateway가 넣어 준 `X-User-*` 헤더를 그대로 믿는다. `MemberPrincipalExtractFilter`뿐 아니라 컨트롤러 19곳이 `@RequestHeader("X-User-Id")`를 직접 읽는다. gateway를 없애면서 이걸 그대로 두면 다른 회원으로 행세할 수 있다([외부 노출 표면 점검](#외부-노출-표면-점검)).
 
 ## 리뷰 반영
@@ -29,18 +29,18 @@
 | ID | 판정 | 코드에서 확인한 근거 | 반영 위치 |
 |---|---|---|---|
 | R1 | 맞음 | 세 모듈 `SecurityFilterChain` 모두 `securityMatcher` 없이 전체 요청 대상. 이름만 바꿔 함께 등록하면 `UnreachableFilterChainException`으로 기동 실패. `PasswordEncoder` 빈이 iam `SecurityConfig` 안에 있음 | 1단계에서 보안 설정 이름 변경 제거, 2단계에서 단일 체인·JWT 이관·`PasswordEncoder` 분리를 함께 |
-| R2 | 맞음 | iam `CompleteToContractRequest`는 제약 없음, reservation 쪽은 `@NotBlank`·`@Size(max=300)`·`@Positive`. `InternalContractController`는 `page.coerceAtLeast(0)`, `size.coerceIn(1, MAX_PAGE_SIZE)` 보정. `InternalStopController`는 `StopType.parseFilter`로 문자열 변환 | 1단계(검증 목록화·이관), 3단계 완료 조건 |
+| R2 | 맞음 | iam `CompleteToContractRequest`는 제약 없음, reservation 쪽은 `@NotBlank`·`@Size(max=300)`·`@Positive`. `InternalContractController`는 `page.coerceAtLeast(0)`, `size.coerceIn(1, MAX_PAGE_SIZE)` 보정. `InternalStopController`는 `@Valid`와 `StopSearchCriteria.of`·`StopBoundsCriteria.of`로 조건 생성(3차 리뷰 정정: `StopType.parseFilter`는 컨트롤러가 아니라 `StopService.getBusStopPage`에서 이미 실행됨) | 1단계(검증 목록화·이관), 3단계 완료 조건 |
 | R3 | 맞음(설명 일부 보정) | 세 모듈 모두 `application-local.yml`이 있고 포트, `allow-bean-definition-overriding: true`, 기존 Liquibase 경로를 담고 있음. 같은 이름 리소스는 병합되지 않고 클래스패스 첫 번째만 쓰이므로, `app`에 `application-local.yml`이 없으면 **라이브러리 JAR의 것 하나가 그대로 로드된다** | 2단계 |
 | R4 | 맞음 | `MdcLoggingFilter`가 `request.getHeader("X-User-Id")`를 MDC `memberId`에 넣고, 순서가 `HIGHEST_PRECEDENCE + 200`이라 Spring Security(`-100`)보다 먼저 실행됨 | 2단계 |
 | R5 | 맞음 | compose에 메모리 제한이 없어 `MaxRAMPercentage=60`이면 4GB 호스트에서 힙 상한 약 2.4GB. 목표 힙과 모순 | 목표 스펙, 4단계 |
 | R6 | 맞음 | `restart: unless-stopped`는 프로세스 종료에만 반응하고 `unhealthy`로는 재시작하지 않음 | 위험 표 |
 | 4절 모순 3건 | 맞음 | 공개 경로 `startsWith`/정확 일치, 루프백 주소 8080/8090, 트랜잭션 합류 조건 | 해당 단계 본문 |
 
-**트랜잭션 지적 추가 확인**: S2S를 호출하는 쪽(`AdminReservationFacade`, `AdminStopPriceFacade`, `AdminBusinessContractFacade`, `AdminStopPriceController`, reservation의 `ReservationFacade`·`ContractFacade`·`InternalContractFacade`)에는 `@Transactional`이 없다. 파사드가 트랜잭션 밖에서 원격 호출을 하고, DB 작업은 각 Service의 `@Transactional` 안에서 하도록 이미 나뉘어 있다. 직접 호출로 바꿔도 트랜잭션은 지금처럼 Service 단위로 따로 열리므로, 처음 계획보다 위험이 낮다.
+**트랜잭션 지적 추가 확인**: S2S를 호출하는 쪽(`AdminReservationFacade`, `AdminStopPriceFacade`, `AdminBusinessContractFacade`, reservation의 `ReservationFacade`·`ContractFacade`·`InternalContractFacade`)에는 `@Transactional`이 없다. 파사드가 트랜잭션 밖에서 원격 호출을 하고, DB 작업은 각 Service의 `@Transactional` 안에서 하도록 이미 나뉘어 있다. 직접 호출로 바꿔도 트랜잭션은 지금처럼 Service 단위로 따로 열리므로, 처음 계획보다 위험이 낮다.
 
 **리뷰에 없던 추가 발견**
 - `modules/stop/src/main/resources/application-local.yml`의 DataSource URL이 `?schema=reservation`이다(복사 실수로 보임). 테이블이 스키마를 명시하고 pgjdbc가 `schema` 파라미터를 무시해서 지금은 영향이 없다. 2단계에서 local 설정을 `app`으로 옮길 때 같이 정리된다.
-- `AdminStopPriceController`는 파사드를 거치지 않고 컨트롤러에서 S2S 클라이언트를 직접 쓴다. 포트를 추출할 때 이 경로도 포함해야 한다.
+- ~~`AdminStopPriceController`가 S2S 클라이언트를 직접 쓴다~~ → **3차 리뷰에서 정정.** 생성자는 `AdminStopPriceFacade` 하나만 주입받고, 클라이언트 이름은 클래스 주석에만 있다. 포트 교체 대상은 Facade다. 이 컨트롤러에는 `X-User-Id` 교체 4곳만 남는다.
 
 ### 2차 리뷰
 
@@ -59,6 +59,34 @@
 
 **2차 리뷰에 더한 것**
 - **Bulkhead 공유**: 한 JVM으로 합치면 모든 모듈이 같은 `orderDatabase` 퍼밋(운영 19)을 나눠 쓴다. 지금은 서비스마다 19씩 따로 있다. 정류소 조회 폭주가 예약 쓰기의 퍼밋을 잠식할 수 있으니 3단계 부하 검증 대상에 넣었다.
+
+### 3차 리뷰
+
+[3차 리뷰](modular-monolith-migration-plan-review_v3.md) 4건과 정정 6건을 코드와 대조했다. 모두 사실이다. 이 표의 근거는 리뷰 문장을 옮긴 것이 아니라 현재 소스에서 다시 확인한 것이다.
+
+| ID | 판정 | 코드에서 확인한 근거 | 반영 위치 |
+|---|---|---|---|
+| V3-01 | 맞음 | `CommonResult`의 기본 `httpStatus`는 `BAD_REQUEST`이고 `BULKHEAD_FULL`은 상태를 따로 지정하지 않음. `BusinessException.httpStatus` 기본값은 `result.httpStatus()`. `BulkheadFullException` 전용 처리기만 429와 `Retry-After: 1`을 설정. 2차 반영안대로면 관리자 API에서 429가 400으로 바뀜 | 3단계 표·완료 조건 |
+| V3-02 | 맞음 | 세 모듈의 openapi 플러그인이 `http://localhost:818x/api-docs.yaml`을 내려받고 `openapi` 프로필로 앱을 띄움. 그런데 `application-openapi.yml`은 저장소에 **없음**(`bootJar` 제외 규칙만 있음). 2단계의 8080 허용 목록과 충돌 | 2-1 |
+| V3-03 | 맞음 | 루트 `subprojects`가 모든 모듈에 `bootJar=false`. 도메인 모듈의 `common`·`auth-contract` 의존은 `implementation`이라 `app`에 전이되지 않음. `Dockerfile` 70행이 `build/libs/*.jar`를 `app.jar`로 복사 | 2-1, 4단계 |
+| V3-04 | 맞음 | `X-Forwarded-For` 첫 값을 읽는 곳이 `AuthCookieSupport.extractClientIp`와 `AuditLogService.extractClientIp` 두 곳. Caddy `trusted_proxies`는 Caddy 앞단 프록시용이라 Tomcat의 신뢰 범위와 무관 | S8, 4단계 |
+| 정정 6건 | 맞음 | `AdminStopPriceController`는 Facade만 주입. `StopType.parseFilter`는 `StopService` 82행. `StopQueryService`는 없는 클래스(예시용으로 지어낸 이름). iam `StopInfo.unitPrice`는 `BigDecimal? = null`이라 빠뜨려도 컴파일됨. 명시적 검증은 직접 호출에도 실행됨. `InternalContractControllerTest`·`IamApiContractTest`는 삭제 대상에 직접 의존 | 해당 본문 |
+
+**3차 리뷰에 더한 것**
+- **Tomcat 기본 신뢰 대역**: `forward-headers-strategy: native`이면 Tomcat `RemoteIpValve`의 기본 `internal-proxies`가 사설 대역(`10/8`, `172.16/12`, `192.168/16`, `127/8` 등)을 모두 신뢰한다. Docker 브리지 게이트웨이(`172.17.0.1` 등)도 여기에 들어간다. `app` 8080을 호스트에 공개하면 Docker를 거쳐 들어온 직접 요청이 신뢰 프록시처럼 보여서, 위조한 `X-Forwarded-For`가 그대로 `remoteAddr`가 될 수 있다. `server.tomcat.remoteip.internal-proxies`를 Caddy 주소 하나로 좁히고, 8080은 호스트에 공개하지 않는다.
+
+### 4차 리뷰
+
+[4차 리뷰](modular-monolith-migration-plan-review_v4.md) 2건과 명확화 3건을 현재 소스와 대조했다. 모두 사실이다.
+
+| ID | 판정 | 코드에서 확인한 근거 | 반영 위치 |
+|---|---|---|---|
+| V4-01 | 맞음 | 관리자 일괄 등록 경로: `AdminStopPriceFacade.registerBulk` → iam `StopServiceClient.registerBulk` → `InternalStopController.registerBulk` → `StopRegisterService.registerAllFromPublicApi` → `SeoulBusApiClient`. `SeoulBusApiClient`는 본문 누락·업무 오류에서 `ServiceException`(`SERVICE_ERROR`, `00130`)을 던짐. `S2SRestClientFactory`는 4xx만 변환하므로 stop의 500은 `HttpServerErrorException`이 되고, `BaseException`이 아니라서 iam에서 catch-all **500/`00100`**. 직접 호출하면 `baseExceptionHandler`가 **500/`00130`** + 원본 메시지 | 0단계, 3단계 표·완료 조건 |
+| V4-02 | 맞음 | iam `admin/dto/StopBoundsResponse.kt`(같은 파일에 `StopMarkerResponse`, `stopsType: String`)와 stop `map/dto/StopBoundsResponse`·`StopMarkerResponse`(`stopsType: StopType`). 두 클래스 모두 `@Schema(name=...)` 없음, `springdoc.use-fqn` 설정 없음 | 2-1 |
+| 명확화 3건 | 맞음 | internal 매핑은 3단계에서 삭제되므로 2단계 명세에는 남음. `ReservationHoldExpiryScheduler`는 `matchIfMissing = true`, 초기 지연 `PT30S`이고 주석에 이미 "OpenAPI 문서 생성 프로파일용으로 끌 수 있다"고 적혀 있음. 신뢰 헤더 6개 중 `X-Email-Verified`는 `X-User-` 접두가 아님 | 2-1, 2-3 |
+
+**4차 리뷰에 더한 것**
+- **2단계 명세의 추가 충돌**: 2단계에는 internal 컨트롤러가 아직 남아 있어 문서에 함께 잡힌다. stop의 `CreateStopPriceRequest`·`UpdateStopPriceRequest`·`StopPriceResponse`(`InternalStopController`가 사용)와 iam 관리자 API의 같은 이름 DTO 3개(`admin/dto`)가 충돌한다. `springdoc.paths-to-exclude: /api/v1/internal/**`로 2단계부터 internal을 문서에서 빼면 이 충돌은 사라지고, 3단계 이후에도 남는 공개 API 충돌은 지도 DTO 2개다. 다만 이건 오늘 시점 정적 분석 결과라서, 이후 DTO가 늘어날 때 막을 수 있게 아래 2-1에 이름 중복 검사를 넣었다.
 
 ### 바뀐 단계 순서
 
@@ -182,7 +210,7 @@ interface StopLookupPort {
 
 // app 모듈 (어댑터) — stop 의 공개 진입점을 호출하고 reservation 의 DTO 로 변환한다
 @Component
-class ReservationStopLookupAdapter(private val stopQueryService: StopQueryService) : StopLookupPort { ... }
+class ReservationStopLookupAdapter(private val stopService: StopService) : StopLookupPort { ... }
 ```
 
 이렇게 하면 `reservation`은 `stop`을 모르고, 나중에 다시 쪼갤 때 어댑터만 HTTP 구현으로 바꾸면 된다.
@@ -201,6 +229,7 @@ class ReservationStopLookupAdapter(private val stopQueryService: StopQueryServic
 | 운영 DB 백업(`docs/infra/postgres-backup-plan.md` 절차) | 덤프 파일 확보 |
 | 현재 기준선 측정: 컨테이너별 RSS(`docker stats`), 전체 기동 시간 | 수치 기록(전환 후 비교용) |
 | 주요 API 회귀 시나리오 정리(`HTTP/` 폴더 `.http` 활용) | 로그인·토큰 갱신·관리자 로그인·예약 생성·정류소 조회·관리자 위임 API |
+| 오류 응답 기준선(V4-01) | 관리자 정류소 일괄 등록(`POST /api/v1/admin/stop/register/bulk`)에서 서울 API 업무 오류·본문 누락을 재현해 HTTP 상태, 본문 `code`, 메시지를 기록. 지금 예상값은 500/`00100`·일반 오류 메시지 |
 
 ```sql
 -- JDBC URL 의 ?schema= 는 pgjdbc 파라미터가 아니라(pgjdbc 는 currentSchema) 무시될 가능성이 높다.
@@ -224,7 +253,7 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
    - `SecurityConfig`는 이름만 바꿔서는 해결되지 않으므로(R1) 여기서 건드리지 않고 2단계에서 단일 체인으로 교체한다.
 3. **소비자 포트 추출**
    - 각 소비자의 `*ServiceClient` 공개 메서드를 포트 인터페이스로 올리고, 지금의 HTTP 구현이 그 포트를 구현하게 한다. 소비자 코드는 포트만 보게 된다.
-   - 대상: iam `AdminReservationFacade`, `AdminStopPriceFacade`, `AdminBusinessContractFacade`, **`AdminStopPriceController`(컨트롤러에서 직접 사용)**, reservation `StopResolutionService`, `MemberVerificationService`.
+   - 대상: iam `AdminReservationFacade`, `AdminStopPriceFacade`, `AdminBusinessContractFacade`, reservation `StopResolutionService`, `MemberVerificationService`.
    - 포트 메서드마다 연결할 **제공자 진입점**, 입력 검증, 반환 DTO, 커밋 후 처리를 0단계 대응표에 채운다. 확인된 예:
 
 | 제공자 진입점 | DB Service 외에 하는 일 |
@@ -241,7 +270,8 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
      - 입력 검증용 서비스 예외 처리기를 추가한다. 이 경우 반환값 검증 실패 같은 서버 결함까지 400이 되지 않게 파라미터 검증만 대상으로 한다.
    - **enum 변환**: 이 저장소의 `fromName`은 13개 모두 nullable을 반환하므로 잘못된 값에서 예외가 나지 않는다. `null`이면 명시적으로 `VALIDATION_FAIL`을 던진다. 검색 필터에서 잘못된 enum이 `null` 필터로 바뀌어 전체 조회가 되지 않게 테스트한다.
    - 같은 검증을 공개 컨트롤러도 하고 있는지 확인해 중복과 누락을 구분한다.
-5. 검증: 각 모듈 `test`, `bootJar`. 이 단계까지는 MSA 그대로 동작해야 한다. 서비스 검증은 실제 서비스 프록시를 통과하는 테스트로 확인한다(단위 테스트에서 직접 생성한 객체는 검증이 실행되지 않는다).
+   - **이미 Service에 있는 검증은 옮기지 않는다.** 예: 정류소 유형 문자열은 `StopService.getBusStopPage`가 `StopType.parseFilter`로 변환하고 400을 던진다. 옮길 대상은 컨트롤러에만 있는 `@Valid`, `StopSearchCriteria.of`·`StopBoundsCriteria.of` 조건 생성, `coerceIn` 보정이다.
+5. 검증: 각 모듈 `test`, `bootJar`. 이 단계까지는 MSA 그대로 동작해야 한다. 검증 방식에 맞춰 테스트한다: 진입점에서 직접 검증하고 예외를 던지는 방식(권장)은 단위 테스트로 확인되고, `@Validated` 프록시 기반 검증은 실제 스프링 빈을 통과하는 테스트로만 확인된다.
 
 ### 2단계: `app` 생성과 보안·설정·로깅 통합
 
@@ -251,6 +281,36 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
 1. `settings.gradle.kts`에 `modules:app`을 추가한다.
 2. `iam`/`stop`/`reservation`의 `bootJar`를 끄고 `jar`를 켠다(라이브러리화). openapi 플러그인 설정을 `app`으로 옮기면서, 루트 `generateAllOpenApiDocs`가 참조하던 세 모듈의 `:generateOpenApiDocs` 경로도 **같이** `app` 기준으로 바꾼다(늦추면 중간 단계에서 문서 생성 작업이 깨진다).
 3. `*Application.kt` 3개를 삭제하고 `app`에 `com.media.bus.BusApplication`을 둔다. 스캔 대상은 `com.media.bus` 하위 전체, `com.media.bus.gateway`는 제외한다.
+4. **`app` Gradle 설정 (V3-03)**: 루트 `subprojects`가 모든 모듈에 `bootJar=false`를 걸므로 `app`에서 되돌린다. 도메인 모듈의 `common`·`auth-contract` 의존은 `implementation`이라 `app`에 보이지 않으므로, `app`이 직접 쓰는 모듈은 직접 선언한다. 도메인 모듈끼리 의존하지 않는다는 원칙과는 충돌하지 않는다.
+
+```kotlin
+// modules/app/build.gradle.kts
+dependencies {
+    implementation(project(":modules:iam"))
+    implementation(project(":modules:stop"))
+    implementation(project(":modules:reservation"))
+    implementation(project(":modules:auth-contract")) // JwtProvider, MemberPrincipal
+    implementation(project(":modules:common"))        // ApiResponse, BusinessException 등
+}
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    enabled = true
+    archiveFileName.set("app.jar")
+}
+tasks.named("jar") { enabled = false }
+```
+
+   `Dockerfile`은 `build/libs/*.jar` 대신 `modules/app/build/libs/app.jar`를 정확히 복사하게 바꾼다. 완료 조건: `:modules:app:bootJar`가 `SKIPPED`가 아니라 실제로 실행되고, 그 JAR로 만든 이미지가 기동한다.
+5. **OpenAPI 생성 경로 (V3-02)**: 지금 플러그인은 앱을 `openapi` 프로필로 **실제로 띄운 뒤** `http://localhost:818x/api-docs.yaml`을 HTTP로 내려받는다. 8080 허용 목록과 충돌하므로 다음과 같이 정한다.
+   - `openapi` 프로필에서만 `server.address: 127.0.0.1`로 바인딩하고, 허용 목록에 `/api-docs.yaml`과 그룹 경로를 추가한다. 기본·운영 프로필의 차단 정책은 그대로 둔다.
+   - `application-openapi.yml`은 **지금 저장소에 없다**(`bootJar` 제외 규칙만 있다). 문서 생성 중 DB·Redis를 어떻게 처리할지(로컬 compose 의존, H2·더미 설정 등)를 정해서 새로 만든다.
+   - **internal 경로 문서 제외**: HTTP 접근 차단만으로는 문서에서 사라지지 않는다. 2단계부터 `springdoc.paths-to-exclude: /api/v1/internal/**`를 둔다. 2단계 완료 조건은 "명세 생성 성공 + internal 경로 없음(필터로)"이고, 3단계 완료 조건은 "internal 매핑 자체가 0개"다.
+   - **예약 만료 스케줄러 끄기**: `openapi` 프로필에 `reservation.hold.expiry-enabled: false`를 둔다. 켜져 있으면(`matchIfMissing = true`) 앱이 뜬 뒤 30초 후 만료 처리가 돌고, 로컬 DB를 재사용하는 구성에서는 실제 데이터가 바뀔 수 있다.
+   - **스키마 이름 충돌 (V4-02)**: 서로 다른 모듈이 같은 단순 클래스명 DTO를 공개하면 swagger-core가 같은 스키마 키로 묶는다. 지금 남는 충돌은 지도 API의 `StopBoundsResponse`·`StopMarkerResponse`(iam은 `stopsType: String`, stop은 `StopType` enum)다. 아래 중 하나를 2단계에서 정한다.
+     - (권장) 충돌하는 공개 DTO에 고유한 `@Schema(name = ...)`을 붙인다. 예: `AdminStopBoundsResponse`·`AdminStopMarkerResponse` / `StopMapBoundsResponse`·`StopMapMarkerResponse`. 변경 범위가 작고 다른 스키마 이름은 그대로다.
+     - `springdoc.use-fqn: true`: 모든 스키마 이름이 패키지 포함 이름으로 바뀌므로 프런트의 생성 클라이언트 타입 이름이 전부 달라진다. 소비 도구를 확인한 경우에만 쓴다.
+     - 모듈별 문서 그룹 분리: 4단계 선택 사항이던 그룹 설계를 2단계로 당긴다. 통합 명세를 계속 만든다면 그쪽에는 여전히 위 대책이 필요하다.
+   - **이름 중복 검사**: 생성된 명세에서 서로 다른 클래스가 같은 스키마 키를 쓰지 않는지 확인하는 테스트(또는 생성 후 검사 스크립트)를 둔다. DTO가 늘어날 때 재발을 막는다.
+   - 완료 조건: `./gradlew generateAllOpenApiDocs`를 실제로 실행해 명세가 생성된다. `clean build`·`bootJar` 성공으로 대신하지 않는다. 두 지도 API(`/api/v1/admin/stop/map/bounds`, `/api/v1/stop/map/bounds`)의 응답 `$ref`가 서로 다른 스키마를 가리키고, `stopsType`의 타입·enum이 각 DTO와 일치한다. 문서 생성 중 예약 만료 작업이 시작되지 않는다.
 
 **2-2. 설정 단일화 (R3)**
 - 세 모듈의 `application.yml`·`application-local.yml`을 **라이브러리에서 삭제**하고 `app/src/main/resources`로 합친다. 같은 이름 리소스는 병합되지 않고 클래스패스 첫 번째 것만 쓰이므로, 하나라도 남으면 프로필에 따라 라이브러리 설정이 그대로 로드된다.
@@ -290,7 +350,7 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
 | Bearer 검증 → 401 | 같은 필터에서 `JwtProvider.tryParseClaims` 사용. 응답 본문 없는 401 유지 |
 | 관리자 발급처 검사(`/api/v1/admin/**` → `aud=ADMIN` + `memberType.isAdmin`) → 403 | 경로 prefix 기준 판정. 중복 슬래시 정규화 포함 |
 | `X-User-*` 헤더 주입 | **폐기.** 필터가 `MemberPrincipal`을 만들어 `request.setAttribute(MemberPrincipal.REQUEST_ATTRIBUTE_KEY, ...)`로 바로 넣는다 |
-| 요청의 `X-User-*` 헤더 덮어쓰기·제거 | **유지 필수.** 필터가 모든 요청에서 `X-User-*`를 제거하는 요청 래퍼를 씌우고, 컨트롤러 19곳은 `@CurrentMember`로 교체한다(S1) |
+| 요청의 신뢰 헤더 덮어쓰기·제거 | **유지 필수.** 필터가 모든 요청에서 gateway의 `TRUSTED_USER_HEADERS` 6개를 제거하는 요청 래퍼를 씌운다: `X-User-Id`, `X-User-Login-Id`, `X-User-Email`, `X-User-Role`, `X-User-Permissions`, **`X-Email-Verified`**. 마지막 하나는 `X-User-` 접두가 아니므로 접두 검사로 구현하면 빠진다. 상수(`MemberPrincipal.HEADER_*`) 목록을 그대로 쓴다. 컨트롤러 19곳은 `@CurrentMember`로 교체한다(S1) |
 | 라우트 허용 목록 | 허용 prefix 외 경로는 404(S3) |
 | `block-internal`(403) | internal 매핑은 3단계에서 삭제. 그 전까지는 `S2STokenFilter`를 유지하고 **운영에 배포하지 않는다** |
 | `CorsConfig`(관리자 전용 origin 분리) | 서블릿판 `UrlBasedCorsConfigurationSource`로 같은 규칙 이관 |
@@ -344,16 +404,27 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
 - 컴포넌트 스캔에서 `gateway`를 빼는 것(2단계)과 Gradle 빌드에서 빼는 것(여기)은 별개다.
 - `stop`의 `SeoulBusApiClient`(외부 공공 API)는 S2S 코드가 아니므로 유지한다.
 
+**3-4. 기존 테스트의 역할 이관**
+
+| 테스트 | 지금 검증하는 것 | 처리 |
+|---|---|---|
+| `InternalContractControllerTest` | 삭제할 컨트롤러를 직접 생성해 검색 범위·페이지 보정 검증 | 보정 검증을 새 진입점 테스트로 옮기고 삭제 |
+| `IamApiContractTest` | `IamApi`·`IamServiceClient`·`S2SRestClientFactory` 기반 HTTP 전송 계약 | 전송 계약 검증은 폐기. 회원 조회 결과와 실패 계약은 어댑터 테스트로 이관 |
+| `S2SRestClientFactoryErrorTest`, `RestClientConfigTest` | 삭제 대상 클래스 | 삭제 |
+| `JwtAuthenticationFilterTest`(gateway) | gateway 인증 필터 | 2단계에서 MockMvc 필터 테스트로 이관 |
+
 **동작이 바뀌는 지점 (검토 필수)**
 
 | 항목 | 지금 | 교체 후 | 대응 |
 |---|---|---|---|
 | 입력 검증 | 제공자 컨트롤러의 `@Valid`, 파라미터 변환, `coerceIn` 보정이 실행됨 | 직접 호출에서는 실행되지 않음 | 1단계에서 진입 서비스로 이관(R2) |
 | 트랜잭션 | 호출하는 파사드에 `@Transactional`이 없어, 원격 호출과 각 Service의 DB 작업이 별도 트랜잭션 | 같음. 파사드가 트랜잭션 밖에서 제공자 Service를 부르고, 제공자 Service가 자기 `@Transactional`을 연다 | 호출자 트랜잭션이 있고 전파가 `REQUIRED`일 때만 합류한다. 어댑터에 `@Transactional`을 일괄로 붙이지 않는다. 호출 경로별로 경계를 확인하고 필요할 때만 `REQUIRES_NEW` |
+| 제공자 5xx (V4-01) | 제공자 500은 `HttpServerErrorException`으로 전달되고 `BaseException`이 아니어서 소비자 쪽 catch-all → **500/`00100`**, 일반 메시지. 예: 관리자 정류소 일괄 등록에서 `SeoulBusApiClient`의 `ServiceException` | 원본 `ServiceException`이 그대로 올라와 `baseExceptionHandler` → **500/`00130`**, 서울 API 오류 원문 메시지 | 기본안은 **기존 계약 유지**: 해당 어댑터에서 제공자 `ServiceException`을 원인(`cause`)으로 보존한 채 `CommonResult.ERROR`(500/`00100`)로 바꿔 던진다. 기준은 "예전에 제공자가 5xx로 응답하던 예외"다. 모든 `BaseException`을 일괄 변환하면 이미 지키기로 한 검증 400·404·409·429가 깨지므로 하지 않는다. `00130`과 원문 메시지를 노출하기로 하면 **의도한 API 계약 변경**으로 적고 프런트 영향을 확인한다 |
 | 예외 | 제공자 4xx → `translateClientError` → `BusinessException`(같은 상태). 단 401·403은 `ServiceException`(500, S2S 인증 실패)으로 바뀜 | 제공자의 `BusinessException`이 그대로 전파. S2S 인증 단계가 없어지므로 401·403 변환은 재현할 필요 없음 | 응답 상태·본문 코드가 같은지 회귀 테스트로 확인 |
-| 과부하(Bulkhead) | stop이 `BulkheadFullException` → 429/`00270` → 소비자가 `BusinessException`으로 받음 → `ReservationFacade.reserveOne`의 `catch (BaseException)`에서 항목 `errorCode=00270` | `BulkheadFullException`(`BaseException` 아님)이 그대로 올라와 `catch (Exception)`에서 항목 `errorCode=00100` | 포트 경계(어댑터)나 소비자에서 `BulkheadFullException`을 `BusinessException(CommonResult.BULKHEAD_FULL)`로 변환. 예약은 항목별 결과에 실패를 담으므로 `ExceptionAdvisor` 수정만으로는 해결되지 않음 |
+| 과부하(Bulkhead) | stop이 `BulkheadFullException` → 429/`00270` → 소비자가 `BusinessException(httpStatus=429)`으로 받음 → `ReservationFacade.reserveOne`의 `catch (BaseException)`에서 항목 `errorCode=00270`, 관리자 API는 429/`00270` | `BulkheadFullException`(`BaseException` 아님)이 그대로 올라와 `catch (Exception)`에서 항목 `errorCode=00100` | 어댑터에서 `BusinessException(result = CommonResult.BULKHEAD_FULL, cause = e, httpStatus = HttpStatus.TOO_MANY_REQUESTS)`로 변환. **`httpStatus`를 빼면 `CommonResult` 기본값 때문에 400이 된다(V3-01).** 예약은 항목별 결과에 실패를 담으므로 `ExceptionAdvisor` 수정만으로는 해결되지 않음 |
+| `Retry-After` | 직접 처리되는 `BulkheadFullException`은 `Retry-After: 1`. S2S 변환을 거친 경로는 헤더가 전달되지 않음 | 경로마다 다를 수 있음 | 유지할지 통일할지 정한다. 통일한다면 `BusinessException`에도 헤더를 붙이는 처리 필요 |
 | Bulkhead 공유 | 서비스마다 퍼밋 19를 따로 가짐 | 한 JVM에서 모든 모듈이 같은 `orderDatabase` 퍼밋을 나눠 씀 | 모듈별 자원 격리가 아님을 전제로 부하 검증. 같은 흐름의 중첩 호출은 퍼밋을 더 얻지 않지만 `REQUIRES_NEW`(감사 로그 등)는 커넥션을 하나 더 쓰므로 함께 확인 |
-| 직렬화 | JSON 왕복으로 DTO 간 필드가 느슨하게 매핑됨(없는 필드 무시) | 어댑터에서 명시적으로 변환 | 컴파일러가 누락을 잡는다 |
+| 직렬화 | JSON 왕복으로 DTO 간 필드가 느슨하게 매핑됨(없는 필드 무시) | 어댑터에서 명시적으로 변환 | 컴파일러는 필수 인수와 타입 오류만 잡는다. 기본값이 있는 필드(예: iam `StopInfo.unitPrice: BigDecimal? = null`)는 빠뜨려도 컴파일되므로, 단가가 있는 정류소의 `unitPrice`가 어댑터를 거친 뒤에도 유지되는 계약 테스트를 둔다 |
 | 선점 게이트 | `gate-ttl: 5s`가 S2S 왕복 + DB 저장을 감쌈 | 왕복이 사라져 여유가 생김 | 값은 그대로 둔다 |
 
 모두 끝나면 `S2STokenFilter`, `S2SRestClientFactory`, `JwtProvider.generateS2SToken`, `services.*` 설정을 삭제한다.
@@ -361,6 +432,9 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
 **완료 조건**
 - `/api/v1/internal/**` 매핑 0개(아키텍처 테스트로 고정). 포트 연결 완료와 별도로 검사한다
 - 빈 계약명, 0·음수 금액, 길이 초과, 잘못된 enum·날짜, 페이지 범위 초과, **제공자 과부하**에 대해 기존 HTTP 상태·본문 코드·예약 항목별 코드·보정 규칙 유지
+- 제공자 과부하 시: 예약 생성 항목 `errorCode=00270`, 관리자 위임 API는 HTTP **429** + 본문 `code=00270`, `Retry-After`는 정한 정책대로
+- 제공자 5xx 시: 0단계 기준선에 기록한 서울 API 실패를 새 경로에 주었을 때 외부 응답(상태·`code`·메시지)이 선택한 정책과 일치. 공통 핸들러를 바꿨다면 iam 자체 오류 응답이 바뀌지 않았는지도 확인
+- 단가가 있는 정류소의 `unitPrice`가 어댑터를 거친 뒤에도 유지
 - 잘못된 회원·정류소로 계약 생성 시 거절, 관리자 목록의 정류소 정보 유지, 상태 변경·계약 완료 후 선점 캐시 해제(Facade 업무 흐름 보존)
 - main·test·`AutoConfiguration.imports`에 3-3에서 지운 클래스·메서드 참조 없음. `./gradlew clean build`와 `:modules:app:bootJar` 통과
 - `iam`/`stop`/`reservation` 사이 Gradle 의존 없음
@@ -369,7 +443,7 @@ SELECT DISTINCT filename FROM <위에서 찾은 스키마>.databasechangelog ORD
 
 | 파일 | 변경 |
 |---|---|
-| `Dockerfile` | `MODULE_NAME=app` 고정 |
+| `Dockerfile` | `MODULE_NAME=app` 고정. 복사 대상을 `modules/app/build/libs/app.jar`로 고정(2-1) |
 | `docker-compose.yml` | `database`, `valkey`, `app`(8080), 필요하면 `caddy`(80/443). 서비스 4개 블록과 `*_SERVICE_URL` 삭제. `app`에 `mem_limit` 지정. `build:` 대신 태그가 있는 `image:`로 실행해 롤백 대상을 정확히 가리킬 수 있게 한다. 볼륨 이름(`postgres_data`, `valkey_data`)과 compose 프로젝트 이름은 **바꾸지 않는다**(바꾸면 새 빈 볼륨이 생긴다) |
 | `docker-compose-local.yml`, `docker-compose-dev.yml` | 같은 토폴로지로 단순화. dev의 `host.docker.internal` 라우팅 override는 불필요 |
 | `.env.example` | `*_SERVICE_URL` 삭제, `CORS_*` 유지 |
@@ -428,7 +502,21 @@ gateway는 **허용 목록**으로 동작했다. 정의된 prefix만 하위 서�
 | S5 | 중간 | 공개 경로 판정이 `"METHOD:path".startsWith(...)` 접두 비교다. 지금은 우연히 겹치는 엔드포인트가 없지만, `/api/v1/auth/login-history` 같은 경로가 추가되면 자동으로 공개된다 | gateway `JwtAuthenticationFilter.isPublicPath`. 주석의 "query parameter 때문"은 이유가 되지 않는다(`uri.path`에는 쿼리가 없다) | 정확히 일치(method + path)로 바꾸고 `PathPatternParser`로 판정. 공개 목록에 없는 핸들러는 모두 토큰 필요 | 2 |
 | S6 | 중간 | Swagger UI와 `/api-docs`가 공개되어 전체 API 구조(관리자·internal 포함)가 드러난다 | 각 서비스 `springdoc.*` 설정. 지금은 내부망 전용 | 운영 프로필에서 `springdoc.api-docs.enabled: false`, `springdoc.swagger-ui.enabled: false`. 필요하면 관리 포트로 | 2 |
 | S7 | 중간 | internal API가 공개 포트에 함께 뜬다 | 아래 상세 | internal 매핑 0개를 운영 배포 게이트로 | 3 |
-| S8 | 낮음 | 세션 기기 정보의 클라이언트 IP를 `X-Forwarded-For` 첫 값으로 기록해 위조 가능 | `AuthCookieSupport.extractClientIp` | `server.forward-headers-strategy: native` + Caddy의 `trusted_proxies` 설정 후 `request.remoteAddr` 사용 | 4 |
+| S8 | 낮음 | 세션 기기 정보와 감사 로그의 클라이언트 IP를 `X-Forwarded-For` 첫 값으로 기록해 위조 가능 | `AuthCookieSupport.extractClientIp`, `AuditLogService.extractClientIp` | 아래 [프록시 신뢰 범위](#프록시-신뢰-범위) | 4 |
+
+### 프록시 신뢰 범위
+
+S8은 구간마다 책임이 다르다(V3-04).
+
+| 구간 | 신뢰 설정 | 이 배포에서 할 일 |
+|---|---|---|
+| 클라이언트 → Caddy | Caddy `trusted_proxies`는 **Caddy 앞에 있는** 프록시(CDN 등)의 헤더를 믿는 설정 | Caddy가 인터넷의 첫 진입점이면 설정하지 않는다. Caddy는 기본적으로 외부에서 온 `X-Forwarded-*`를 믿지 않고 새로 쓴다. Cloudflare 프록시를 앞에 두면 그 대역만 지정한다 |
+| Caddy → app(Tomcat) | `server.forward-headers-strategy: native` + `server.tomcat.remoteip.internal-proxies` | 기본 `internal-proxies`는 사설 대역 전체(Docker 브리지 포함)를 믿으므로 Caddy 컨테이너 주소 하나로 좁힌다 |
+| 외부 → app 8080 직접 | 없어야 함 | `app`은 `expose`만 하고 호스트에 `ports`로 공개하지 않는다. Caddy가 호스트 프로세스면 `127.0.0.1:8080`에만 공개한다 |
+
+- `AuthCookieSupport`와 `AuditLogService` 모두 `X-Forwarded-For`를 직접 읽지 말고 `request.remoteAddr`(Tomcat이 검증한 값)를 쓰게 바꾼다.
+- Caddy를 쓰지 않고 다른 TLS 프록시(ALB 등)를 쓰면 같은 책임을 그 구성에 맞게 다시 정한다.
+- 완료 조건: 임의의 `X-Forwarded-For`를 넣은 요청에서 세션·감사 로그에 위조 IP가 남지 않고, 프록시를 거친 정상 요청은 실제 클라이언트 IP가 남는다. 호스트 밖에서 8080 직접 접근이 안 된다.
 
 ### 이번 전환과 별개로 이미 있는 위험 (참고)
 
