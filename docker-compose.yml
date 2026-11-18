@@ -49,6 +49,12 @@ services:
   app:
     # ARM64 전용 이미지(Dockerfile 참고). x86 호스트에서도 arm64로 빌드·실행하도록 고정한다.
     platform: linux/arm64
+    # 버전 태그로 이미지를 남겨 롤백할 수 있게 한다. 서버에서 빌드하는 동안은 build 와 함께 둔다.
+    #   배포:  APP_TAG=$(git rev-parse --short HEAD) docker compose up -d --build --no-deps app
+    #   롤백:  APP_TAG=<이전 태그> docker compose up -d --no-deps app   ← --build 를 붙이면 현재 코드가 이전 태그로 빌드되므로 절대 붙이지 않는다
+    # APP_TAG 를 생략하면 latest 로 동작해 기존 명령(docker compose up -d --build --no-deps app)도 그대로 쓸 수 있다.
+    # 나중에 CI가 이미지를 만들면 build 블록을 빼고 APP_TAG 만 넘긴다.
+    image: bus-app:${APP_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
