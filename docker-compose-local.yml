@@ -49,6 +49,8 @@ services:
     logging: *default-logging
 
   app:
+    # ARM64 전용 이미지(Dockerfile 참고). x86 호스트에서도 arm64로 빌드·실행하도록 고정한다.
+    platform: linux/arm64
     build:
       context: .
       dockerfile: Dockerfile
