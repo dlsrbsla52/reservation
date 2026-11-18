@@ -80,7 +80,7 @@ services:
     # restart: unless-stopped 는 프로세스 종료에만 반응한다. unhealthy 여도 프로세스가 살아 있으면 재시작하지 않으므로
     # 응답 불능은 외부 감시·알림으로 대응한다.
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:8081/actuator/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5

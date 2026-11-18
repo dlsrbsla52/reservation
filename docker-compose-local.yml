@@ -78,7 +78,7 @@ services:
       # 관리자 사이트 origin. 비우면 CORS_ALLOWED_ORIGIN 과 같게 동작한다(로컬 단일 Next 앱).
       CORS_ADMIN_ALLOWED_ORIGIN: ${CORS_ADMIN_ALLOWED_ORIGIN:-}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
