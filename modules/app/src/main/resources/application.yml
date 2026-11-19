@@ -84,6 +84,8 @@ seoul:
 # JWT 설정. 운영 환경에서는 반드시 AWS Secrets Manager 또는 환경변수로 주입해야 합니다.
 jwt:
   secret: ${JWT_SECRET}
+  # 클레임 값(sub·loginId·email·memberType·emailVerified·permissions) AES-256-GCM 암호화 키. Base64 32바이트(openssl rand -base64 32)
+  claim-encryption-key: ${JWT_CLAIM_ENCRYPTION_KEY}
 
 # Cookie 설정. HTTPS 환경에서는 COOKIE_SECURE=true 환경변수로 주입해야 합니다.
 cookie:

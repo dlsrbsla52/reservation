@@ -27,6 +27,7 @@ class JwtProviderAudienceTest {
 
     private val jwtProvider = JwtProvider(
         secret = "local-dev-dummy-jwt-secret-for-tests-only-0000000000",
+        claimEncryptionKey = "dGVzdC1vbmx5LWR1bW15LWNsYWltLWtleS0zMmJ5dGU=",
         redisTemplate = redisTemplate,
     )
 

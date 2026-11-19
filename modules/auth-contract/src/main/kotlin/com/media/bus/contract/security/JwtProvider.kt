@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.MalformedJwtException
 import io.jsonwebtoken.security.Keys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -22,6 +23,8 @@ import java.util.*
  * - Refresh Token : 장기(7일), Redis에 **세션 단위 Hash**로 저장하여
  *   다중 디바이스 세션 관리 + 서버 측 개별 무효화(Revoke)를 지원한다.
  * - 액세스 토큰에는 `type` 클레임이 없다. Refresh Token은 `type=refresh`라서 인증 필터가 액세스 토큰으로 받지 않는다.
+ * - `sub`와 회원 정보 클레임(loginId·email·memberType·emailVerified·permissions) 값은 [ClaimCipher]로 암호화해 담는다.
+ *   복호화는 [parseClaimsFromToken]이 끝내므로 호출부는 평문 Claims만 본다.
  *
  * **Refresh Token 저장 구조 (Redis Hash)**
  * - Key: `refresh:{memberId}`
@@ -35,6 +38,7 @@ import java.util.*
 @Component
 class JwtProvider(
     @Value("\${jwt.secret}") secret: String,
+    @Value("\${jwt.claim-encryption-key}") claimEncryptionKey: String,
     private val redisTemplate: StringRedisTemplate,
 ) {
 
@@ -45,6 +49,18 @@ class JwtProvider(
 
         /** Refresh Token 전용 claim key — Redis 세션 식별자(UUID). */
         const val SESSION_ID_CLAIM = "sid"
+
+        /**
+         * 값을 암호화해 담는 커스텀 클레임. `sub`는 표준 클레임이라 별도로 처리한다.
+         * `aud`·`iat`·`exp`·`sid`·`type`은 평문이다 — 파서의 만료 검증과 필터의 발급처·토큰 종류 판별에 쓴다.
+         */
+        private val ENCRYPTED_CLAIMS = listOf(
+            MemberPrincipal.CLAIM_LOGIN_ID,
+            MemberPrincipal.CLAIM_EMAIL,
+            MemberPrincipal.CLAIM_MEMBER_TYPE,
+            MemberPrincipal.CLAIM_EMAIL_VERIFIED,
+            MemberPrincipal.CLAIM_PERMISSIONS,
+        )
     }
 
     /**
@@ -63,6 +79,9 @@ class JwtProvider(
     // JWT secret은 반드시 256bit(32byte) 이상이어야 합니다.
     private val secretKey = Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8))
 
+    /** `sub`와 [ENCRYPTED_CLAIMS] 값을 암복호화한다. 서명 키와 다른 키를 쓴다. */
+    private val claimCipher = ClaimCipher(claimEncryptionKey)
+
     /** Redis Hash 값 직렬화용 — 기본 설정으로 충분. */
     private val objectMapper = ObjectMapper()
 
@@ -78,13 +97,14 @@ class JwtProvider(
     ): String {
         val now = System.currentTimeMillis()
         return Jwts.builder()
-            .subject(principal.id.toString())
+            .subject(claimCipher.encrypt(principal.id.toString()))
             .audience().add(audience.name).and()
-            .claim(MemberPrincipal.CLAIM_LOGIN_ID, principal.loginId)
-            .claim(MemberPrincipal.CLAIM_EMAIL, principal.email)
-            .claim(MemberPrincipal.CLAIM_MEMBER_TYPE, principal.memberType.name)
-            .claim(MemberPrincipal.CLAIM_EMAIL_VERIFIED, principal.emailVerified)
-            .claim(MemberPrincipal.CLAIM_PERMISSIONS, permissionNames.joinToString(","))
+            // null 이면 jjwt 가 클레임을 생략한다(기존 동작 유지)
+            .claim(MemberPrincipal.CLAIM_LOGIN_ID, principal.loginId?.let(claimCipher::encrypt))
+            .claim(MemberPrincipal.CLAIM_EMAIL, principal.email?.let(claimCipher::encrypt))
+            .claim(MemberPrincipal.CLAIM_MEMBER_TYPE, claimCipher.encrypt(principal.memberType.name))
+            .claim(MemberPrincipal.CLAIM_EMAIL_VERIFIED, claimCipher.encrypt(principal.emailVerified.toString()))
+            .claim(MemberPrincipal.CLAIM_PERMISSIONS, claimCipher.encrypt(permissionNames.joinToString(",")))
             .issuedAt(Date(now))
             .expiration(Date(now + audience.accessTokenTtl.toMillis()))
             .signWith(secretKey)
@@ -119,7 +139,7 @@ class JwtProvider(
     ): String {
         val now = System.currentTimeMillis()
         val refreshToken = Jwts.builder()
-            .subject(memberId)
+            .subject(claimCipher.encrypt(memberId))
             .audience().add(audience.name).and()
             .claim("type", "refresh")
             .claim(SESSION_ID_CLAIM, sessionId)
@@ -144,13 +164,36 @@ class JwtProvider(
         return refreshToken
     }
 
-    /** JWT 토큰의 서명을 검증하고 클레임을 파싱하여 반환합니다. */
+    /**
+     * JWT 토큰의 서명을 검증하고, 암호화된 클레임을 복호화한 **평문 Claims**를 반환합니다.
+     *
+     * 복호화를 여기서 끝내므로 호출부(인증 필터, iam 서비스, [MemberPrincipal.fromClaims])는 암호화를 모른다.
+     * 암호화되지 않은 구버전 토큰이나 다른 키로 암호화한 토큰은 [MalformedJwtException]으로 실패한다.
+     */
     fun parseClaimsFromToken(token: String): Claims =
-        Jwts.parser()
-            .verifyWith(secretKey)
-            .build()
-            .parseSignedClaims(token)
-            .payload
+        decryptClaims(
+            Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .payload
+        )
+
+
+    /** 서명 검증이 끝난 Claims에서 `sub`와 [ENCRYPTED_CLAIMS] 값을 복호화해 새 Claims로 만든다. */
+    private fun decryptClaims(raw: Claims): Claims {
+        val subject = raw.subject
+            ?: throw MalformedJwtException("sub 클레임이 없습니다.")
+        val builder = Jwts.claims().add(raw).subject(claimCipher.decrypt(subject))
+        // refresh 토큰에는 커스텀 클레임이 없으므로 있는 것만 복호화한다.
+        ENCRYPTED_CLAIMS.forEach { name ->
+            val encrypted = raw[name] as? String ?: return@forEach
+            val plain = claimCipher.decrypt(encrypted)
+            // emailVerified 는 fromClaims 가 Boolean 으로 읽으므로 타입을 되돌린다.
+            builder.add(name, if (name == MemberPrincipal.CLAIM_EMAIL_VERIFIED) plain.toBooleanStrict() else plain)
+        }
+        return builder.build()
+    }
 
     /**
      * JWT 토큰을 파싱하여 Claims를 반환한다.
