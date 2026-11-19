@@ -57,6 +57,7 @@ import java.util.*
         "reservation.hold.expiry-enabled=false",
         "cookie.secure=false",
         "jwt.secret=context-test-only-secret-key-at-least-32-bytes-long",
+        "jwt.claim-encryption-key=dGVzdC1vbmx5LWR1bW15LWNsYWltLWtleS0zMmJ5dGU=",
         "cors.allowed-origin=http://localhost:3000",
         "cors.admin-allowed-origin=http://admin.localhost:3001",
         "seoul.api.key=dummy",

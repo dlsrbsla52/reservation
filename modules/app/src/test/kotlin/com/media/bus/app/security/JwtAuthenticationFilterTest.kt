@@ -2,6 +2,7 @@ package com.media.bus.app.security
 
 import com.media.bus.common.logging.MdcLoggingFilter
 import com.media.bus.contract.entity.member.MemberType
+import com.media.bus.contract.security.ClaimCipher
 import com.media.bus.contract.security.JwtProvider
 import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.TokenAudience
@@ -32,7 +33,8 @@ import java.util.*
 class JwtAuthenticationFilterTest {
 
     private val secret = "test-secret-key-for-unit-test-minimum-256bits-padding-here"
-    private val jwtProvider = JwtProvider(secret, mockk<StringRedisTemplate>(relaxed = true))
+    private val claimKey = "dGVzdC1vbmx5LWR1bW15LWNsYWltLWtleS0zMmJ5dGU=" // 테스트 전용 더미 32바이트
+    private val jwtProvider = JwtProvider(secret, claimKey, mockk<StringRedisTemplate>(relaxed = true))
     private val filter = JwtAuthenticationFilter(jwtProvider, exposeApiDocs = false, managementPort = { 8081 })
 
     /** 체인까지 도달한 요청. null 이면 필터가 요청을 끝냈다. */
@@ -127,15 +129,34 @@ class JwtAuthenticationFilterTest {
 
         @Test
         fun `서명이 다른 토큰은 401`() {
-            val forged = JwtProvider("another-secret-key-for-unit-test-minimum-256bits-xx", mockk(relaxed = true))
+            val forged = JwtProvider("another-secret-key-for-unit-test-minimum-256bits-xx", claimKey, mockk(relaxed = true))
                 .generateAccessToken(principal(MemberType.MEMBER), emptySet(), TokenAudience.USER)
             assertThat(run(request("GET", "/api/v1/member/me", forged)).status).isEqualTo(401)
         }
 
         @Test
-        fun `refresh 토큰을 액세스 토큰으로 쓰면 401`() {
-            val refresh = Jwts.builder()
+        fun `서명은 맞지만 클레임 암호화 키가 다른 토큰은 401`() {
+            val otherKey = Base64.getEncoder().encodeToString(ByteArray(32) { 7 })
+            val token = JwtProvider(secret, otherKey, mockk(relaxed = true))
+                .generateAccessToken(principal(MemberType.MEMBER), emptySet(), TokenAudience.USER)
+            assertThat(run(request("GET", "/api/v1/member/me", token)).status).isEqualTo(401)
+        }
+
+        @Test
+        fun `클레임이 평문인 구버전 토큰은 서명이 맞아도 401`() {
+            val legacy = Jwts.builder()
                 .subject(UUID.randomUUID().toString())
+                .claim(MemberPrincipal.CLAIM_MEMBER_TYPE, MemberType.ADMIN_MASTER.name)
+                .signWith(Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8)))
+                .compact()
+            assertThat(run(request("GET", "/api/v1/member/me", legacy)).status).isEqualTo(401)
+        }
+
+        @Test
+        fun `refresh 토큰을 액세스 토큰으로 쓰면 401`() {
+            // 서명·sub 암호화는 정상이고 type=refresh 만 다른 토큰 — type 검사로 막히는지 본다
+            val refresh = Jwts.builder()
+                .subject(ClaimCipher(claimKey).encrypt(UUID.randomUUID().toString()))
                 .claim("type", "refresh")
                 .signWith(Keys.hmacShaKeyFor(secret.toByteArray(StandardCharsets.UTF_8)))
                 .compact()

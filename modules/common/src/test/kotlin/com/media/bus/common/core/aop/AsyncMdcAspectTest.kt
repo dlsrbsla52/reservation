@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit
     "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
     "spring.liquibase.enabled=false",
     "jwt.secret=test-secret-key-for-unit-test-minimum-256bits-padding-here",
+    "jwt.claim-encryption-key=dGVzdC1vbmx5LWR1bW15LWNsYWltLWtleS0zMmJ5dGU=",
 ])
 @DisplayName("AsyncMdcAspect")
 class AsyncMdcAspectTest {

@@ -32,8 +32,9 @@ class AuthContractAutoConfiguration {
     @Bean
     fun jwtProvider(
         @Value("\${jwt.secret}") secret: String,
+        @Value("\${jwt.claim-encryption-key}") claimEncryptionKey: String,
         redisTemplate: StringRedisTemplate,
-    ): JwtProvider = JwtProvider(secret, redisTemplate)
+    ): JwtProvider = JwtProvider(secret, claimEncryptionKey, redisTemplate)
 
     @Configuration
     @ConditionalOnClass(SpringDocUtils::class)

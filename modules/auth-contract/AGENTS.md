@@ -22,6 +22,14 @@
 | Access (관리자 사이트, `aud=ADMIN`) | 15분 | 없음(Stateless) | `app` 인증 필터가 `/api/v1/admin/**`에 이 토큰만 통과시킨다 |
 | Refresh | 7일 | Redis | 취소 가능, Token Rotation 지원. `aud`를 기록하고 갱신 시 이어받는다 |
 
+## 클레임 암호화(`ClaimCipher`)
+
+- JWS 서명은 그대로 두고 **클레임 값만** AES-256-GCM으로 암호화한다. 키는 `jwt.claim-encryption-key`(`JWT_CLAIM_ENCRYPTION_KEY`, Base64 32바이트)이고 서명 키 `JWT_SECRET`과 따로 둔다.
+- 암호화 대상: `sub`, `loginId`, `email`, `memberType`, `emailVerified`, `permissions`. 평문 유지: `aud`·`iat`·`exp`(파서·필터가 사용), refresh의 `sid`·`type`.
+- 복호화는 `JwtProvider.parseClaimsFromToken()` 안에서 끝낸다. 호출부는 평문 `Claims`만 받으므로 **토큰을 직접 `Jwts.parser()`로 파싱하지 않는다**(값이 암호문으로 보인다).
+- 복호화 실패(키 불일치·변조·암호화 전 토큰)는 `MalformedJwtException` → `tryParseClaims()`가 `null` → 401.
+- 키를 바꾸면 발급된 모든 토큰이 무효가 된다(전원 재로그인).
+
 ## 발급처(`TokenAudience`)
 
 - 액세스·리프레시 토큰의 JWT 표준 `aud` 클레임에 `USER` 또는 `ADMIN`을 기록한다. TTL도 발급처별로 `TokenAudience.accessTokenTtl`이 정한다.
