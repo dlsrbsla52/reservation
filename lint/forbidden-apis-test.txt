@@ -1,0 +1,7 @@
+# test 코드 전용 금지 API(main 클래스패스에는 spring-test가 없어 따로 둔다).
+# 테스트 목은 MockK만 쓴다(AGENTS.md 테스트 규칙). AI가 Spring 테스트에서 Mockito를 자주 꺼낸다.
+
+@defaultMessage [bus:NoMockito] 목은 MockK(io.mockk: mockk, every, verify)로 만든다. 참고: modules/app/src/test/kotlin/com/media/bus/app/adapter/IamStopAdminAdapterTest.kt
+org.mockito.**
+org.springframework.test.context.bean.override.mockito.MockitoBean
+org.springframework.test.context.bean.override.mockito.MockitoSpyBean
