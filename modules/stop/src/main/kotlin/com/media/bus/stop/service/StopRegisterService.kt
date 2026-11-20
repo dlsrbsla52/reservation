@@ -3,10 +3,10 @@ package com.media.bus.stop.service
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.stop.client.SeoulBusApiClient
 import com.media.bus.stop.dto.response.StopBulkRegisterResult
+import com.media.bus.stop.result.StopResult
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.script.RedisScript
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.util.*
@@ -48,7 +48,7 @@ class StopRegisterService(
         val token = UUID.randomUUID().toString()
         val acquired = redisTemplate.opsForValue().setIfAbsent(LOCK_KEY, token, LOCK_TTL) == true
         if (!acquired) {
-            throw BusinessException(HttpStatus.CONFLICT, "정류소 일괄 등록이 이미 진행 중입니다. 완료 후 다시 시도해주세요.")
+            throw BusinessException(StopResult.BULK_REGISTER_IN_PROGRESS)
         }
         try {
             return runBulkRegister()

@@ -1,7 +1,7 @@
 package com.media.bus.stop.support
 
 import com.media.bus.common.exceptions.BusinessException
-import org.springframework.http.HttpStatus
+import com.media.bus.stop.result.StopResult
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -35,7 +35,7 @@ object Coordinate {
      */
     fun parseLongitude(raw: String): BigDecimal =
         parseOrNullLongitude(raw)
-            ?: throw BusinessException(HttpStatus.BAD_REQUEST, "경도(xCrd) 값이 올바르지 않습니다: $raw")
+            ?: throw BusinessException(StopResult.INVALID_LONGITUDE)
 
     /**
      * 위도 문자열을 파싱한다. 실패 시 [BusinessException] 을 던진다.
@@ -44,7 +44,7 @@ object Coordinate {
      */
     fun parseLatitude(raw: String): BigDecimal =
         parseOrNullLatitude(raw)
-            ?: throw BusinessException(HttpStatus.BAD_REQUEST, "위도(yCrd) 값이 올바르지 않습니다: $raw")
+            ?: throw BusinessException(StopResult.INVALID_LATITUDE)
 
     /**
      * 경도 문자열을 파싱하되 실패 시 `null` 을 반환한다.

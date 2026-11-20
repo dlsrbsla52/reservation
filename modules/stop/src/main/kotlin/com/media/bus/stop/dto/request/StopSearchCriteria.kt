@@ -1,7 +1,7 @@
 package com.media.bus.stop.dto.request
 
 import com.media.bus.common.exceptions.BusinessException
-import com.media.bus.common.result.type.CommonResult
+import com.media.bus.stop.result.StopResult
 import java.util.*
 
 /**
@@ -22,7 +22,7 @@ sealed interface StopSearchCriteria {
     data class ByStopName(val stopName: String) : StopSearchCriteria {
         init {
             if (stopName.isBlank() || stopName.length > 200) {
-                throw BusinessException(CommonResult.VALIDATION_FAIL, "정류소 이름은 공백이 아닌 200자 이하여야 합니다.")
+                throw BusinessException(StopResult.INVALID_STOP_NAME_KEYWORD)
             }
         }
     }
@@ -36,7 +36,7 @@ sealed interface StopSearchCriteria {
             pk != null       -> ByPk(pk)
             stopId != null   -> ByStopId(stopId)
             stopName != null -> ByStopName(stopName)
-            else -> throw BusinessException(CommonResult.REQUEST_FAIL, "유효한 값을 전달해주세요.")
+            else -> throw BusinessException(StopResult.SEARCH_KEY_REQUIRED)
         }
     }
 }

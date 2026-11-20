@@ -11,6 +11,7 @@ import com.media.bus.stop.entity.enums.StopType
 import com.media.bus.stop.map.dto.StopBoundsResponse
 import com.media.bus.stop.map.dto.StopMarkerResponse
 import com.media.bus.stop.map.service.StopMapQueryService
+import com.media.bus.stop.result.StopResult
 import com.media.bus.stop.service.StopPriceService
 import com.media.bus.stop.service.StopRegisterService
 import com.media.bus.stop.service.StopService
@@ -103,7 +104,7 @@ class IamStopAdminAdapterTest {
 
     @Test
     fun `서울 공공 API 실패(ServiceException)는 예전처럼 500 일반 오류로 바뀐다`() {
-        val original = ServiceException(CommonResult.SERVICE_ERROR, "서울 API 응답 본문이 비어 있습니다.")
+        val original = ServiceException(StopResult.SEOUL_API_PARSE_FAIL)
         every { stopRegisterService.registerAllFromPublicApi() } throws original
 
         val ex = assertThrows<ServiceException> { adapter.registerBulk() }
@@ -115,7 +116,7 @@ class IamStopAdminAdapterTest {
 
     @Test
     fun `제공자의 4xx 비즈니스 예외는 그대로 전달한다`() {
-        val conflict = BusinessException(HttpStatus.CONFLICT, "이미 실행 중입니다.")
+        val conflict = BusinessException(StopResult.BULK_REGISTER_IN_PROGRESS)
         every { stopRegisterService.registerAllFromPublicApi() } throws conflict
 
         val ex = assertThrows<BusinessException> { adapter.registerBulk() }

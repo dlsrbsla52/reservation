@@ -12,6 +12,7 @@ import com.media.bus.stop.entity.enums.StopType
 import com.media.bus.stop.guard.StopCommandGuard
 import com.media.bus.stop.repository.StopPriceRepository
 import com.media.bus.stop.repository.StopRepository
+import com.media.bus.stop.result.StopResult
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
@@ -57,7 +58,7 @@ class StopService(
             is StopSearchCriteria.ByStopName -> stopRepository.findByStopNameStartingWith(criteria.stopName)
         }
         if (criteria is StopSearchCriteria.ByStopName && entities.size > StopRepository.MAX_NAME_RESULTS) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "정류소 이름 조회는 최대 100건입니다. keyword와 페이지 조회를 사용해주세요.")
+            throw BusinessException(StopResult.STOP_NAME_RESULT_LIMIT_EXCEEDED)
         }
         return withUnitPrice(entities)
     }
@@ -79,7 +80,7 @@ class StopService(
         stopsType: String? = null,
     ): PageResult<BusStopResponse> {
         if (page < 0 || size !in 1..100 || (keyword?.length ?: 0) > 200) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "page는 0 이상, size는 1~100, keyword는 200자 이하여야 합니다.")
+            throw BusinessException(StopResult.INVALID_PAGE_REQUEST)
         }
         val kw = keyword?.trim()?.takeIf { it.isNotEmpty() }
         val type = StopType.parseFilter(stopsType)

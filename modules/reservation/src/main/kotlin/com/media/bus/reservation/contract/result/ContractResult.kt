@@ -19,6 +19,8 @@ enum class ContractResult(
     CONTRACT_ACCESS_DENIED("C0002", "해당 계약에 접근할 권한이 없습니다.", HttpStatus.FORBIDDEN),
     CONTRACT_INVALID_PERIOD("C0003", "계약 종료일은 시작일 이후여야 합니다.", HttpStatus.BAD_REQUEST),
     CONTRACT_PERIOD_OVERLAP("C0004", "해당 정류소에 기간이 겹치는 계약이 이미 있습니다.", HttpStatus.CONFLICT),
+    CONTRACT_KEYWORD_TOO_LONG("C0005", "keyword는 100자 이하여야 합니다."),
+    CONTRACT_SEARCH_INVALID_PERIOD("C0006", "contractStartFrom은 contractStartTo 이후일 수 없습니다."),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

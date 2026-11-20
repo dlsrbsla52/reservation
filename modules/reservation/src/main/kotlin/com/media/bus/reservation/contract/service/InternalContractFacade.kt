@@ -1,13 +1,13 @@
 package com.media.bus.reservation.contract.service
 
 import com.media.bus.common.exceptions.BusinessException
-import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.validation.InputValidator
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.reservation.contract.dto.request.AdminContractSearchCondition
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.dto.response.AdminContractView
 import com.media.bus.reservation.contract.dto.response.ContractResponse
+import com.media.bus.reservation.contract.result.ContractResult
 import com.media.bus.reservation.reservation.service.StopResolutionService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -113,12 +113,12 @@ class InternalContractFacade(
     private fun validateSearchCondition(condition: AdminContractSearchCondition) {
         val keyword = condition.keyword
         if (keyword != null && keyword.length > MAX_KEYWORD_LENGTH) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "keyword는 ${MAX_KEYWORD_LENGTH}자 이하여야 합니다.")
+            throw BusinessException(ContractResult.CONTRACT_KEYWORD_TOO_LONG)
         }
         val from = condition.contractStartFrom
         val to = condition.contractStartTo
         if (from != null && to != null && from > to) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "contractStartFrom은 contractStartTo 이후일 수 없습니다.")
+            throw BusinessException(ContractResult.CONTRACT_SEARCH_INVALID_PERIOD)
         }
     }
 

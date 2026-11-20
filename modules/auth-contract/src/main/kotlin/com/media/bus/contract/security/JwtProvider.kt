@@ -2,6 +2,7 @@ package com.media.bus.contract.security
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.media.bus.common.result.type.CommonResult
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
@@ -183,7 +184,7 @@ class JwtProvider(
     /** 서명 검증이 끝난 Claims에서 `sub`와 [ENCRYPTED_CLAIMS] 값을 복호화해 새 Claims로 만든다. */
     private fun decryptClaims(raw: Claims): Claims {
         val subject = raw.subject
-            ?: throw MalformedJwtException("sub 클레임이 없습니다.")
+            ?: throw MalformedJwtException(CommonResult.TOKEN_SUBJECT_MISSING_FAIL.message)
         val builder = Jwts.claims().add(raw).subject(claimCipher.decrypt(subject))
         // refresh 토큰에는 커스텀 클레임이 없으므로 있는 것만 복호화한다.
         ENCRYPTED_CLAIMS.forEach { name ->

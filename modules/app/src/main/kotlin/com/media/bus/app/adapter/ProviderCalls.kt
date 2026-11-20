@@ -49,7 +49,7 @@ internal inline fun <T> callProvider(block: () -> T): T =
  * 반환하므로, `null`을 그대로 넘기면 검색 필터가 "조건 없음"으로 바뀌어 전체 조회가 된다. 그래서 반드시 예외로 바꾼다.
  */
 internal inline fun <E> parseCode(raw: String, field: String, fromName: (String) -> E?): E =
-    fromName(raw) ?: throw BusinessException(CommonResult.VALIDATION_FAIL, "허용되지 않는 값입니다: $field=$raw")
+    fromName(raw) ?: throw BusinessException(CommonResult.VALIDATION_FAIL)
 
 /** [parseCode]의 선택 필터 버전. 비어 있으면 `null`(조건 없음). */
 internal inline fun <E> parseOptionalCode(raw: String?, field: String, fromName: (String) -> E?): E? =

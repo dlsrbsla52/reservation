@@ -197,7 +197,7 @@ class MemberServiceTest {
             val exception = org.junit.jupiter.api.assertThrows<BusinessException> {
                 memberService.findMe(FindMeRequest("홍길동", contact, null))
             }
-            assertThat(exception.result).isEqualTo(com.media.bus.common.result.type.CommonResult.VALIDATION_FAIL)
+            assertThat(exception.result).isEqualTo(AuthResult.FIND_ME_KEY_REQUIRED)
             assertThat(exception.httpStatus.value()).isEqualTo(400)
         }
         verify(exactly = 0) { memberRepository.findMe(any()) }

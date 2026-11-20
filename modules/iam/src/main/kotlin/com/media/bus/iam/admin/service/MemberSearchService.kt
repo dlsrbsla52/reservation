@@ -1,11 +1,14 @@
 package com.media.bus.iam.admin.service
 
+import com.media.bus.common.exceptions.ServiceException
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberCategory
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.iam.admin.dto.MemberSearchResponse
+import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.member.dto.MemberSearchCondition
 import com.media.bus.iam.member.repository.MemberRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -22,6 +25,9 @@ import org.springframework.transaction.annotation.Transactional
 class MemberSearchService(
     private val memberRepository: MemberRepository,
 ) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
     companion object {
         /** 페이지 크기 상한. 과대 요청으로 인한 메모리/부하(DoS 표면)를 막는다. */
         private const val MAX_PAGE_SIZE = 100
@@ -66,7 +72,10 @@ class MemberSearchService(
         val items = rows.map {
             // roleName 은 role.name = MemberType.name 이므로 항상 매핑 가능
             val memberType = MemberType.fromName(it.roleName)
-                ?: error("매핑 불가능한 역할 이름: ${it.roleName}")
+                ?: run {
+                    log.error("[MemberSearchService] 매핑 불가능한 역할 이름: {}", it.roleName)
+                    throw ServiceException(AuthResult.UNKNOWN_ROLE_NAME)
+                }
             MemberSearchResponse.of(it.member, memberType)
         }
 

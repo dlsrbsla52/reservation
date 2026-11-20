@@ -16,17 +16,9 @@ import org.springframework.http.HttpStatus
  */
 class BusinessException(
     result: Result = CommonResult.FAIL,
-    message: String? = null,
     cause: Throwable? = null,
     val httpStatus: HttpStatus = result.httpStatus(),
-) : BaseException(result, message, cause) {
-
-    /** HTTP 상태를 직접 지정하는 편의 생성자. */
-    constructor(httpStatus: HttpStatus, message: String) : this(
-        result = CommonResult.FAIL,
-        message = message,
-        httpStatus = httpStatus,
-    )
+) : BaseException(result, cause) {
 
     companion object {
         private const val serialVersionUID: Long = 7381893246823945120L

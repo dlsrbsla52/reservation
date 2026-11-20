@@ -8,6 +8,7 @@ import com.media.bus.iam.audit.AuditAction
 import com.media.bus.iam.audit.AuditTargetType
 import com.media.bus.iam.audit.entity.enumerated.AuditActorType
 import com.media.bus.iam.audit.service.AuditLogService
+import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.auth.service.AuthService
 import com.media.bus.iam.auth.service.RoleResolutionService
 import com.media.bus.iam.member.dto.FindLoginIdResponse
@@ -79,7 +80,7 @@ class MemberService(
     @Transactional(readOnly = true)
     fun findMe(request: FindMeRequest): FindLoginIdResponse {
         if (request.memberName.isBlank() || (request.phoneNumber.isNullOrBlank() && request.email.isNullOrBlank())) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "이름과 phoneNumber 또는 email 중 하나는 필수입니다.")
+            throw BusinessException(AuthResult.FIND_ME_KEY_REQUIRED)
         }
 
         val member = memberRepository.findMe(request)

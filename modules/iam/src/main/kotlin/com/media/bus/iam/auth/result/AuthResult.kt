@@ -36,6 +36,12 @@ enum class AuthResult(
     ADMIN_ACCOUNT_REQUIRED("A0020", "관리자 계정만 로그인할 수 있습니다.", HttpStatus.FORBIDDEN),
     LOGIN_ID_LOOKUP_RATE_LIMITED("A0022", "아이디 찾기 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.", HttpStatus.TOO_MANY_REQUESTS),
     TOKEN_AUDIENCE_MISMATCH("A0021", "다른 사이트에서 발급된 인증 정보입니다. 다시 로그인해주세요.", HttpStatus.UNAUTHORIZED),
+    STOP_PRICE_LOOKUP_KEY_REQUIRED("A0023", "pk, stopId, stopName 중 하나는 필수입니다."),
+    CONTRACT_KEYWORD_TOO_LONG("A0024", "keyword는 100자 이하여야 합니다."),
+    CONTRACT_SEARCH_INVALID_PERIOD("A0025", "contractStartFrom은 contractStartTo 이후일 수 없습니다."),
+    UNKNOWN_ROLE_NAME("A0026", "회원 역할을 해석할 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    FIND_ME_KEY_REQUIRED("A0027", "이름과 phoneNumber 또는 email 중 하나는 필수입니다."),
+    LOGIN_ID_LOOKUP_RATE_LIMIT_UNAVAILABLE("A0028", "아이디 찾기 호출 제한을 확인할 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

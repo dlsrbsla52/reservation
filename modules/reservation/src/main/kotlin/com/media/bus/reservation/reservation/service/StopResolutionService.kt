@@ -3,6 +3,7 @@ package com.media.bus.reservation.reservation.service
 import com.media.bus.common.exceptions.StorageException
 import com.media.bus.reservation.reservation.dto.response.StopInfo
 import com.media.bus.reservation.reservation.port.StopLookupPort
+import com.media.bus.reservation.reservation.result.ReservationResult
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.*
@@ -32,7 +33,7 @@ class StopResolutionService(
         stopLookupPort.getStopByPk(setOf(stopId)).firstOrNull()
             ?: run {
                 log.warn("[StopResolutionService] 존재하지 않는 정류소: stopId={}", stopId)
-                throw StorageException(message = "요청한 정류소를 찾을 수 없습니다. stopId=$stopId")
+                throw StorageException(ReservationResult.STOP_NOT_FOUND)
             }
 
     /**

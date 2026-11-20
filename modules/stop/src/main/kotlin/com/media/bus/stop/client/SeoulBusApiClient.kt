@@ -3,6 +3,7 @@ package com.media.bus.stop.client
 import com.media.bus.common.exceptions.ServiceException
 import com.media.bus.stop.dto.external.SeoulBusStopApiResponse
 import com.media.bus.stop.dto.external.SeoulBusStopRow
+import com.media.bus.stop.result.StopResult
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -43,14 +44,15 @@ class SeoulBusApiClient(
             .uri("/{apiKey}/json/busStopLocationXyInfo/{start}/{end}/", apiKey, start, end)
             .retrieve()
             .body(SeoulBusStopApiResponse::class.java)
-            ?: throw ServiceException(message = "서울 공공 API 응답을 파싱할 수 없습니다.")
+            ?: throw ServiceException(StopResult.SEOUL_API_PARSE_FAIL)
 
         val body = response.busStopInfo
-            ?: throw ServiceException(message = "서울 공공 API 응답을 파싱할 수 없습니다.")
+            ?: throw ServiceException(StopResult.SEOUL_API_PARSE_FAIL)
 
         body.result?.let { result ->
             if (!result.isSuccess()) {
-                throw ServiceException(message = "서울 공공 API 오류: [${result.code}] ${result.message}")
+                log.error("[SeoulBusApiClient] 서울 공공 API 오류: code={}, message={}", result.code, result.message)
+                throw ServiceException(StopResult.SEOUL_API_ERROR)
             }
         }
 

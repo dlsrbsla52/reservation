@@ -1,12 +1,12 @@
 package com.media.bus.reservation.contract.service
 
 import com.media.bus.common.exceptions.BusinessException
-import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.reservation.contract.dto.request.AdminContractSearchCondition
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.entity.enums.PaymentCycle
 import com.media.bus.reservation.contract.entity.enums.PaymentMethod
+import com.media.bus.reservation.contract.result.ContractResult
 import com.media.bus.reservation.reservation.service.StopResolutionService
 import io.mockk.every
 import io.mockk.mockk
@@ -86,7 +86,7 @@ class InternalContractFacadeTest {
 
         val ex = assertThrows<BusinessException> { facade.searchContracts(emptyCondition(from = from, to = to), 0, 20) }
 
-        assertThat(ex.result).isEqualTo(CommonResult.VALIDATION_FAIL)
+        assertThat(ex.result).isEqualTo(ContractResult.CONTRACT_SEARCH_INVALID_PERIOD)
         verify(exactly = 0) { internalContractService.searchContracts(any(), any(), any()) }
     }
 

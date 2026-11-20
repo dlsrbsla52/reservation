@@ -1,8 +1,8 @@
 package com.media.bus.iam.admin.facade
 
 import com.media.bus.common.exceptions.BusinessException
-import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.wrapper.PageResult
+import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.port.StopAdminPort
 import com.media.bus.iam.port.dto.stop.*
 import org.springframework.stereotype.Service
@@ -28,7 +28,7 @@ class AdminStopPriceFacade(
         pk != null -> stopAdminPort.getStopByPk(pk)
         stopId != null -> stopAdminPort.getStopByStopId(stopId)
         stopName != null -> stopAdminPort.getStopByStopName(stopName)
-        else -> throw BusinessException(CommonResult.REQUEST_FAIL, "pk, stopId, stopName 중 하나는 필수입니다.")
+        else -> throw BusinessException(AuthResult.STOP_PRICE_LOOKUP_KEY_REQUIRED)
     }
 
     /**

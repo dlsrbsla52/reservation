@@ -27,6 +27,8 @@ enum class ReservationResult(
     RESERVATION_LIMIT_EXCEEDED("R0009", "동시에 진행할 수 있는 예약 수를 초과했습니다.", HttpStatus.CONFLICT),
     RESERVATION_HOLD_NOT_EXTENDABLE("R0010", "진행 중인 예약만 선점 기간을 연장할 수 있습니다."),
     RESERVATION_HOLD_INVALID_EXPIRY("R0011", "선점 만료 일시는 현재 시각 이후여야 합니다."),
+    STOP_NOT_FOUND("R0012", "요청한 정류소를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    STOP_ID_BLANK("R0013", "stopId 에 빈 값이 있습니다."),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

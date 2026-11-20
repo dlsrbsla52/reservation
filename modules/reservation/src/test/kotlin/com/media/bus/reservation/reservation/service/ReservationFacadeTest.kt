@@ -174,7 +174,7 @@ class ReservationFacadeTest {
     @DisplayName("선점과 무관한 실패(없는 정류소)는 게이트를 풀어 다음 요청이 바로 시도할 수 있게 한다")
     fun `정류소 없음 실패 시 게이트 해제`() {
         every { stopHoldGate.tryEnter(stopId, slotNo) } returns pass(stopId)
-        every { stopResolutionService.resolveStop(stopId) } throws StorageException(message = "요청한 정류소를 찾을 수 없습니다.")
+        every { stopResolutionService.resolveStop(stopId) } throws StorageException(ReservationResult.STOP_NOT_FOUND)
 
         val result = reservationFacade.createReservation(principal, request(stopId))
 

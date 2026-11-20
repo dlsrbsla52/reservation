@@ -2,7 +2,7 @@ package com.media.bus.stop.guard
 
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.stop.repository.StopRepository
-import org.springframework.http.HttpStatus
+import com.media.bus.stop.result.StopResult
 import org.springframework.stereotype.Service
 
 /**
@@ -23,7 +23,7 @@ class StopCommandGuard(
      */
     fun validateNotDuplicate(stopId: String) {
         stopRepository.findByStopId(stopId)?.let {
-            throw BusinessException(HttpStatus.CONFLICT, "이미 등록된 정류장입니다.")
+            throw BusinessException(StopResult.STOP_ALREADY_EXISTS)
         }
     }
 }

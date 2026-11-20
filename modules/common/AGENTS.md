@@ -64,14 +64,16 @@ hig:
 
 `Exception` catch-all은 Spring MVC가 원래 4xx로 처리하던 예외까지 먼저 잡는다. 클라이언트 오류 예외는 전용 처리기를 둬야 500이 되지 않는다(`ExceptionAdvisorRequestErrorTest`).
 
-새 예외 추가: `BaseException(result, message, cause)` 상속. Kotlin 기본 인수 사용. `Result` 인터페이스는 `CommonResult` enum이 구현 — 모듈별 enum도 구현 가능.
+새 예외 추가: `BaseException(result, cause)` 상속. 예외 클래스에는 `message` 파라미터가 없고 메시지는 항상 `Result.message`다. `Result` 인터페이스는 `CommonResult` enum이 구현 — 모듈별 enum(`AuthResult` A, `StopResult` S, `ReservationResult` R, `ContractResult` C)도 구현한다.
 
 ```kotlin
-// 예외 생성 예시 — Kotlin 기본 인수 활용
+// 예외 생성 예시 — 메시지는 Result enum에만 둔다
 throw BusinessException(CommonResult.DUPLICATE_USERNAME_FAIL)
-throw ServiceException(message = "외부 API 오류")
+throw ServiceException(StopResult.SEOUL_API_PARSE_FAIL)
 throw BaseException(cause = e)
 ```
+
+문자열 예외(`IllegalStateException("…")`, `error("…")`, `require(…) { "…" }`)는 main 코드에서 빌드가 막는다(`lint/forbidden-apis-main.txt`, ktlint `bus:no-hardcoded-exception-message`).
 
 **예약된 Result 코드**: `00000`–`00299` (common 전용). 다른 모듈에서 사용 금지.
 

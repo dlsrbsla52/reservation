@@ -1,5 +1,7 @@
 package com.media.bus.reservation.reservation.dto.request
 
+import com.media.bus.common.exceptions.BusinessException
+import com.media.bus.reservation.reservation.result.ReservationResult
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Size
@@ -27,7 +29,7 @@ data class CreateStopReservationRequest(
         // 원소 위치의 @NotNull 은 Kotlin 이 바이트코드에 남기지 않아 Bean Validation 으로도 못 막는다.
         // 여기서 막지 않으면 Facade 에서 NPE(500)가 난다. 생성자에서 던지면 MVC 가 본문 해석 실패(400/00260)로 응답한다.
         val ids: Collection<UUID?> = stopId
-        require(ids.none { it == null }) { "stopId 에 빈 값이 있습니다." }
+        if (ids.any { it == null }) throw BusinessException(ReservationResult.STOP_ID_BLANK)
     }
 
     companion object {

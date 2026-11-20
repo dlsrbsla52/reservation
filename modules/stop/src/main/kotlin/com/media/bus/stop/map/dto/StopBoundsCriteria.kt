@@ -2,8 +2,8 @@ package com.media.bus.stop.map.dto
 
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.stop.entity.enums.StopType
+import com.media.bus.stop.result.StopResult
 import com.media.bus.stop.support.Coordinate
-import org.springframework.http.HttpStatus
 import java.math.BigDecimal
 
 /**
@@ -66,13 +66,10 @@ data class StopBoundsCriteria(
             val parsedNeLng = Coordinate.parseLongitude(neLng)
 
             if (parsedSwLat > parsedNeLat) {
-                throw BusinessException(HttpStatus.BAD_REQUEST, "swLat은 neLat보다 클 수 없습니다.")
+                throw BusinessException(StopResult.INVALID_BOUNDS_LATITUDE)
             }
             if (parsedSwLng > parsedNeLng) {
-                throw BusinessException(
-                    HttpStatus.BAD_REQUEST,
-                    "swLng은 neLng보다 클 수 없습니다. (날짜변경선을 넘는 영역은 지원하지 않습니다)",
-                )
+                throw BusinessException(StopResult.INVALID_BOUNDS_LONGITUDE)
             }
 
             return StopBoundsCriteria(

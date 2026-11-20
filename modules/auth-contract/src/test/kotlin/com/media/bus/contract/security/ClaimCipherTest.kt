@@ -1,5 +1,7 @@
 package com.media.bus.contract.security
 
+import com.media.bus.common.exceptions.ServiceException
+import com.media.bus.common.result.type.CommonResult
 import io.jsonwebtoken.MalformedJwtException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -45,6 +47,7 @@ class ClaimCipherTest {
     @Test
     fun `키가 32바이트가 아니면 기동 시점에 실패한다`() {
         assertThatThrownBy { ClaimCipher(Base64.getEncoder().encodeToString(ByteArray(16))) }
-            .isInstanceOf(IllegalStateException::class.java)
+            .isInstanceOf(ServiceException::class.java)
+            .extracting("result").isEqualTo(CommonResult.CLAIM_ENCRYPTION_KEY_INVALID_LENGTH)
     }
 }

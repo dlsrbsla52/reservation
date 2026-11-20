@@ -30,7 +30,7 @@ class LoginIdLookupRateLimiter(private val redisTemplate: StringRedisTemplate) {
             .joinToString("") { "%02x".format(it) }
         val allowed = redisTemplate.execute(
             SCRIPT, listOf("iam:login-id-lookup:$kind:$digest"), "5", windowSeconds.toString(),
-        ) ?: throw ServiceException(message = "아이디 찾기 호출 제한을 확인할 수 없습니다.")
+        ) ?: throw ServiceException(AuthResult.LOGIN_ID_LOOKUP_RATE_LIMIT_UNAVAILABLE)
         if (allowed == 0L) throw BusinessException(AuthResult.LOGIN_ID_LOOKUP_RATE_LIMITED)
     }
 

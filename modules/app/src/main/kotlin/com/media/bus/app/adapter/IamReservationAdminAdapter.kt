@@ -162,7 +162,7 @@ class IamReservationAdminAdapter(
         return try {
             OffsetDateTime.parse(value)
         } catch (e: DateTimeParseException) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "허용되지 않는 값입니다: $field=$value", e)
+            throw BusinessException(CommonResult.VALIDATION_FAIL, e)
         }
     }
 
