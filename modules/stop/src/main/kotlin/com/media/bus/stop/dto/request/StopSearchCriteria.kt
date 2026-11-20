@@ -4,12 +4,7 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.stop.result.StopResult
 import java.util.*
 
-/**
- * ## 정류소 단건 조회 검색 기준
- *
- * pk(UUID), stopId(정류소 번호), stopName(정류소 이름 전방 일치) 중 하나를 사용한다.
- * sealed interface + data class 조합으로 패턴 매칭을 지원한다.
- */
+/** 정류소 단건 조회 검색 기준 */
 sealed interface StopSearchCriteria {
 
     /** 대리키(UUID) 기준 조회 */
@@ -28,13 +23,10 @@ sealed interface StopSearchCriteria {
     }
 
     companion object {
-        /**
-         * query param 세 값으로부터 검색 기준을 생성한다.
-         * 우선순위: pk > stopId > stopName. 모두 null이면 예외.
-         */
+        /** query param 세 값으로부터 검색 기준을 생성한다. */
         fun of(pk: Set<UUID>?, stopId: String?, stopName: String?): StopSearchCriteria = when {
-            pk != null       -> ByPk(pk)
-            stopId != null   -> ByStopId(stopId)
+            pk != null -> ByPk(pk)
+            stopId != null -> ByStopId(stopId)
             stopName != null -> ByStopName(stopName)
             else -> throw BusinessException(StopResult.SEARCH_KEY_REQUIRED)
         }

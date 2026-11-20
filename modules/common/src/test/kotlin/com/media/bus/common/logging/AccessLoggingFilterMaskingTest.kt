@@ -62,6 +62,7 @@ class AccessLoggingFilterMaskingTest {
 
         assertThat(filter.maskSensitive(body)).isEqualTo(body)
     }
+
     @Test
     fun `캐시 끝에서 잘린 문자열과 숫자 객체 배열 값을 가린다`() {
         val truncated = "{\"newPassword\":\"" + "secret".repeat(500)
@@ -85,5 +86,4 @@ class AccessLoggingFilterMaskingTest {
             repeat(100) { assertThat(filter.maskQueryString(query)).isEqualTo(query) }
         }
     }
-
 }

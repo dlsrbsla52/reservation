@@ -22,20 +22,14 @@ class MemberController(
     private val loginIdLookupRateLimiter: LoginIdLookupRateLimiter,
 ) {
 
-    /**
-     * 현재 로그인한 회원 본인 정보 조회.
-     * 인증 필터가 검증한 토큰의 회원(`@CurrentMember`) 기준으로 본인 정보를 반환한다.
-     */
+    /** 현재 로그인한 회원 본인 정보 조회. */
     @Authorize
     @Operation(summary = "내 정보 조회", description = "JWT 인증된 본인의 회원 정보를 조회합니다.")
     @GetMapping("/me")
     fun me(@CurrentMember member: MemberPrincipal): ApiResponse<MemberResponse> =
         ApiResponse.success(memberService.findByMemberId(member.id.toString()))
 
-
-    /**
-     * 이름으로 아이디 찾기
-     */
+    /** 이름으로 아이디 찾기 */
     @Operation(
         summary = "아이디 찾기",
         description = "회원 이름과 전화번호 또는 email로 로그인 아이디를 찾습니다. 토큰 없이 호출하는 공개 API라 로그인 아이디만 돌려줍니다.",
@@ -49,36 +43,21 @@ class MemberController(
         return ApiResponse.success(memberService.findMe(request))
     }
 
-
-    /**
-     * 회원 정보 수정
-     * 2차 본인 인증 완료 후에만 호출 가능하다.
-     * 회원 정보 수정 후 2차 인증 상태를 삭제하여 1회성으로 사용한다.
-     */
+    /** 회원 정보 수정 2차 본인 인증 완료 후에만 호출 가능하다. */
     @Authorize
     @Operation(summary = "회원 정보 수정", description = "회원 정보를 수정합니다.")
     @PostMapping("/modify")
     fun modify(@CurrentMember member: MemberPrincipal, @RequestBody request: MemberModifyRequest): ApiResponse<Unit?> =
         ApiResponse.success(memberService.modify(member.id.toString(), request))
 
-
-    /**
-     * 회원 탈퇴.
-     * 2차 본인 인증 완료 후에만 호출 가능하다.
-     * 탈퇴 처리 완료 후 2차 인증 상태를 삭제하여 1회성으로 사용한다.
-     */
+    /** 회원 탈퇴. */
     @Authorize
     @Operation(summary = "회원 탈퇴", description = "2차 본인 인증 완료 후 회원 탈퇴를 처리합니다.")
     @DeleteMapping("/withdraw")
     fun withdraw(@CurrentMember member: MemberPrincipal): ApiResponse<Unit?> =
         ApiResponse.successWith { memberService.withdraw(member.id.toString()) }
 
-
-    /**
-     * 계정 일시 비활성화.
-     * 2차 본인 인증 완료 후에만 호출 가능하며, 탈퇴와 달리 추후 재활성화가 가능하다.
-     * 처리 완료 후 2차 인증 상태를 삭제하여 1회성으로 사용한다.
-     */
+    /** 계정 일시 비활성화. */
     @Authorize
     @Operation(summary = "계정 비활성화", description = "2차 본인 인증 완료 후 계정을 일시 비활성화 상태(INACTIVE)로 전환합니다.")
     @PostMapping("/deactivate")

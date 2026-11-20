@@ -8,21 +8,21 @@ class MemberTypeTest {
     // 카테고리 분류 테스트 (hasPermission은 MemberType에서 제거됨 — DB 기반으로 변경)
 
     @Test
-    fun `MEMBER isUser`() {
+    fun `MEMBER는 일반 사용자 유형이다`() {
         assertThat(MemberType.MEMBER.isUser).isTrue()
         assertThat(MemberType.MEMBER.isAdmin).isFalse()
         assertThat(MemberType.MEMBER.isBusiness).isFalse()
     }
 
     @Test
-    fun `BUSINESS isBusiness`() {
+    fun `BUSINESS는 비즈니스 유형이다`() {
         assertThat(MemberType.BUSINESS.isBusiness).isTrue()
         assertThat(MemberType.BUSINESS.isAdmin).isFalse()
         assertThat(MemberType.BUSINESS.isUser).isFalse()
     }
 
     @Test
-    fun `ADMIN_USER isAdmin`() {
+    fun `ADMIN_USER는 관리자 유형이다`() {
         assertThat(MemberType.ADMIN_USER.isAdmin).isTrue()
         assertThat(MemberType.ADMIN_USER.isUser).isFalse()
         assertThat(MemberType.ADMIN_USER.isBusiness).isFalse()

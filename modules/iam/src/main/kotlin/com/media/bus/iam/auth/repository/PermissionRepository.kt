@@ -5,11 +5,7 @@ import com.media.bus.iam.auth.entity.PermissionTable
 import org.jetbrains.exposed.v1.core.eq
 import org.springframework.stereotype.Repository
 
-/**
- * ## 권한 마스터 Exposed Repository
- *
- * 권한 목록 조회 및 이름 기반 단건 조회를 제공한다.
- */
+/** 권한 마스터 Exposed Repository */
 @Repository
 class PermissionRepository {
 

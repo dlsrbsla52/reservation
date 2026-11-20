@@ -4,15 +4,7 @@ import com.media.bus.iam.port.dto.reservation.*
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 관리자 기능이 쓰는 reservation 모듈 포트
- *
- * 설계 의도:
- * - iam은 reservation 모듈을 컴파일 의존하지 않는다. 소비자(iam)가 필요한 기능을 이 포트로 정의한다.
- * - 구현은 `app` 모듈의 `IamReservationAdminAdapter`이고, reservation의 Facade(`InternalContractFacade`, `ReservationFacade`)를
- *   직접 호출한다. DB Service로 건너뛰지 않는 것은 Facade가 하던 회원 재검증·정류소 결합·선점 캐시 해제를 지키기 위해서다.
- * - 메서드 계약(예외 상태·코드 포함)은 예전 HTTP 클라이언트(`ReservationServiceClient`)와 같게 유지한다.
- */
+/** 관리자 기능이 쓰는 reservation 모듈 포트 */
 interface ReservationAdminPort {
 
     /** 전체 계약을 선택 조건으로 검색한다. */

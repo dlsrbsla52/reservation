@@ -65,6 +65,7 @@ data class MemberPrincipal(
         const val CLAIM_EMAIL = "email"
         const val CLAIM_MEMBER_TYPE = "memberType"
         const val CLAIM_EMAIL_VERIFIED = "emailVerified"
+
         /** JWT claim 키 — 권한 목록. 쉼표 구분 예: "READ,WRITE" */
         const val CLAIM_PERMISSIONS = "permissions"
 

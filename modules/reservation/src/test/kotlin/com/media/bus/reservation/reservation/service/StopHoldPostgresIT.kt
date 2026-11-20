@@ -44,26 +44,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-/**
- * ## 선점·계약 독점의 DB 동시성 검증 (실제 PostgreSQL 필요, 기본 비활성)
- *
- * 이 정책의 정합성은 부분 유니크 인덱스, 제외 제약, 행 잠금이라는 **PostgreSQL 기능**에 기대므로
- * 목이나 H2 로는 검증할 수 없다. 비어 있는 일회용 PostgreSQL 에 Liquibase changelog 를 적용한 뒤
- * 실제 서비스 코드를 여러 스레드에서 동시에 호출한다.
- *
- * 실행:
- * ```bash
- * docker run -d --rm --name reservation-it-pg -e POSTGRES_PASSWORD=it -p 25433:5432 postgres:18.3
- * RESERVATION_IT_JDBC_URL=jdbc:postgresql://localhost:25433/postgres \
- *   ./gradlew :modules:reservation:test --tests "*StopHoldPostgresIT"
- * docker stop reservation-it-pg
- * ```
- * 접속 계정은 `RESERVATION_IT_DB_USER` / `RESERVATION_IT_DB_PASSWORD` 로 바꿀 수 있다(기본 postgres / it).
- * 스키마를 만들고 데이터를 쓰므로 **개발·운영 DB 를 가리키지 않는다.**
- *
- * Spring 컨텍스트 없이 서비스를 직접 생성하므로 `@Transactional` 은 동작하지 않는다.
- * 대신 호출마다 Exposed `transaction {}` 으로 감싸 요청 1건 = 트랜잭션 1개를 재현한다.
- */
+/** 선점·계약 독점의 DB 동시성 검증 (실제 PostgreSQL 필요, 기본 비활성) */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnabledIfEnvironmentVariable(named = "RESERVATION_IT_JDBC_URL", matches = ".+")
 @DisplayName("선점·계약 독점 PostgreSQL 동시성 검증")
@@ -81,7 +62,6 @@ class StopHoldPostgresIT {
         val user = System.getenv("RESERVATION_IT_DB_USER") ?: "postgres"
         val password = System.getenv("RESERVATION_IT_DB_PASSWORD") ?: "it"
 
-        // 운영과 같은 경로(Liquibase changelog)로 스키마를 만든다 — 마이그레이션 자체도 검증 대상이다.
         DriverManager.getConnection(url, user, password).use { connection ->
             val database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(JdbcConnection(connection))
             Liquibase("db/changelog/db.changelog-master.xml", ClassLoaderResourceAccessor(), database).update("")
@@ -209,7 +189,6 @@ class StopHoldPostgresIT {
         assertThat(results.count { it.isSuccess }).isEqualTo(1)
         assertThat(results.failureCodes()).hasSize(9).containsOnly(ReservationResult.STOP_ALREADY_HELD.code)
         assertThat(statusOf(expired)).isEqualTo(ReservationStatus.EXPIRED)
-        // 만료 이력은 한 번만 남아야 한다
         assertThat(historyOf(expired)).containsExactly(ReservationStatus.PENDING, ReservationStatus.EXPIRED)
     }
 
@@ -251,7 +230,6 @@ class StopHoldPostgresIT {
             )
 
             assertThat(results.count { it.isSuccess }).isEqualTo(1)
-            // 이력은 초기 PENDING + 이긴 전이 1건
             assertThat(historyOf(reservationId)).hasSize(2)
             assertThat(historyOf(reservationId).last()).isEqualTo(statusOf(reservationId))
         }
@@ -327,7 +305,6 @@ class StopHoldPostgresIT {
     @Test
     fun `완료 전환에서 계약 기간이 겹치면 예약 상태 변경까지 함께 롤백된다`() {
         val stop = stop()
-        // 2028년에 이미 다른 계약이 있다. 예약의 희망 시작일(30일 뒤)은 그 기간 밖이라 예약은 가능하다.
         transaction(db) {
             contractService.createContract(stop, contractRequest(stop, "2028-01-01T00:00:00+09:00", "2029-01-01T00:00:00+09:00"))
         }

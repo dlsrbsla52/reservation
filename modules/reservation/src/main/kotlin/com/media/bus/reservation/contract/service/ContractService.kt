@@ -18,42 +18,23 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 계약 도메인의 DB 저장을 담당하는 서비스
- *
- * 설계 의도:
- * - 다른 모듈 호출은 `ContractFacade`에서 처리하고, 이 클래스는 트랜잭션 내 DB 작업만 담당한다.
- * - `ContractEntity` 저장 후 `ContractDetailEntity`를 저장하여 FK 참조 무결성을 보장한다.
- * - Exposed DAO `new()` 호출 시 트랜잭션 커밋 시점에 자동으로 INSERT된다.
- */
+/** 계약 도메인의 DB 저장을 담당하는 서비스 */
 @Service
 class ContractService(
     private val contractRepository: ContractRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * Contract와 ContractDetail을 함께 저장한다.
-     * 단일 트랜잭션 내에서 실행되어 부분 저장을 방지한다.
-     *
-     * @param stopInfo stop 서비스에서 확인된 정류소 정보
-     * @param request  계약 생성 요청 DTO
-     * @param slotNo   정류소 내 광고면 번호
-     * @return 저장된 ContractEntity
-     * @throws BusinessException 같은 광고면에 기간이 겹치는 점유 계약이 있는 경우(409)
-     */
+    /** Contract와 ContractDetail을 함께 저장한다. */
     @Transactional
     fun createContract(
         stopInfo: StopInfo,
         request: CreateContractRequest,
         slotNo: Short = StopSlot.DEFAULT_NO,
     ): ContractEntity {
-        // 계약 기간 무결성 검증: 회원/어드민 생성 경로가 모두 이 지점을 통과하므로 단일 지점에서 보장한다.
-        // 종료일이 시작일보다 같거나 빠르면 잘못된 계약이므로 저장 전에 차단한다.
         if (!request.contractEndDate.isAfter(request.contractStartDate)) {
             throw BusinessException(ContractResult.CONTRACT_INVALID_PERIOD)
         }
-        // 기간 독점 사전 검사: 같은 광고면에 기간이 겹치는 점유 계약이 있으면 저장하지 않는다.
         if (contractRepository.existsOccupyingOverlap(
                 stopInfo.id, slotNo, request.contractStartDate, request.contractEndDate,
             )
@@ -62,7 +43,6 @@ class ContractService(
         }
         val contract = ContractEntity.create(stopInfo, request, slotNo)
         ContractDetailEntity.create(contract, request)
-        // 사전 검사를 함께 통과한 동시 요청은 DB 제외 제약이 1건만 남긴다. 위반을 여기서 409 로 바꾼다.
         flushTranslating(SQLSTATE_EXCLUSION_VIOLATION) {
             BusinessException(ContractResult.CONTRACT_PERIOD_OVERLAP)
         }
@@ -74,20 +54,12 @@ class ContractService(
         return contract
     }
 
-    /**
-     * 특정 시점에 광고면을 점유 중인 계약(PENDING/ACTIVE)이 있는지 확인한다.
-     * 예약 도메인이 "계약 중인 정류소 예약 거절" 판정에 쓴다.
-     */
+    /** 특정 시점에 광고면을 점유 중인 계약(PENDING/ACTIVE)이 있는지 확인한다. */
     @Transactional(readOnly = true)
     fun isSlotOccupiedAt(stopId: UUID, slotNo: Short, at: OffsetDateTime): Boolean =
         contractRepository.existsOccupyingAt(stopId, slotNo, at)
 
-    /**
-     * 본인 계약 목록 조회 (페이지네이션).
-     *
-     * 정류소 정보는 포함하지 않은 raw 응답을 반환한다 — 결합은 `ContractFacade`에서
-     * 한 번의 일괄 조회로 처리하여 N+1 문제를 방지한다.
-     */
+    /** 본인 계약 목록 조회 (페이지네이션). */
     @Transactional(readOnly = true)
     fun getMyContracts(memberId: UUID, page: Int, size: Int): PageResult<ContractResponse> {
         val contracts = contractRepository.findByMemberIdPaged(memberId, page, size)
@@ -102,11 +74,7 @@ class ContractService(
         )
     }
 
-    /**
-     * 본인 계약 단건 상세 조회.
-     * 소유자가 아니면 `CONTRACT_ACCESS_DENIED`를 반환한다
-     * (존재 여부 노출 방지를 위해 NOT_FOUND로 통합해도 무방하나, UI 메시지 분기를 위해 구분).
-     */
+    /** 본인 계약 단건 상세 조회. */
     @Transactional(readOnly = true)
     fun getContractDetail(memberId: UUID, contractId: UUID): ContractResponse {
         val contract = contractRepository.findById(contractId)

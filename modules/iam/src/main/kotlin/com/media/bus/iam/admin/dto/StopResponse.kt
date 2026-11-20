@@ -15,8 +15,6 @@ data class StopResponse(
     val stopId: String,
     @param:Schema(description = "정류소 이름", example = "강남역")
     val stopName: String,
-    // stop 모듈 BusStopResponse 와 동일한 이유로 직렬화명을 고정한다.
-    // (게터가 getXCrd() 라서 Jackson 기본 네이밍은 xcrd 로 내보낸다 — OpenAPI 문서와 불일치)
     @get:JsonProperty("xCrd")
     @get:Schema(description = "경도 WGS84", example = "127.0627647")
     val xCrd: String,

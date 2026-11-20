@@ -3,11 +3,7 @@ package com.media.bus.iam.auth.result
 import com.media.bus.common.result.Result
 import org.springframework.http.HttpStatus
 
-/**
- * ## 인증 모듈 전용 결과 코드 Enum
- *
- * 공통 모듈의 `CommonResult`(00000~00299)와 코드가 충돌하지 않도록 A 접두사를 사용한다.
- */
+/** 인증 모듈 전용 결과 코드 Enum */
 enum class AuthResult(
     override val code: String,
     override val message: String,

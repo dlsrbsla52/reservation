@@ -7,9 +7,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 계약별 정산 비율 오버라이드 Repository
- */
+/** 계약별 정산 비율 오버라이드 Repository */
 @Repository
 class ContractCommissionOverrideRepository {
 
@@ -19,10 +17,7 @@ class ContractCommissionOverrideRepository {
             .find { ContractCommissionOverrideTable.contractId eq contractId }
             .firstOrNull()
 
-    /**
-     * 특정 영업사원의 모든 계약 오버라이드 목록을 최신순으로 조회한다.
-     * 영업사원별 오버라이드 현황 조회에 사용한다.
-     */
+    /** 특정 영업사원의 모든 계약 오버라이드 목록을 최신순으로 조회한다. */
     fun findAllByMemberId(memberId: UUID): List<ContractCommissionOverrideEntity> =
         ContractCommissionOverrideEntity
             .find { ContractCommissionOverrideTable.memberId eq memberId }

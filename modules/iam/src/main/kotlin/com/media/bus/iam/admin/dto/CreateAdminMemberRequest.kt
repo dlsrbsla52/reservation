@@ -4,11 +4,7 @@ import com.media.bus.contract.entity.member.MemberType
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.*
 
-/**
- * 어드민 멤버 생성 요청 DTO.
- * `ADMIN_USER`, `ADMIN_MASTER`, `ADMIN_DEVELOPER` 타입만 허용된다.
- * 타입 검증은 `AdminRegisterRequestValidator`에서 수행한다.
- */
+/** 어드민 멤버 생성 요청 DTO. */
 @Schema(description = "어드민 멤버 생성 요청 DTO")
 data class CreateAdminMemberRequest(
 

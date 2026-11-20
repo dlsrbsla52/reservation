@@ -9,11 +9,7 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
-/**
- * ## 예약 상담 저장소
- *
- * 상담 이력은 append-only 로 저장한다. 현재 상태의 원본은 `reservation.status` 이고 이 테이블은 변경 이력이다.
- */
+/** 예약 상담 저장소 */
 @Repository
 class ReservationConsultationRepository {
 

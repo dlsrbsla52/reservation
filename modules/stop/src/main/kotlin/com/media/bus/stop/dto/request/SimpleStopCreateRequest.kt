@@ -4,9 +4,7 @@ import com.media.bus.stop.entity.enums.StopType
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 
-/**
- * ## 정류소 단건 수기 등록 요청 DTO
- */
+/** 정류소 단건 수기 등록 요청 DTO */
 data class SimpleStopCreateRequest(
     @field:NotNull
     @field:Size(max = 50)

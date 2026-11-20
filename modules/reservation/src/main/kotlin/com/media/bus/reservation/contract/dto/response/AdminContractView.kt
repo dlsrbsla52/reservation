@@ -11,18 +11,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 관리자 전용 계약 결합 응답 DTO
- *
- * 설계 의도:
- * - 어드민이 매니저의 계약 현황을 한 번에 파악할 수 있도록 Contract + ContractDetail 정보를 결합한다.
- * - 일반 사용자 응답(`ContractResponse`)과 분리하여 노출 필드를 명시적으로 관리한다.
- * - 정류소(stopNumber/stopName) 정보는 facade 단계에서 `StopLookupPort` 일괄 조회 후 주입한다.
- *
- * 주의:
- * - `ContractDetail`은 1:1 관계이지만 만일의 누락 케이스 대비 nullable 로 둔다.
- * - 응답에 포함되는 금액 단위는 reservation 도메인 정의에 따른다(원 단위).
- */
+/** 관리자 전용 계약 결합 응답 DTO */
 @Schema(description = "관리자 전용 계약 결합 응답")
 data class AdminContractView(
     @param:Schema(description = "계약 ID")
@@ -77,10 +66,7 @@ data class AdminContractView(
     val createdAt: OffsetDateTime,
 ) {
     companion object {
-        /**
-         * Contract + ContractDetail 엔티티로부터 admin view DTO를 생성한다.
-         * 정류소 정보는 별도 단계에서 enrichment 되므로 초기값은 null이다.
-         */
+        /** Contract + ContractDetail 엔티티로부터 admin view DTO를 생성한다. */
         fun from(contract: ContractEntity, detail: ContractDetailEntity?): AdminContractView =
             AdminContractView(
                 id = contract.id.value,

@@ -3,13 +3,7 @@ package com.media.bus.reservation.contract.dto.response
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.util.*
 
-/**
- * ## 회원 정보의 reservation 내부 표현 (`MemberLookupPort` 응답)
- *
- * 설계 의도:
- * - `MemberPrincipal`은 JWT 클레임 파싱 결과이므로 IAM DB 재검증 결과와 분리한다.
- * - IAM 응답 구조 변경 시 이 클래스만 수정한다.
- */
+/** 회원 정보의 reservation 내부 표현 (`MemberLookupPort` 응답) */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class MemberInfo(
     val id: UUID,

@@ -6,21 +6,7 @@ import org.springframework.data.redis.core.script.RedisScript
 import org.springframework.stereotype.Component
 import java.util.*
 
-/**
- * ## 선점 요청 앞단의 Redis 게이트
- *
- * 인기 정류소가 풀리는 순간처럼 같은 광고면에 요청이 몰릴 때, 1건만 DB 로 들여보내고
- * 나머지는 Redis 왕복 한 번으로 돌려보낸다. 패자가 정류소 조회와 DB 커넥션을 쓰지 않게 하는 것이 목적이다.
- *
- * **이 게이트는 정합성을 보장하지 않는다.** TTL 이 트랜잭션보다 먼저 끝나거나 failover 로 키가 사라지면
- * 2건이 통과할 수 있고, 그때 승자를 1건으로 확정하는 것은 DB 의 `uq_reservation_active_slot` 이다.
- * 그래서 Redis 장애 시에는 막지 않고 통과시킨다(fail-open).
- *
- * 키 하나가 두 단계로 쓰인다.
- * 1. 진입: `SET NX PX gateTtl` — 예약 처리 중 락
- * 2. 성공 확정: TTL 을 `occupiedCacheTtl` 로 늘려 "점유됨" 캐시로 전환. 이 동안의 재요청은 DB 를 거치지 않고 거절된다.
- *    TTL 이 지나면 요청이 DB 로 내려가 다시 판정받으므로, 키 삭제가 누락돼도 광고면이 계속 막히지 않는다.
- */
+/** 선점 요청 앞단의 Redis 게이트 */
 @Component
 class StopHoldGate(
     private val redisTemplate: StringRedisTemplate,
@@ -28,23 +14,17 @@ class StopHoldGate(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * 게이트 통과증.
-     *
-     * @property token 락 소유 토큰. Redis 장애로 게이트 없이 통과한 경우 null 이며, 이후 연산은 아무것도 하지 않는다.
-     */
+    /** 게이트 통과증. */
     data class Pass(val key: String, val token: String?)
 
     companion object {
         private const val KEY_PREFIX = "reservation:hold:"
 
-        /** 내가 잡은 키일 때만 TTL 을 늘린다 — 내 락이 만료된 뒤 다른 요청이 잡은 키를 건드리지 않기 위함. */
         private val CONFIRM_SCRIPT: RedisScript<Long> = RedisScript.of(
             "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end",
             Long::class.java,
         )
 
-        /** 내가 잡은 키일 때만 지운다. */
         private val LEAVE_SCRIPT: RedisScript<Long> = RedisScript.of(
             "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
             Long::class.java,
@@ -53,11 +33,7 @@ class StopHoldGate(
         fun keyOf(stopId: UUID, slotNo: Short): String = "$KEY_PREFIX$stopId:$slotNo"
     }
 
-    /**
-     * 게이트 진입을 시도한다. 기다리지 않는다 — 선착순이라 못 잡은 요청은 이미 진 것이다.
-     *
-     * @return 통과증. 다른 요청이 처리 중이거나 이미 점유된 광고면이면 null.
-     */
+    /** 게이트 진입을 시도한다. */
     fun tryEnter(stopId: UUID, slotNo: Short): Pass? {
         val key = keyOf(stopId, slotNo)
         val token = UUID.randomUUID().toString()

@@ -19,12 +19,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## InternalContractFacade 입력 검증 테스트
- *
- * 예전에는 `InternalContractController`에만 있던 검증·보정을 Facade로 옮겼다.
- * 모듈 간 직접 호출로 바뀌어도 같은 규칙이 실행되는지 확인한다.
- */
+/** InternalContractFacade 입력 검증 테스트 */
 @DisplayName("InternalContractFacade 입력 검증")
 class InternalContractFacadeTest {
 

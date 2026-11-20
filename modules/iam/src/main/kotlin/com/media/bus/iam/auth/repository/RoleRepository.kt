@@ -6,11 +6,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 역할 마스터 Exposed Repository
- *
- * 회원가입 시 `MemberType.name()`으로 Role 엔티티를 조회하는 데 사용한다.
- */
+/** 역할 마스터 Exposed Repository */
 @Repository
 class RoleRepository {
 

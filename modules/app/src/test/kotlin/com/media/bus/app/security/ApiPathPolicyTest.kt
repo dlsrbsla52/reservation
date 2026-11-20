@@ -35,10 +35,10 @@ class ApiPathPolicyTest {
         assertThat(ApiPathPolicy.isRoutable("/swagger-ui/index.html", true)).isTrue()
         assertThat(ApiPathPolicy.isRoutable("/api-docs.yaml", true)).isTrue()
     }
+
     @Test
     fun `아이디 찾기는 POST만 공개한다`() {
         assertThat(ApiPathPolicy.isPublic("POST", "/api/v1/member/find/me")).isTrue()
         assertThat(ApiPathPolicy.isPublic("GET", "/api/v1/member/find/me")).isFalse()
     }
-
 }

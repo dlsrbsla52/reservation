@@ -180,7 +180,6 @@ class JwtProvider(
                 .payload
         )
 
-
     /** 서명 검증이 끝난 Claims에서 `sub`와 [ENCRYPTED_CLAIMS] 값을 복호화해 새 Claims로 만든다. */
     private fun decryptClaims(raw: Claims): Claims {
         val subject = raw.subject

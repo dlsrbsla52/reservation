@@ -18,5 +18,4 @@ enum class Permission(
     WRITE("등록/수정"),
     DELETE("삭제"),
     MANAGE("관리 — READ+WRITE+DELETE 포함"),
-    ;
 }

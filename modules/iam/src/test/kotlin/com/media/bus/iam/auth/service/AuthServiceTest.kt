@@ -37,15 +37,25 @@ import java.util.function.Consumer
 class AuthServiceTest {
 
     @MockK private lateinit var memberRepository: MemberRepository
+
     @MockK private lateinit var passwordEncoder: PasswordEncoder
+
     @MockK private lateinit var jwtProvider: JwtProvider
+
     @MockK private lateinit var redisTemplate: StringRedisTemplate
+
     @MockK private lateinit var rolePermissionRepository: RolePermissionRepository
+
     @MockK private lateinit var roleRepository: RoleRepository
+
     @MockK private lateinit var registerRequestValidator: RegisterRequestValidator
+
     @MockK private lateinit var passwordResetValidator: PasswordResetValidator
+
     @MockK private lateinit var roleResolutionService: RoleResolutionService
+
     @MockK(relaxed = true) private lateinit var auditLogService: com.media.bus.iam.audit.service.AuditLogService
+
     @MockK private lateinit var valueOps: ValueOperations<String, String>
 
     @InjectMockKs private lateinit var authService: AuthService
@@ -69,10 +79,6 @@ class AuthServiceTest {
         return member
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // login
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("login")
     inner class Login {
@@ -80,7 +86,6 @@ class AuthServiceTest {
         private val loginRequest = LoginRequest(loginId = "testuser", password = "Password123!")
 
         @Test
-        @DisplayName("정상 로그인 시 토큰 결과를 반환한다")
         fun `정상 로그인`() {
             val member = mockMember()
             every { memberRepository.findByLoginId("testuser") } returns member
@@ -104,7 +109,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 아이디로 로그인 시 예외를 던진다")
         fun `존재하지 않는 아이디`() {
             every { memberRepository.findByLoginId("testuser") } returns null
 
@@ -113,7 +117,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("비밀번호 불일치 시 예외를 던진다")
         fun `비밀번호 불일치`() {
             val member = mockMember()
             every { memberRepository.findByLoginId("testuser") } returns member
@@ -124,7 +127,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("정지된 계정으로 로그인 시 예외를 던진다")
         fun `정지된 계정`() {
             val member = mockMember(status = MemberStatus.SUSPENDED)
             every { memberRepository.findByLoginId("testuser") } returns member
@@ -135,7 +137,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("탈퇴한 계정으로 로그인 시 예외를 던진다")
         fun `탈퇴한 계정`() {
             val member = mockMember(status = MemberStatus.WITHDRAWN)
             every { memberRepository.findByLoginId("testuser") } returns member
@@ -152,7 +153,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("관리자 계정은 일반 사이트에서 로그인할 수 없다")
         fun `관리자 계정의 일반 사이트 로그인 거부`() {
             givenValidCredential(MemberType.ADMIN_MASTER)
 
@@ -163,7 +163,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("관리자 사이트는 관리자 계정만 로그인할 수 있다")
         fun `일반 계정의 관리자 사이트 로그인 거부`() {
             givenValidCredential(MemberType.BUSINESS)
 
@@ -174,7 +173,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("관리자 사이트 로그인은 액세스·리프레시 토큰 모두 ADMIN 발급처로 발급한다")
         fun `관리자 로그인 발급처`() {
             givenValidCredential(MemberType.ADMIN_USER)
             every { rolePermissionRepository.findPermissionNamesByRoleName("ADMIN_USER") } returns setOf("READ")
@@ -190,16 +188,11 @@ class AuthServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // verifyEmail
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("verifyEmail")
     inner class VerifyEmail {
 
         @Test
-        @DisplayName("유효한 토큰으로 이메일 인증 성공")
         fun `정상 인증`() {
             val member = mockMember()
             every { redisTemplate.opsForValue() } returns valueOps
@@ -212,7 +205,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("유효하지 않은 토큰 시 예외를 던진다")
         fun `유효하지 않은 토큰`() {
             every { redisTemplate.opsForValue() } returns valueOps
             every { valueOps.get("email-verify:invalid-token") } returns null
@@ -222,16 +214,11 @@ class AuthServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // refreshAccessToken
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("refreshAccessToken")
     inner class RefreshAccessToken {
 
         @Test
-        @DisplayName("유효한 Refresh Token으로 새 토큰을 발급한다")
         fun `정상 갱신`() {
             val claims = mockk<Claims>()
             every { claims.subject } returns testMemberIdStr
@@ -261,7 +248,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("파싱 실패 시 예외를 던진다")
         fun `파싱 실패`() {
             every { jwtProvider.tryParseClaims("badToken") } returns null
 
@@ -270,7 +256,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("Redis 토큰 불일치 시 예외를 던진다")
         fun `Redis 불일치`() {
             val claims = mockk<Claims>()
             every { claims.subject } returns testMemberIdStr
@@ -293,19 +278,16 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("일반 사이트 refresh 토큰으로 관리자 갱신 API를 호출하면 401")
         fun `발급처 불일치`() {
             refreshClaims(setOf("USER"))
 
             assertThatThrownBy { authService.refreshAccessToken("refreshToken", TokenAudience.ADMIN) }
                 .isInstanceOf(NoAuthenticationException::class.java)
                 .extracting("result").isEqualTo(AuthResult.TOKEN_AUDIENCE_MISMATCH)
-            // Redis 검증 전에 거부되어야 한다 — 세션 rotation 부작용이 없다.
             verify(exactly = 0) { jwtProvider.validateRefreshToken(any(), any(), any()) }
         }
 
         @Test
-        @DisplayName("aud 가 없는 구버전 refresh 토큰은 USER 로 간주되어 관리자 갱신이 거부된다")
         fun `구버전 토큰은 관리자 갱신 불가`() {
             refreshClaims(null)
 
@@ -315,7 +297,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("관리자 세션 도중 관리자 역할을 잃으면 갱신이 거부된다")
         fun `역할 변경 후 갱신 거부`() {
             refreshClaims(setOf("ADMIN"))
             every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-A", "refreshToken") } returns true
@@ -326,12 +307,10 @@ class AuthServiceTest {
             assertThatThrownBy { authService.refreshAccessToken("refreshToken", TokenAudience.ADMIN) }
                 .isInstanceOf(NoAuthenticationException::class.java)
                 .extracting("result").isEqualTo(AuthResult.TOKEN_AUDIENCE_MISMATCH)
-            // 다시 승격돼도 이 refresh 토큰이 되살아나지 않도록 세션을 지운다.
             verify { jwtProvider.deleteSession(testMemberIdStr, "session-A") }
         }
 
         @Test
-        @DisplayName("관리자 갱신은 ADMIN 발급처를 유지한다")
         fun `관리자 갱신 발급처 유지`() {
             refreshClaims(setOf("ADMIN"))
             every { jwtProvider.validateRefreshToken(testMemberIdStr, "session-A", "refreshToken") } returns true
@@ -350,16 +329,11 @@ class AuthServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // verifyMember / checkVerified / clearVerification
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("2차 본인 인증")
     inner class MemberVerification {
 
         @Test
-        @DisplayName("정상 인증 시 Redis에 인증 상태를 저장한다")
         fun `verifyMember 정상`() {
             val member = mockMember()
             every { memberRepository.findById(testMemberId) } returns member
@@ -374,7 +348,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("비밀번호 불일치 시 예외를 던진다")
         fun `verifyMember 비밀번호 불일치`() {
             val member = mockMember()
             every { memberRepository.findById(testMemberId) } returns member
@@ -386,7 +359,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("checkVerified — 인증 완료 상태면 예외 없음")
         fun `checkVerified 성공`() {
             every { redisTemplate.opsForValue() } returns valueOps
             every { valueOps.get("member-verify:$testMemberIdStr") } returns "verified"
@@ -395,7 +367,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("checkVerified — 미인증 시 VERIFY_REQUIRED 예외")
         fun `checkVerified 미인증`() {
             every { redisTemplate.opsForValue() } returns valueOps
             every { valueOps.get("member-verify:$testMemberIdStr") } returns null
@@ -408,8 +379,7 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("clearVerification — Redis 삭제 호출 확인")
-        fun `clearVerification`() {
+        fun `clearVerification은 Redis 인증 키를 삭제한다`() {
             every { redisTemplate.delete("member-verify:$testMemberIdStr") } returns true
 
             authService.clearVerification(testMemberIdStr)
@@ -418,12 +388,7 @@ class AuthServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // logout
-    // ──────────────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("현재 세션 id 가 있으면 그 세션만 삭제한다")
     fun `logout 세션 단위`() {
         every { jwtProvider.deleteSession(testMemberIdStr, "session-A") } just Runs
 
@@ -434,7 +399,6 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("refresh 쿠키가 없어 세션 id 를 모르면 어떤 세션도 지우지 않는다")
     fun `logout 세션 id 없음`() {
         authService.logout(testMemberIdStr, null)
 
@@ -442,16 +406,11 @@ class AuthServiceTest {
         verify(exactly = 0) { jwtProvider.deleteSession(any(), any()) }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // 비밀번호 초기화
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("비밀번호 초기화")
     inner class PasswordReset {
 
         @Test
-        @DisplayName("정상 요청 시 Redis에 초기화 토큰을 저장한다")
         fun `requestPasswordReset 정상`() {
             val request = PasswordResetRequest(loginId = "testuser")
             val member = mockMember()
@@ -465,7 +424,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("회원이 없어도 예외 없이 반환한다 (이메일 열거 방지)")
         fun `requestPasswordReset 회원 없음`() {
             val request = PasswordResetRequest(email = "unknown@example.com")
             every { passwordResetValidator.validate(request) } just Runs
@@ -475,7 +433,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("유효한 토큰 검증 시 예외 없음")
         fun `verifyPasswordResetToken 정상`() {
             every { redisTemplate.opsForValue() } returns valueOps
             every { valueOps.get("password-reset:valid-token") } returns testMemberIdStr
@@ -484,7 +441,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("만료된 토큰 검증 시 예외를 던진다")
         fun `verifyPasswordResetToken 만료`() {
             every { redisTemplate.opsForValue() } returns valueOps
             every { valueOps.get("password-reset:expired-token") } returns null
@@ -497,7 +453,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("비밀번호 초기화 확정 시 비밀번호 변경 + 토큰 삭제 + 세션 무효화")
         fun `confirmPasswordReset 정상`() {
             val request = PasswordResetConfirmRequest(token = "reset-token", newPassword = "NewPass123!")
             val member = mockMember()
@@ -516,7 +471,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("유효하지 않은 토큰으로 확정 시 예외를 던진다")
         fun `confirmPasswordReset 유효하지 않은 토큰`() {
             val request = PasswordResetConfirmRequest(token = "bad-token", newPassword = "NewPass123!")
             every { redisTemplate.opsForValue() } returns valueOps
@@ -530,10 +484,6 @@ class AuthServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // changePassword — 로그인 상태에서 비밀번호 직접 변경
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("changePassword")
     inner class ChangePassword {
@@ -544,7 +494,6 @@ class AuthServiceTest {
         )
 
         @Test
-        @DisplayName("정상 변경 시 비밀번호 갱신 + Refresh Token 무효화")
         fun `changePassword 정상`() {
             val member = mockMember(password = "encodedCurrent")
             every { memberRepository.findById(testMemberId) } returns member
@@ -560,7 +509,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("현재 비밀번호가 일치하지 않으면 CURRENT_PASSWORD_MISMATCH 예외")
         fun `changePassword 현재 비밀번호 불일치`() {
             val member = mockMember(password = "encodedCurrent")
             every { memberRepository.findById(testMemberId) } returns member
@@ -577,7 +525,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("새 비밀번호가 현재와 동일하면 NEW_PASSWORD_SAME_AS_CURRENT 예외")
         fun `changePassword 동일 비밀번호`() {
             val member = mockMember(password = "encodedCurrent")
             every { memberRepository.findById(testMemberId) } returns member
@@ -595,7 +542,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 회원이면 MEMBER_NOT_FOUND 예외")
         fun `changePassword 회원 없음`() {
             every { memberRepository.findById(testMemberId) } returns null
 
@@ -603,10 +549,6 @@ class AuthServiceTest {
                 .hasMessageContaining(AuthResult.MEMBER_NOT_FOUND.message)
         }
     }
-
-    // ──────────────────────────────────────────────────────────────
-    // reactivate — 사이트 규칙
-    // ──────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("reactivate 사이트 규칙")
@@ -623,7 +565,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("관리자 계정은 일반 재활성화를 쓸 수 없고 상태도 바뀌지 않는다")
         fun `관리자 일반 재활성화 거부`() {
             val member = givenInactive(MemberType.ADMIN_MASTER)
 
@@ -634,7 +575,6 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("일반 계정은 관리자 재활성화를 쓸 수 없고 상태도 바뀌지 않는다")
         fun `일반 계정 관리자 재활성화 거부`() {
             val member = givenInactive(MemberType.MEMBER)
 

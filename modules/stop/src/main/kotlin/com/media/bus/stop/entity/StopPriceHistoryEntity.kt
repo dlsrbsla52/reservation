@@ -27,10 +27,10 @@ class StopPriceHistoryEntity(id: EntityID<UUID>) : BaseEntity(id) {
         }
     }
 
-    var stopId        by StopPriceHistoryTable.stopId
+    var stopId by StopPriceHistoryTable.stopId
     var previousPrice by StopPriceHistoryTable.previousPrice
-    var newPrice      by StopPriceHistoryTable.newPrice
-    var changeType    by StopPriceHistoryTable.changeType
-    var changedById   by StopPriceHistoryTable.changedById
-    val createdAt     by StopPriceHistoryTable.createdAt
+    var newPrice by StopPriceHistoryTable.newPrice
+    var changeType by StopPriceHistoryTable.changeType
+    var changedById by StopPriceHistoryTable.changedById
+    val createdAt by StopPriceHistoryTable.createdAt
 }

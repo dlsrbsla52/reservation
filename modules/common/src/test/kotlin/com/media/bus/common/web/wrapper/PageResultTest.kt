@@ -15,8 +15,7 @@ class PageResultTest {
     inner class BuilderTest {
 
         @Test
-        @DisplayName("단건 item 추가 후 items에 포함된다")
-        fun singleItemIsIncluded() {
+        fun `단건 item 추가 후 items에 포함된다`() {
             val result = PageResult.builder<String>()
                 .item("hello")
                 .totalCnt(1L)
@@ -31,8 +30,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("다건 item 추가 후 순서가 보존된다")
-        fun multipleItemsPreserveOrder() {
+        fun `다건 item 추가 후 순서가 보존된다`() {
             val result = PageResult.builder<Int>()
                 .item(10)
                 .item(20)
@@ -46,8 +44,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("items(List) 벌크 추가가 동작한다")
-        fun bulkItemsAreAdded() {
+        fun `items(List) 벌크 추가가 동작한다`() {
             val source = listOf("a", "b", "c")
 
             val result = PageResult.builder<String>()
@@ -61,8 +58,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("item을 추가하지 않으면 빈 리스트가 반환된다")
-        fun emptyItemsWhenNoItemAdded() {
+        fun `item을 추가하지 않으면 빈 리스트가 반환된다`() {
             val result = PageResult.builder<String>()
                 .totalCnt(0L)
                 .pageNum(1)
@@ -80,8 +76,7 @@ class PageResultTest {
     inner class ImmutabilityTest {
 
         @Test
-        @DisplayName("빌드 후 items 리스트는 수정이 불가하다")
-        fun itemsListIsUnmodifiable() {
+        fun `빌드 후 items 리스트는 수정이 불가하다`() {
             val result = PageResult.builder<String>()
                 .item("x")
                 .totalCnt(1L)
@@ -94,8 +89,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("원본 리스트를 변경해도 PageResult의 items에 영향을 주지 않는다")
-        fun mutatingSourceListDoesNotAffectItems() {
+        fun `원본 리스트를 변경해도 PageResult의 items에 영향을 주지 않는다`() {
             val result = PageResult.builder<String>()
                 .item("original")
                 .totalCnt(1L)
@@ -114,8 +108,7 @@ class PageResultTest {
     inner class EqualsHashCodeTest {
 
         @Test
-        @DisplayName("동일한 내용의 두 PageResult는 동등하다")
-        fun sameContentIsEqual() {
+        fun `동일한 내용의 두 PageResult는 동등하다`() {
             val a = PageResult.builder<String>()
                 .item("x").totalCnt(10L).pageNum(1).pageRows(5).build()
             val b = PageResult.builder<String>()
@@ -126,8 +119,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("items 내용이 다르면 동등하지 않다")
-        fun differentItemsAreNotEqual() {
+        fun `items 내용이 다르면 동등하지 않다`() {
             val a = PageResult.builder<String>()
                 .item("x").totalCnt(10L).pageNum(1).pageRows(5).build()
             val b = PageResult.builder<String>()
@@ -137,8 +129,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("totalCnt가 다르면 동등하지 않다")
-        fun differentTotalCntIsNotEqual() {
+        fun `totalCnt가 다르면 동등하지 않다`() {
             val a = PageResult.builder<String>()
                 .item("x").totalCnt(10L).pageNum(1).pageRows(5).build()
             val b = PageResult.builder<String>()
@@ -155,8 +146,7 @@ class PageResultTest {
     inner class ToStringTest {
 
         @Test
-        @DisplayName("toString에 items, totalCnt, pageRows, pageNum이 포함된다")
-        fun toStringContainsAllFields() {
+        fun `toString에 items, totalCnt, pageRows, pageNum이 포함된다`() {
             val result = PageResult.builder<String>()
                 .item("hello")
                 .totalCnt(42L)
@@ -176,8 +166,7 @@ class PageResultTest {
     inner class PagingScenarioTest {
 
         @Test
-        @DisplayName("마지막 페이지: totalCnt보다 items가 적을 수 있다")
-        fun lastPageHasFewerItemsThanPageRows() {
+        fun `마지막 페이지는 totalCnt보다 items가 적을 수 있다`() {
             val result = PageResult.builder<Int>()
                 .item(1)
                 .item(2)
@@ -191,8 +180,7 @@ class PageResultTest {
         }
 
         @Test
-        @DisplayName("빈 결과: totalCnt=0, items는 비어있다")
-        fun emptyResult() {
+        fun `빈 결과는 totalCnt가 0이고 items가 비어 있다`() {
             val result = PageResult.builder<String>()
                 .totalCnt(0L)
                 .pageNum(1)

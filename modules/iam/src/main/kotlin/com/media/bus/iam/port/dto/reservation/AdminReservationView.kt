@@ -12,7 +12,6 @@ data class AdminReservationView(
     val stopNumber: String?,
     val stopName: String?,
     val status: String,
-    /** 선점 만료 일시. 진행 중(PENDING/CONSULTING)일 때만 값이 있다. */
     val holdExpiresAt: OffsetDateTime?,
     val assigneeId: UUID?,
     val consultationRequestedAt: OffsetDateTime,

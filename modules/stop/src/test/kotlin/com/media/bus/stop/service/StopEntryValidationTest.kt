@@ -17,12 +17,7 @@ import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import java.util.*
 
-/**
- * ## stop 진입점 입력 검증 테스트
- *
- * 예전에는 `InternalStopController`의 `@Valid`에만 있던 규칙이 서비스 진입점에서 실행되는지 확인한다.
- * 모듈 간 직접 호출로 바뀌면 컨트롤러를 거치지 않기 때문이다.
- */
+/** stop 진입점 입력 검증 테스트 */
 @DisplayName("stop 진입점 입력 검증")
 class StopEntryValidationTest {
 

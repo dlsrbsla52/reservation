@@ -18,7 +18,6 @@ data class CreateSimpleStopRequest(
     @param:Schema(description = "정류소 이름", example = "강남역")
     val stopName: String,
 
-    // 게터가 getXCrd() 라 Jackson 기본 네이밍은 xcrd — 프론트·stop 모듈과 같은 xCrd 로 고정한다.
     @field:NotBlank
     @field:Size(max = 50)
     @get:JsonProperty("xCrd")
@@ -36,7 +35,6 @@ data class CreateSimpleStopRequest(
     @param:Schema(description = "노드 ID", example = "110000669")
     val nodeId: String,
 
-    // stop 모듈의 StopType enum 은 모듈 경계상 참조하지 않는다. enum 변환·검증은 app 어댑터가 한다(알 수 없는 값 → 400).
     @field:NotBlank
     @param:Schema(description = "정류소 유형", example = "ROADSIDE_TIMED")
     val stopsType: String,

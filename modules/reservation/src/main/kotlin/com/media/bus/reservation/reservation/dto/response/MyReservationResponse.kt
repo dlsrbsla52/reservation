@@ -7,11 +7,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 내 예약 목록 조회 응답 DTO
- *
- * 목록에 표시할 최소 정보만 노출한다. 상세 정보(상담 이력 등)는 단건 조회 API 를 사용한다.
- */
+/** 내 예약 목록 조회 응답 DTO */
 @Schema(description = "내 예약 목록 row")
 data class MyReservationResponse(
     @param:Schema(description = "예약 ID")

@@ -22,11 +22,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * `StopService` 단위 테스트.
- * 등록자는 회원 id(UUID)로 받는다 — 진입점이 iam 관리자 API → app 어댑터뿐이라 `MemberPrincipal`을 넘기지 않는다.
- * `StopEntity` 팩토리 메서드는 `mockkObject`로 대체하여 DB 없이 검증합니다.
- */
+/** `StopService` 단위 테스트. */
 @ExtendWith(MockKExtension::class)
 class StopServiceTest {
 
@@ -69,7 +65,6 @@ class StopServiceTest {
 
             stopService.createOneStop(memberId, request)
 
-            // Guard가 먼저 호출된 후 엔티티 생성
             verify { stopCommandGuard.validateNotDuplicate("999") }
             verify { StopEntity.createFromRequest(request, memberId) }
         }
@@ -83,7 +78,6 @@ class StopServiceTest {
 
         every { stopRepository.findListPaged(null, null, 0, 20) } returns listOf(withPrice, withoutPrice)
         every { stopRepository.countList(null, null) } returns 2L
-        // 단가가 등록된 정류소만 Map에 존재 — 미등록 정류소는 키 자체가 없다
         every { stopPriceRepository.findUnitPriceMapByStopIds(pks) } returns
             mapOf(pks[0] to BigDecimal("1500.00"))
 
@@ -92,7 +86,6 @@ class StopServiceTest {
         assertThat(result.totalCnt).isEqualTo(2L)
         assertThat(result.items[0].unitPrice).isEqualByComparingTo(BigDecimal("1500.00"))
         assertThat(result.items[1].unitPrice).isNull()
-        // 정류소 건수와 무관하게 단가 조회는 정확히 1회여야 한다 (N+1 방지)
         verify(exactly = 1) { stopPriceRepository.findUnitPriceMapByStopIds(any()) }
     }
 
@@ -107,10 +100,7 @@ class StopServiceTest {
         verify(exactly = 0) { stopPriceRepository.findUnitPriceMapByStopIds(any()) }
     }
 
-    /**
-     * 유형 필터 문자열이 enum 으로 변환되어 Repository 까지 전달되는지 확인한다.
-     * 여기서 끊기면 화면에서는 필터가 걸린 것처럼 보이는데 결과는 전체가 나온다.
-     */
+    /** 유형 필터 문자열이 enum 으로 변환되어 Repository 까지 전달되는지 확인한다. */
     @Test
     fun `getBusStopPage_유형_필터는_enum으로_변환되어_전달된다`() {
         every { stopRepository.findListPaged(null, StopType.VILLAGE_BUS, 0, 20) } returns emptyList()
@@ -131,7 +121,6 @@ class StopServiceTest {
     @Test
     fun `getBusStop_식별자_조회에도_단가가_포함된다`() {
         val stop = stopEntity("11833", "중계역")
-        // every 블록 안에서 다른 mock(stop.id)을 호출하면 MockK 레코딩에 섞이므로 pk는 미리 꺼내둔다
         val pk = stop.id.value
 
         every { stopRepository.findByStopId("11833") } returns stop
@@ -159,6 +148,7 @@ class StopServiceTest {
             every { updatedAt } returns now
         }
     }
+
     @Test
     fun `정류소 이름이 비어 있으면 직접 기준 생성도 거부한다`() {
         listOf("", " ", "x".repeat(201)).forEach { name ->
@@ -185,5 +175,4 @@ class StopServiceTest {
         org.junit.jupiter.api.assertThrows<BusinessException> { stopService.getBusStopPage(0, 20, "x".repeat(201)) }
         verify(exactly = 0) { stopRepository.findListPaged(any(), any(), any(), any()) }
     }
-
 }

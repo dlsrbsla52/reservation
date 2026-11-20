@@ -24,10 +24,7 @@ class StopPriceService(
     fun getPrice(stopId: UUID): StopPriceResponse? =
         stopPriceRepository.findByStopId(stopId)?.let(StopPriceResponse::of)
 
-    /**
-     * 정류소 단가 신규 등록.
-     * Guard가 정류소 존재 여부와 중복 등록 여부를 검증한 뒤 등록 이력을 함께 남긴다.
-     */
+    /** 정류소 단가 신규 등록. */
     @Transactional
     fun createPrice(stopId: UUID, unitPrice: BigDecimal, registeredById: UUID?): StopPriceResponse {
         requirePositive(unitPrice)
@@ -61,10 +58,7 @@ class StopPriceService(
         entity.delete()
     }
 
-    /**
-     * 단가는 0보다 커야 한다. 관리자 API 요청 DTO(iam `CreateStopPriceRequest`·`UpdateStopPriceRequest`)의 `@Positive`와 같은 규칙으로,
-     * 모듈 간 직접 호출에서도 실행되도록 진입점에서 검사한다. 정류소 존재·중복 검사보다 먼저 한다(기존 `@Valid` 순서).
-     */
+    /** 단가는 0보다 커야 한다. */
     private fun requirePositive(unitPrice: BigDecimal) {
         if (unitPrice.signum() <= 0) throw BusinessException(CommonResult.VALIDATION_FAIL)
     }

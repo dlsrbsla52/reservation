@@ -9,21 +9,12 @@ import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.util.*
 
-/**
- * ## 어드민 정류소 조회·단가 조율 Facade
- *
- * 설계 의도:
- * - 어드민이 정류소를 조회하고 단가를 관리하기 위해 `StopAdminPort`(stop 모듈)를 조율한다.
- * - 로컬 DB 작업이 없는 순수 위임이므로 트랜잭션을 두지 않는다. 트랜잭션은 stop 모듈 Service가 연다.
- */
+/** 어드민 정류소 조회·단가 조율 Facade */
 @Service
 class AdminStopPriceFacade(
     private val stopAdminPort: StopAdminPort,
 ) {
-    /**
-     * 정류소를 조회한다. pk(UUID) > stopId(정류소 번호) > stopName(이름) 순으로 우선 적용한다.
-     * 셋 다 없으면 [BusinessException]. stopName은 동명 정류소 시 다건 반환한다.
-     */
+    /** 정류소를 조회한다. */
     fun getStop(pk: UUID?, stopId: String?, stopName: String?): List<StopInfo> = when {
         pk != null -> stopAdminPort.getStopByPk(pk)
         stopId != null -> stopAdminPort.getStopByStopId(stopId)
@@ -31,10 +22,7 @@ class AdminStopPriceFacade(
         else -> throw BusinessException(AuthResult.STOP_PRICE_LOOKUP_KEY_REQUIRED)
     }
 
-    /**
-     * 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다.
-     * keyword가 있으면 이름/번호 부분 일치로, stopsType이 있으면 해당 유형으로 필터링한다.
-     */
+    /** 검색 조건 없이 전체 정류소를 페이지네이션으로 조회한다. */
     fun getStopPage(page: Int, size: Int, keyword: String?, stopsType: String?): PageResult<StopInfo> =
         stopAdminPort.getStopPage(page, size, keyword, stopsType)
 

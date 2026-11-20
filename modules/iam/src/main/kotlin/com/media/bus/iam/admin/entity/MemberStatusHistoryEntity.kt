@@ -10,12 +10,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.*
 
-/**
- * ## 회원 상태 변경 이력 Exposed DAO 엔티티
- *
- * 계정 정지/해제 시 사유와 처리자를 기록한다.
- * 팩토리 메서드 `create()`로만 생성을 허용한다.
- */
+/** 회원 상태 변경 이력 Exposed DAO 엔티티 */
 class MemberStatusHistoryEntity(id: EntityID<UUID>) : BaseEntity(id) {
 
     companion object : UUIDEntityClass<MemberStatusHistoryEntity>(MemberStatusHistoryTable) {

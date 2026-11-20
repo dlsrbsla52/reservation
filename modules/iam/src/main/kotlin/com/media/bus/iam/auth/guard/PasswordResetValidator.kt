@@ -5,11 +5,7 @@ import com.media.bus.iam.auth.dto.PasswordResetRequest
 import com.media.bus.iam.auth.result.AuthResult
 import org.springframework.stereotype.Component
 
-/**
- * ## 비밀번호 초기화 요청 검증 Guard
- *
- * loginId 또는 email 중 하나가 반드시 있어야 한다.
- */
+/** 비밀번호 초기화 요청 검증 Guard */
 @Component
 class PasswordResetValidator {
 

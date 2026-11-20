@@ -45,11 +45,11 @@ class AsyncMdcAspectTest {
     private lateinit var asyncTestService: AsyncTestService
 
     @BeforeEach fun setUp() { MDC.clear() }
+
     @AfterEach fun tearDown() { MDC.clear() }
 
     @Test
-    @DisplayName("@Async MDC 전파 — 호출 스레드의 MDC가 비동기 실행 스레드로 전파된다")
-    fun shouldPropagateMdcToAsyncThread() {
+    fun `@Async MDC 전파 — 호출 스레드의 MDC가 비동기 실행 스레드로 전파된다`() {
         MDC.put("requestId", "async-test-req-001")
         MDC.put("memberId", "async-test-user")
 
@@ -61,8 +61,7 @@ class AsyncMdcAspectTest {
     }
 
     @Test
-    @DisplayName("@Async MDC 전파 — MDC가 없는 환경(@Scheduled, 이벤트 리스너 등)에서도 안전하게 실행된다")
-    fun shouldHandleEmptyMdcSafely() {
+    fun `@Async MDC 전파 — MDC가 없는 환경(@Scheduled, 이벤트 리스너 등)에서도 안전하게 실행된다`() {
         // MDC 비어있는 상태 — HTTP 컨텍스트 없는 배치/스케줄러 시뮬레이션
         val asyncMdc = asyncTestService.captureMdc()
             .get(5, TimeUnit.SECONDS)
@@ -71,8 +70,7 @@ class AsyncMdcAspectTest {
     }
 
     @Test
-    @DisplayName("@Async MDC 전파 — @Async 완료 후 호출 스레드의 MDC가 원래 상태로 복원된다")
-    fun shouldRestoreCallerThreadMdcAfterAsyncCall() {
+    fun `@Async MDC 전파 — @Async 완료 후 호출 스레드의 MDC가 원래 상태로 복원된다`() {
         MDC.put("requestId", "caller-req-restore-test")
         MDC.put("memberId", "caller-user")
 

@@ -19,8 +19,6 @@ import java.util.*
 class ContractController(
     private val facade: ContractFacade,
 ) {
-    // 계약 생성은 관리자 기능이라 여기 두지 않는다.
-    // 관리자 사이트 → iam `/api/v1/admin/contract` → `ReservationAdminPort`(app 어댑터) → `InternalContractFacade` 경로만 쓴다.
 
     /** 내 계약 목록 조회 (페이지네이션). 본인 계약만 반환. */
     @Authorize

@@ -8,12 +8,7 @@ import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import java.util.*
 
-/**
- * ## 회원 인증 정보 Exposed DAO 엔티티
- *
- * `MemberTable`에 매핑되는 DAO 엔티티.
- * 팩토리 메서드(`create`, `createAdmin`)로만 생성을 허용한다.
- */
+/** 회원 인증 정보 Exposed DAO 엔티티 */
 class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
 
     companion object : UUIDEntityClass<MemberEntity>(MemberTable) {
@@ -64,10 +59,6 @@ class MemberEntity(id: EntityID<UUID>) : DateBaseEntity(id, MemberTable) {
     var status by MemberTable.status
     var businessNumber by MemberTable.businessNumber
     var memberName by MemberTable.memberName
-
-    // ─────────────────────────────────────────────────────────────────
-    // 도메인 행위 메서드
-    // ─────────────────────────────────────────────────────────────────
 
     fun verifyEmail() {
         emailVerified = true

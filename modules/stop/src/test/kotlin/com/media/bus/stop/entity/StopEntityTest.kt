@@ -18,7 +18,6 @@ class StopEntityTest {
         @JvmStatic
         @BeforeAll
         fun setUpDb() {
-            // H2 PostgreSQL 호환 모드 — timestampWithTimeZone 지원
             Database.connect(
                 url = "jdbc:h2:mem:stopentitytest;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
                 driver = "org.h2.Driver",

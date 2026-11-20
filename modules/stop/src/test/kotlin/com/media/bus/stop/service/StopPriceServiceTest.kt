@@ -18,10 +18,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * `StopPriceService` 단위 테스트.
- * `StopPriceEntity`/`StopPriceHistoryEntity` 팩토리 메서드는 `mockkObject`로 대체하여 DB 없이 검증합니다.
- */
+/** `StopPriceService` 단위 테스트. */
 @ExtendWith(MockKExtension::class)
 class StopPriceServiceTest {
 

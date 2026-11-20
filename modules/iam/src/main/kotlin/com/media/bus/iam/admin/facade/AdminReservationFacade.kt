@@ -10,13 +10,7 @@ import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 어드민 예약 처리 조율 Facade
- *
- * 설계 의도:
- * - 어드민 예약을 제어하기 위해 `ReservationAdminPort`(reservation 모듈)를 조율한다.
- * - 필요 시 회원 정보(memberService)와 예약 정보(reservationAdminPort)를 결합하여 반환한다.
- */
+/** 어드민 예약 처리 조율 Facade */
 @Service
 class AdminReservationFacade(
     private val reservationAdminPort: ReservationAdminPort,
@@ -33,7 +27,7 @@ class AdminReservationFacade(
         size: Int
     ): PageResult<AdminReservationView> {
         val rawPage = reservationAdminPort.searchAdminReservations(status, assigneeId, stopId, createdFrom, createdTo, page, size)
-        
+
         log.debug("[AdminReservationFacade] 예약 목록 조회 완료: page={}, size={}, count={}", page, size, rawPage.items?.size ?: 0)
         return PageResult(
             items = rawPage.items ?: emptyList(),

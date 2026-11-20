@@ -12,16 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 예약 저장소
- *
- * Exposed DAO 기반 예약 조회 메서드를 제공한다.
- * 저장은 `ReservationEntity.create()` 팩토리 메서드가 트랜잭션 내에서 자동 INSERT 한다.
- *
- * 이름이 `ForUpdate` 로 끝나는 메서드는 행 잠금(`SELECT ... FOR UPDATE`)을 잡는다.
- * 잠금은 트랜잭션이 끝날 때 풀리므로 반드시 서비스의 쓰기 트랜잭션 안에서 호출해야 하고,
- * 그래서 전파 속성을 `MANDATORY` 로 둔다(트랜잭션 없이 부르면 즉시 실패).
- */
+/** 예약 저장소 */
 @Repository
 class ReservationRepository {
 
@@ -61,12 +52,7 @@ class ReservationRepository {
             .where { (ReservationTable.memberId eq memberId) and (ReservationTable.status inList ReservationStatus.HOLDING) }
             .count()
 
-    /**
-     * 광고면을 현재 선점 중인 예약을 잠금 조회한다. 부분 유니크 인덱스 덕분에 많아야 1건이다.
-     *
-     * 선점 예약이 없으면 잠글 행이 없어 동시 요청이 함께 통과하지만,
-     * 그 경우의 승자는 INSERT 시점에 유니크 인덱스가 정한다.
-     */
+    /** 광고면을 현재 선점 중인 예약을 잠금 조회한다. */
     @Transactional(propagation = Propagation.MANDATORY)
     fun findHolderForUpdate(stopId: UUID, slotNo: Short): ReservationEntity? =
         ReservationEntity.find {
@@ -75,12 +61,7 @@ class ReservationRepository {
                 (ReservationTable.status inList ReservationStatus.HOLDING)
         }.forUpdate().firstOrNull()
 
-    /**
-     * 선점 기간이 지난 예약을 만료가 오래된 순으로 잠금 조회한다.
-     *
-     * `SKIP LOCKED` — 다른 트랜잭션(다른 인스턴스의 스케줄러, 같은 예약을 처리 중인 관리자 요청)이
-     * 잡고 있는 행은 기다리지 않고 건너뛴다. 건너뛴 행은 다음 주기에 다시 대상이 된다.
-     */
+    /** 선점 기간이 지난 예약을 만료가 오래된 순으로 잠금 조회한다. */
     @Transactional(propagation = Propagation.MANDATORY)
     fun findExpiredHoldsForUpdate(now: OffsetDateTime, limit: Int): List<ReservationEntity> =
         ReservationEntity.find {

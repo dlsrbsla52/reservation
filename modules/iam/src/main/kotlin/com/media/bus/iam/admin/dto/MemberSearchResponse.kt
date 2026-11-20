@@ -7,12 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 회원 조건 검색 결과 행 DTO
- *
- * 회원 정보만 담는다. 예약/실적은 모듈 경계상 reservation 서비스가 별도 엔드포인트로 제공하므로
- * 이 응답에는 포함하지 않는다(검색 리스트에 예약을 붙이면 행마다 모듈 간 조회가 발생).
- */
+/** 회원 조건 검색 결과 행 DTO */
 @Schema(description = "회원 조건 검색 결과 응답 DTO")
 data class MemberSearchResponse(
 

@@ -12,10 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.ValueOperations
 import org.springframework.http.HttpStatus
 
-/**
- * 정류소 일괄 등록의 **동시 실행 방지** 계약.
- * 같은 작업이 겹치면 같은 stopId 를 동시에 insert/update 하므로, 락을 못 잡으면 작업을 시작하지 않아야 한다.
- */
+/** 정류소 일괄 등록의 **동시 실행 방지** 계약. */
 class StopRegisterServiceLockTest {
 
     private val valueOps = mockk<ValueOperations<String, String>>()

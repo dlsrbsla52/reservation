@@ -10,12 +10,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.*
 
-/**
- * ## 정산 비율 변경 이력 Exposed DAO 엔티티
- *
- * append-only. 생성 후 수정 불가.
- * 팩토리 메서드 `record()`로만 생성을 허용한다.
- */
+/** 정산 비율 변경 이력 Exposed DAO 엔티티 */
 class CommissionRateHistoryEntity(id: EntityID<UUID>) : BaseEntity(id) {
 
     companion object : UUIDEntityClass<CommissionRateHistoryEntity>(CommissionRateHistoryTable) {

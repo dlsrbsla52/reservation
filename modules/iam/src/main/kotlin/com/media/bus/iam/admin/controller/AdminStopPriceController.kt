@@ -16,12 +16,7 @@ import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
-/**
- * ## 어드민 사이트 전용 정류소 조회·단가 관리 컨트롤러
- *
- * 어드민 매니저/마스터 권한을 가진 사용자가 정류소를 조회하고 단가를 제어한다.
- * 내부적으로 `StopAdminPort`(구현은 `app` 어댑터)를 통해 stop 모듈로 요청을 위임하여 실행한다.
- */
+/** 어드민 사이트 전용 정류소 조회·단가 관리 컨트롤러 */
 @Tag(
     name = "어드민 정류소 관리",
     description = "관리자 사이트 전용. 기본 ADMIN_MASTER/ADMIN_DEVELOPER + MANAGE, 단건 등록은 ADMIN + WRITE 권한 필요.",
@@ -33,12 +28,7 @@ class AdminStopPriceController(
     private val adminStopPriceFacade: AdminStopPriceFacade,
 ) {
 
-    /**
-     * 정류소를 조회한다.
-     * pk(UUID)/stopId(정류소 번호)/stopName(이름) 중 하나가 있으면 해당 기준으로 단건·동명 조회한다.
-     * 식별자가 없으면 전체 정류소를 페이지네이션으로 반환하며,
-     * keyword(정류소명·번호 부분 일치)와 stopsType(정류소 유형)으로 필터링할 수 있다.
-     */
+    /** 정류소를 조회한다. */
     @Operation(
         summary = "정류소 조회",
         description = "식별자(pk/stopId/stopName) 중 하나가 있으면 해당 기준으로 단건/동명 조회한다. " +
@@ -51,7 +41,6 @@ class AdminStopPriceController(
         @RequestParam(required = false) stopId: String?,
         @RequestParam(required = false) stopName: String?,
         @RequestParam(required = false) keyword: String?,
-        // stop 모듈의 StopType enum 은 모듈 경계상 참조하지 않는다. 검증은 stop 모듈이 수행한다.
         @RequestParam(required = false) stopsType: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
@@ -117,11 +106,7 @@ class AdminStopPriceController(
         return ApiResponse.successWithMessage("정류소 단가가 삭제되었습니다.")
     }
 
-    /**
-     * 지도 영역(bbox) 내 정류소 마커를 조회한다.
-     * 어드민 화면이 stop 서비스 공개 API(`/api/v1/stop/map/bounds`)를 직접 호출하지 않도록 iam이 위임한다.
-     * 좌표 검증·상한 보정은 stop 모듈 규칙을 그대로 따른다.
-     */
+    /** 지도 영역(bbox) 내 정류소 마커를 조회한다. */
     @Operation(summary = "지도 영역 내 정류소 조회", description = "남서/북동 좌표로 영역 내 정류소 마커를 조회한다.")
     @GetMapping("/map/bounds")
     fun getStopsInBounds(

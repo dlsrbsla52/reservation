@@ -9,13 +9,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
-/**
- * ## 서울 열린데이터광장 버스 정류소 공공 API 클라이언트
- *
- * 사용 API: `busStopLocationXyInfo`
- * URL: `http://openapi.seoul.go.kr:8088/{serviceKey}/json/busStopLocationXyInfo/{startIndex}/{endIndex}/`
- * API 키 발급: https://data.seoul.go.kr
- */
+/** 서울 열린데이터광장 버스 정류소 공공 API 클라이언트 */
 @Component
 class SeoulBusApiClient(
     @param:Value("\${seoul.api.key}") private val apiKey: String,
@@ -25,7 +19,6 @@ class SeoulBusApiClient(
 
     val pageSize: Int = PAGE_SIZE
 
-    // 외부 공공 API 호출용 — 인증 헤더 불필요
     private val restClient: RestClient = RestClient.builder()
         .baseUrl(baseUrl)
         .build()

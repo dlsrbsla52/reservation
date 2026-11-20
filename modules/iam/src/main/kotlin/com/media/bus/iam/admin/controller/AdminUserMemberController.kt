@@ -19,19 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.OffsetDateTime
 
-/**
- * ## 일반 회원(USER/BUSINESS) 조회 컨트롤러
- *
- * 운영팀 등 일반 어드민(`ADMIN` 카테고리 + `READ` 권한)이 사용한다.
- * 어드민 계정 관리(`AdminMemberController`, `ADMIN_MASTER`+`MANAGE`)와 권한을 분리하여,
- * 승객/비즈니스 회원 조회에 마스터 권한을 요구하지 않도록 한다.
- *
- * 조회 대상은 `USER`/`BUSINESS` 카테고리로 고정한다(서비스에서 강제).
- * 향후 블랙리스트 등록, 회원별 예약 추적의 진입점이 된다.
- *
- * **예약 연계**: 회원별 예약/실적은 모듈 경계상 reservation 서비스가 별도 엔드포인트로 제공한다.
- * 여기서는 회원 정보만 반환한다.
- */
+/** 일반 회원(USER/BUSINESS) 조회 컨트롤러 */
 @Tag(name = "어드민 일반 회원 조회 API", description = "운영팀용 일반(USER/BUSINESS) 회원 조건 검색. ADMIN 카테고리 + READ 권한 필요.")
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -65,7 +53,6 @@ class AdminUserMemberController(
             page = page,
             size = size,
         )
-        // 일반 회원만 조회 가능하도록 USER/BUSINESS 카테고리로 고정
         return ApiResponse.success(
             memberSearchService.search(condition, setOf(MemberCategory.USER, MemberCategory.BUSINESS)),
         )

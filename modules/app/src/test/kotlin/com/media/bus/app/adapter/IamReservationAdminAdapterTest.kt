@@ -78,8 +78,6 @@ class IamReservationAdminAdapterTest {
 
     @Test
     fun `제공자의 404(StorageException)는 500 으로 바꾸지 않고 그대로 전달한다`() {
-        // 예: 없는 정류소로 관리자 계약 생성 → StopResolutionService 가 StorageException(404/00140).
-        // 예전 S2S 경로도 4xx 를 같은 상태·코드·메시지로 전달했다.
         val notFound = StorageException(ReservationResult.STOP_NOT_FOUND)
         every { contractFacade.createContract(any()) } throws notFound
         val request = CreateContractRequest(

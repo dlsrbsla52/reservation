@@ -22,11 +22,7 @@ import org.springframework.web.bind.annotation.*
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 어드민 사이트 전용 멤버 관리 컨트롤러
- *
- * `ADMIN_MASTER` + `MANAGE` 권한을 가진 사용자(manager)만 접근 가능하다.
- */
+/** 어드민 사이트 전용 멤버 관리 컨트롤러 */
 @Tag(name = "어드민 멤버 관리 API", description = "어드민 사이트 전용 멤버 생성 API. ADMIN_MASTER + MANAGE 권한 필요.")
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -35,11 +31,7 @@ class AdminMemberController(
     private val adminMemberFacade: AdminMemberFacade,
     private val memberSearchService: MemberSearchService,
 ) {
-    /**
-     * 어드민 멤버 생성.
-     * `ADMIN_MASTER` + `MANAGE` 권한 보유 시에만 호출 가능하다.
-     * 생성된 어드민 계정은 `emailVerified = true` 상태로 즉시 활성화된다.
-     */
+    /** 어드민 멤버 생성. */
     @Operation(
         summary = "어드민 멤버 생성",
         description = "어드민 사이트에서 새 어드민 계정을 생성합니다. ADMIN_MASTER + MANAGE 권한 필요.",
@@ -48,10 +40,6 @@ class AdminMemberController(
     @ResponseStatus(HttpStatus.CREATED)
     fun createAdminMember(@RequestBody @Valid request: CreateAdminMemberRequest): ApiResponse<AdminMemberResponse> =
         ApiResponse.success(adminMemberFacade.createAdminMember(request))
-
-    // ─────────────────────────────────────────────────────────────────
-    // 회원 관리 (조회, 검색, 정지, 해제)
-    // ─────────────────────────────────────────────────────────────────
 
     /** 전체 회원 목록을 페이지네이션으로 조회한다. */
     @Operation(summary = "회원 목록 조회", description = "전체 회원 목록을 페이지네이션으로 조회합니다.")
@@ -68,10 +56,7 @@ class AdminMemberController(
     fun searchMembers(@RequestParam keyword: String): ApiResponse<List<AdminMemberListResponse>> =
         ApiResponse.success(adminMemberFacade.searchMembers(keyword))
 
-    /**
-     * 어드민 회원을 조건으로 검색한다. 조회 대상은 ADMIN 카테고리로 고정된다.
-     * 권한 부여·실적 조회 등 어드민 계정 관리의 진입점이며, `ADMIN_MASTER`+`MANAGE` 권한이 필요하다.
-     */
+    /** 어드민 회원을 조건으로 검색한다. */
     @Operation(
         summary = "어드민 회원 조건 검색",
         description = "키워드/상태/유형/가입일 범위로 어드민(ADMIN_*) 회원을 페이지 조회합니다. ADMIN_MASTER + MANAGE 권한 필요.",
@@ -95,7 +80,6 @@ class AdminMemberController(
             page = page,
             size = size,
         )
-        // 어드민 회원만 조회 가능하도록 ADMIN 카테고리로 고정
         return ApiResponse.success(memberSearchService.search(condition, setOf(MemberCategory.ADMIN)))
     }
 

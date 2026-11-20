@@ -19,12 +19,7 @@ import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
-/**
- * ## 어드민 사이트 전용 예약 관리 컨트롤러
- *
- * 어드민 매니저/마스터 권한을 가진 사용자가 예약을 제어한다.
- * 내부적으로 `ReservationAdminPort`(구현은 `app` 어댑터)를 통해 reservation 모듈로 요청을 위임하여 실행한다.
- */
+/** 어드민 사이트 전용 예약 관리 컨트롤러 */
 @Tag(
     name = "어드민 예약 관리",
     description = "어드민 사이트 전용 예약 관리 API. ADMIN_MASTER/ADMIN_DEVELOPER + MANAGE 권한 필요.",

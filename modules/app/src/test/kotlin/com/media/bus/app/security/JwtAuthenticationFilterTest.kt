@@ -23,21 +23,15 @@ import org.springframework.mock.web.MockHttpServletResponse
 import java.nio.charset.StandardCharsets
 import java.util.*
 
-/**
- * ## 공개 포트 인증 필터 테스트
- *
- * 예전 gateway `JwtAuthenticationFilterTest`의 시나리오를 서블릿 필터로 옮기고,
- * 모듈러 모놀리스 전환 계획 2단계의 보안 완료 조건(헤더 위조 차단, 라우트 허용 목록)을 고정한다.
- */
+/** 공개 포트 인증 필터 테스트 */
 @DisplayName("JwtAuthenticationFilter")
 class JwtAuthenticationFilterTest {
 
     private val secret = "test-secret-key-for-unit-test-minimum-256bits-padding-here"
-    private val claimKey = "dGVzdC1vbmx5LWR1bW15LWNsYWltLWtleS0zMmJ5dGU=" // 테스트 전용 더미 32바이트
+    private val claimKey = "dGVzdC1vbmx5LWR1bW15LWNsYWltLWtleS0zMmJ5dGU="
     private val jwtProvider = JwtProvider(secret, claimKey, mockk<StringRedisTemplate>(relaxed = true))
     private val filter = JwtAuthenticationFilter(jwtProvider, exposeApiDocs = false, managementPort = { 8081 })
 
-    /** 체인까지 도달한 요청. null 이면 필터가 요청을 끝냈다. */
     private var passed: HttpServletRequest? = null
     private var mdcMemberIdInChain: String? = null
     private val chain = FilterChain { req, _ ->
@@ -96,9 +90,7 @@ class JwtAuthenticationFilterTest {
             run(req)
 
             assertThat(attachedPrincipal()?.id).isEqualTo(me)
-            // 체인 아래에서는 위조 헤더가 보이지 않는다
             assertThat(passed?.getHeader("X-User-Id")).isNull()
-            // ACCESS 로그용 MDC 에도 토큰의 회원 ID만 들어간다
             assertThat(mdcMemberIdInChain).isEqualTo(me.toString())
         }
 
@@ -154,7 +146,6 @@ class JwtAuthenticationFilterTest {
 
         @Test
         fun `refresh 토큰을 액세스 토큰으로 쓰면 401`() {
-            // 서명·sub 암호화는 정상이고 type=refresh 만 다른 토큰 — type 검사로 막히는지 본다
             val refresh = Jwts.builder()
                 .subject(ClaimCipher(claimKey).encrypt(UUID.randomUUID().toString()))
                 .claim("type", "refresh")
@@ -224,9 +215,7 @@ class JwtAuthenticationFilterTest {
 
         @Test
         fun `공개 경로는 메서드와 경로가 정확히 같아야 한다(접두 비교 금지)`() {
-            // 예전 startsWith 비교였다면 /api/v1/auth/login 의 접두라 공개됐을 경로
             assertThat(run(request("GET", "/api/v1/auth/login-history")).status).isEqualTo(401)
-            // 메서드가 다르면 공개가 아니다
             assertThat(run(request("GET", "/api/v1/auth/login")).status).isEqualTo(401)
         }
 

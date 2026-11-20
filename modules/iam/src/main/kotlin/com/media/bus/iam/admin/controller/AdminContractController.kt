@@ -70,6 +70,7 @@ class AdminContractController(
             throw BusinessException(AuthResult.CONTRACT_SEARCH_INVALID_PERIOD)
         }
     }
+
     @Operation(summary = "계약 생성")
     @PostMapping
     fun createContract(

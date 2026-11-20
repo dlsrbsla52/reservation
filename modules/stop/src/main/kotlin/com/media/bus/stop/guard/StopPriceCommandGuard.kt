@@ -8,11 +8,7 @@ import com.media.bus.stop.result.StopResult
 import org.springframework.stereotype.Service
 import java.util.*
 
-/**
- * ## 정류소 단가 명령 가드
- *
- * Repository 기반 비즈니스 규칙 검증만 수행한다 (인가 처리는 인터셉터가 담당).
- */
+/** 정류소 단가 명령 가드 */
 @Service
 class StopPriceCommandGuard(
     private val stopRepository: StopRepository,

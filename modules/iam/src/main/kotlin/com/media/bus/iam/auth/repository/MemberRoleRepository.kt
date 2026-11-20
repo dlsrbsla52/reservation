@@ -11,18 +11,11 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 회원-역할 매핑 Exposed Repository
- *
- * 로그인 및 토큰 재발급 시 해당 회원의 역할 정보를 조회한다.
- */
+/** 회원-역할 매핑 Exposed Repository */
 @Repository
 class MemberRoleRepository {
 
-    /**
-     * 회원 ID로 역할 이름 집합을 조회한다 (Role 엔티티 JOIN).
-     * Guard/Validator 계층 등 이름만 필요한 경우에 사용한다.
-     */
+    /** 회원 ID로 역할 이름 집합을 조회한다 (Role 엔티티 JOIN). */
     fun findRoleNamesByMemberId(memberId: UUID): Set<String> =
         (MemberRoleTable innerJoin RoleTable)
             .select(RoleTable.name)
@@ -30,28 +23,17 @@ class MemberRoleRepository {
             .map { it[RoleTable.name] }
             .toSet()
 
-    /**
-     * 회원 ID로 MemberRole 목록을 조회한다.
-     * 로그인/토큰 갱신/회원 정보 조회 시 사용한다.
-     */
+    /** 회원 ID로 MemberRole 목록을 조회한다. */
     fun findWithRoleByMemberId(memberId: UUID): List<MemberRoleEntity> =
         MemberRoleEntity.find { MemberRoleTable.memberId eq EntityID(memberId, MemberTable) }
             .toList()
 
-    /**
-     * 회원 ID로 MemberRole 단건을 조회한다.
-     * `member_id` UNIQUE 제약에 의해 최대 1건만 존재한다.
-     */
+    /** 회원 ID로 MemberRole 단건을 조회한다. */
     fun findByMemberId(memberId: UUID): MemberRoleEntity? =
         MemberRoleEntity.find { MemberRoleTable.memberId eq EntityID(memberId, MemberTable) }
             .firstOrNull()
 
-    /**
-     * 여러 회원 ID의 역할 이름을 1쿼리로 일괄 조회한다.
-     * N+1 방지용 배치 조회 — 목록 조회 서비스에서 사용한다.
-     *
-     * @return memberId → roleName 매핑 Map
-     */
+    /** 여러 회원 ID의 역할 이름을 1쿼리로 일괄 조회한다. */
     fun findRoleMapByMemberIds(memberIds: List<UUID>): Map<UUID, String> {
         if (memberIds.isEmpty()) return emptyMap()
         return (MemberRoleTable innerJoin RoleTable)

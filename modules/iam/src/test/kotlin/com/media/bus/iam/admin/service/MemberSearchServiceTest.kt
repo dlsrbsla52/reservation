@@ -23,13 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## MemberSearchService 단위 테스트
- *
- * 핵심 검증 포인트는 **권한 경계 강제**다.
- * 허용 카테고리와 조건의 정밀 유형(type)을 교집합한 역할 이름 집합으로만 조회하며,
- * 경계를 벗어나는 type 지정은 DB 조회 없이 빈 결과로 차단되어야 한다.
- */
+/** MemberSearchService 단위 테스트 */
 @ExtendWith(MockKExtension::class)
 @DisplayName("MemberSearchService 단위 테스트")
 class MemberSearchServiceTest {
@@ -63,7 +57,6 @@ class MemberSearchServiceTest {
     inner class UserSearch {
 
         @Test
-        @DisplayName("type 미지정 시 USER/BUSINESS 역할만 검색하고 결과를 매핑한다")
         fun `정상 검색`() {
             val roleNamesSlot = slot<Set<String>>()
             every { memberRepository.searchByCondition(any(), capture(roleNamesSlot)) } returns
@@ -75,7 +68,6 @@ class MemberSearchServiceTest {
                 setOf(MemberCategory.USER, MemberCategory.BUSINESS),
             )
 
-            // USER→MEMBER, BUSINESS→BUSINESS 역할 이름만 조회 대상에 포함
             assertThat(roleNamesSlot.captured).containsExactlyInAnyOrder("MEMBER", "BUSINESS")
             assertThat(result.items).hasSize(1)
             assertThat(result.totalCnt).isEqualTo(1L)
@@ -84,7 +76,6 @@ class MemberSearchServiceTest {
         }
 
         @Test
-        @DisplayName("type 을 허용 카테고리 내 값으로 지정하면 해당 역할만 조회한다")
         fun `정밀 유형 필터`() {
             val roleNamesSlot = slot<Set<String>>()
             every { memberRepository.searchByCondition(any(), capture(roleNamesSlot)) } returns emptyList()
@@ -99,7 +90,6 @@ class MemberSearchServiceTest {
         }
 
         @Test
-        @DisplayName("허용 카테고리를 벗어난 type(ADMIN) 지정 시 DB 조회 없이 빈 결과를 반환한다")
         fun `경계 위반 차단`() {
             val result = memberSearchService.search(
                 MemberSearchCondition(type = MemberType.ADMIN_MASTER),
@@ -108,7 +98,6 @@ class MemberSearchServiceTest {
 
             assertThat(result.items).isEmpty()
             assertThat(result.totalCnt).isEqualTo(0L)
-            // 역할 집합이 비므로 리포지토리를 호출하지 않아야 한다
             verify(exactly = 0) { memberRepository.searchByCondition(any(), any()) }
             verify(exactly = 0) { memberRepository.countByCondition(any(), any()) }
         }
@@ -119,7 +108,6 @@ class MemberSearchServiceTest {
     inner class AdminSearch {
 
         @Test
-        @DisplayName("ADMIN 카테고리의 모든 역할을 검색 대상으로 삼는다")
         fun `정상 검색`() {
             val roleNamesSlot = slot<Set<String>>()
             every { memberRepository.searchByCondition(any(), capture(roleNamesSlot)) } returns
@@ -137,7 +125,6 @@ class MemberSearchServiceTest {
         }
 
         @Test
-        @DisplayName("type 을 ADMIN 카테고리 내 값으로 지정하면 해당 역할만 조회한다")
         fun `정밀 유형 필터`() {
             val roleNamesSlot = slot<Set<String>>()
             every { memberRepository.searchByCondition(any(), capture(roleNamesSlot)) } returns emptyList()
@@ -152,7 +139,6 @@ class MemberSearchServiceTest {
         }
 
         @Test
-        @DisplayName("허용 카테고리를 벗어난 type(MEMBER) 지정 시 DB 조회 없이 빈 결과를 반환한다")
         fun `경계 위반 차단`() {
             val result = memberSearchService.search(
                 MemberSearchCondition(type = MemberType.MEMBER),
@@ -171,7 +157,6 @@ class MemberSearchServiceTest {
     inner class PageNormalization {
 
         @Test
-        @DisplayName("음수 page/과대 size 는 보정되어 응답 메타에 반영된다")
         fun `page size 보정`() {
             every { memberRepository.searchByCondition(any(), any()) } returns emptyList()
             every { memberRepository.countByCondition(any(), any()) } returns 0L
@@ -181,7 +166,6 @@ class MemberSearchServiceTest {
                 setOf(MemberCategory.USER, MemberCategory.BUSINESS),
             )
 
-            // page 는 0 이상, size 는 상한(100)으로 보정
             assertThat(result.pageNum).isEqualTo(0)
             assertThat(result.pageRows).isEqualTo(100)
         }

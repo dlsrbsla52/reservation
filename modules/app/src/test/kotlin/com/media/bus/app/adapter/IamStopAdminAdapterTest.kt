@@ -29,11 +29,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## iam → stop 어댑터 계약 테스트
- *
- * 예전 JSON 왕복과 같은 값이 나오는지(필드 누락, enum 문자열), HTTP 경계의 오류 변환이 유지되는지 고정한다.
- */
+/** iam → stop 어댑터 계약 테스트 */
 @DisplayName("IamStopAdminAdapter")
 class IamStopAdminAdapterTest {
 
@@ -133,6 +129,7 @@ class IamStopAdminAdapterTest {
         assertThat(listOf(result.savedCount, result.updatedCount, result.skippedCount, result.failedCount, result.totalCount))
             .containsExactly(1, 2, 3, 4, 10)
     }
+
     @Test
     fun `제공자의 인증과 인가 오류는 동일한 예외로 전달한다`() {
         val unauthorized = com.media.bus.common.exceptions.NoAuthenticationException()
@@ -144,5 +141,4 @@ class IamStopAdminAdapterTest {
         assertThat(assertThrows<com.media.bus.common.exceptions.NoAuthorizationException> { adapter.registerBulk() })
             .isSameAs(forbidden)
     }
-
 }

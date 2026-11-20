@@ -40,8 +40,7 @@ class MdcLoggingFilterTest {
     inner class RequestIdTest {
 
         @Test
-        @DisplayName("X-Request-ID 헤더가 있으면 MDC에 해당 값을 주입한다")
-        fun shouldUsePredefinedRequestId() {
+        fun `X-Request-ID 헤더가 있으면 MDC에 해당 값을 주입한다`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "my-predefined-request-id")
             val captured = captureFromMdc("requestId")
@@ -52,8 +51,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("X-Request-ID 헤더가 없으면 UUID를 생성하여 MDC에 주입한다")
-        fun shouldGenerateUuidWhenNoHeader() {
+        fun `X-Request-ID 헤더가 없으면 UUID를 생성하여 MDC에 주입한다`() {
             val captured = captureFromMdc("requestId")
 
             filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse(), filterChain)
@@ -64,8 +62,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("공백 X-Request-ID 헤더는 무시하고 UUID를 생성한다")
-        fun shouldGenerateUuidForBlankHeader() {
+        fun `공백 X-Request-ID 헤더는 무시하고 UUID를 생성한다`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "   ")
             val captured = captureFromMdc("requestId")
@@ -79,8 +76,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("응답 헤더 X-Request-ID에 requestId를 반환한다")
-        fun shouldSetResponseHeader() {
+        fun `응답 헤더 X-Request-ID에 requestId를 반환한다`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "trace-001")
             val response = MockHttpServletResponse()
@@ -91,8 +87,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("헤더 없을 때 응답 X-Request-ID는 자동 생성된 UUID다")
-        fun shouldSetGeneratedIdInResponseHeader() {
+        fun `헤더 없을 때 응답 X-Request-ID는 자동 생성된 UUID다`() {
             val response = MockHttpServletResponse()
 
             filter.doFilter(MockHttpServletRequest(), response, filterChain)
@@ -103,8 +98,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("요청과 응답의 X-Request-ID가 동일한 값이다")
-        fun requestAndResponseHeaderShouldMatch() {
+        fun `요청과 응답의 X-Request-ID가 동일한 값이다`() {
             val request = MockHttpServletRequest()
             val response = MockHttpServletResponse()
             val capturedMdc = captureFromMdc("requestId")
@@ -122,8 +116,7 @@ class MdcLoggingFilterTest {
     inner class MemberIdTest {
 
         @Test
-        @DisplayName("클라이언트가 보낸 X-User-Id 헤더는 MDC에 넣지 않는다(위조 방지)")
-        fun shouldIgnoreForgedUserIdHeader() {
+        fun `클라이언트가 보낸 X-User-Id 헤더는 MDC에 넣지 않는다(위조 방지)`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-User-Id", "forged-user")
             val captured = captureFromMdc("memberId")
@@ -135,8 +128,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("anonymousUser일 때 memberId를 MDC에 주입하지 않는다")
-        fun shouldNotInjectMemberIdForAnonymous() {
+        fun `anonymousUser일 때 memberId를 MDC에 주입하지 않는다`() {
             val anonymousAuth = UsernamePasswordAuthenticationToken(
                 "anonymousUser", null, listOf(SimpleGrantedAuthority("ROLE_ANONYMOUS"))
             )
@@ -149,8 +141,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("SecurityContext가 비어있으면 memberId를 MDC에 주입하지 않는다")
-        fun shouldNotInjectMemberIdWhenNoAuthentication() {
+        fun `SecurityContext가 비어있으면 memberId를 MDC에 주입하지 않는다`() {
             val captured = captureFromMdc("memberId")
 
             filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse(), filterChain)
@@ -159,8 +150,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("인증 객체가 있어도 isAuthenticated()가 false면 주입하지 않는다")
-        fun shouldNotInjectMemberIdWhenNotAuthenticated() {
+        fun `인증 객체가 있어도 isAuthenticated()가 false면 주입하지 않는다`() {
             val unauthenticated = UsernamePasswordAuthenticationToken.unauthenticated("some-user", null)
             SecurityContextHolder.getContext().authentication = unauthenticated
             val captured = captureFromMdc("memberId")
@@ -178,8 +168,7 @@ class MdcLoggingFilterTest {
     inner class MdcLifecycleTest {
 
         @Test
-        @DisplayName("체인 안에서 인증 필터가 넣은 memberId는 요청이 끝나면 이 필터가 지운다")
-        fun shouldClearMemberIdSetInsideChain() {
+        fun `체인 안에서 인증 필터가 넣은 memberId는 요청이 끝나면 이 필터가 지운다`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "trace-001")
             val capturedRequestId = AtomicReference<String>()
@@ -196,8 +185,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("요청 완료 후 requestId가 MDC에서 제거된다")
-        fun shouldRemoveRequestIdAfterRequest() {
+        fun `요청 완료 후 requestId가 MDC에서 제거된다`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "trace-001")
 
@@ -207,8 +195,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("요청 완료 후 memberId가 MDC에서 제거된다")
-        fun shouldRemoveMemberIdAfterRequest() {
+        fun `요청 완료 후 memberId가 MDC에서 제거된다`() {
             authenticateAs("user-abc")
 
             filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse(), filterChain)
@@ -217,8 +204,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("필터 체인에서 ServletException이 발생해도 MDC가 정리된다")
-        fun shouldClearMdcEvenOnServletException() {
+        fun `필터 체인에서 ServletException이 발생해도 MDC가 정리된다`() {
             val request = MockHttpServletRequest()
             request.addHeader("X-Request-ID", "error-request")
             authenticateAs("user-xyz")
@@ -233,8 +219,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("필터 체인에서 RuntimeException이 발생해도 MDC가 정리된다")
-        fun shouldClearMdcEvenOnRuntimeException() {
+        fun `필터 체인에서 RuntimeException이 발생해도 MDC가 정리된다`() {
             authenticateAs("user-xyz")
             every { filterChain.doFilter(any(), any()) } throws RuntimeException("unexpected")
 
@@ -246,8 +231,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("연속 요청 간 MDC 값이 격리된다 — 이전 요청의 requestId가 남지 않는다")
-        fun shouldIsolateMdcBetweenRequests() {
+        fun `연속 요청 간 MDC 값이 격리된다 — 이전 요청의 requestId가 남지 않는다`() {
             val firstCapture = AtomicReference<String>()
             every { filterChain.doFilter(any(), any()) } answers { firstCapture.set(MDC.get("requestId")) }
             val firstRequest = MockHttpServletRequest()
@@ -265,8 +249,7 @@ class MdcLoggingFilterTest {
         }
 
         @Test
-        @DisplayName("필터가 관리하지 않는 외부 MDC 필드는 제거하지 않는다")
-        fun shouldNotRemoveExternalMdcFields() {
+        fun `필터가 관리하지 않는 외부 MDC 필드는 제거하지 않는다`() {
             MDC.put("externalKey", "external-value")
 
             filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse(), filterChain)

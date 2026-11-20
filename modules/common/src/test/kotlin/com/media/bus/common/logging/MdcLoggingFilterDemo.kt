@@ -34,7 +34,6 @@ object MdcLoggingFilterDemo {
 
     @JvmStatic
     fun main(args: Array<String>) {
-
         // 시나리오 1: 인증된 사용자 요청
         divider("시나리오 1 — 인증 사용자 요청 (X-Request-ID 헤더 있음)")
 

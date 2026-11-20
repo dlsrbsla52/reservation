@@ -30,18 +30,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.*
 
-/**
- * ## 앱 전체 컨텍스트 기동과 공개 표면
- *
- * 다른 `app` 테스트는 단위 테스트이거나 리플렉션 스캔이라, 아래 문제는 실제로 띄워야만 드러났다. 이 테스트가 CI에서 잡는다.
- * - 빈 이름 충돌(`allow-bean-definition-overriding: false`), 포트 구현 누락·중복
- * - 공개 포트의 보안 체인 누락. `common`의 permitAll 기본 체인을 지웠으므로 `SecurityConfig`가 빠지면 이 테스트가 실패한다
- * - 실제 핸들러 매핑의 internal 경로, 라우트 허용 목록 밖 핸들러
- * - 공개 8080 / 관리 8081 포트 정책
- *
- * 외부 의존 없이 돈다: H2 메모리 DB(Liquibase 끔), Redis 는 접속하지 않는 포트(연결은 지연 생성이라 기동에 필요 없다).
- * 프로젝트 루트 `.env`가 있으면 기본 설정이 읽지만, 아래 속성이 우선한다.
- */
+/** 앱 전체 컨텍스트 기동과 공개 표면 */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
@@ -101,7 +90,6 @@ class BusApplicationContextTest {
 
     @Test
     fun `포트마다 app 어댑터가 정확히 하나 연결된다`() {
-        // getBean(Class) 는 구현이 0개나 2개 이상이면 예외를 던진다
         assertThat(context.getBean(StopLookupPort::class.java)).isInstanceOf(ReservationStopLookupAdapter::class.java)
         assertThat(context.getBean(MemberLookupPort::class.java)).isInstanceOf(ReservationMemberLookupAdapter::class.java)
         assertThat(context.getBean(StopAdminPort::class.java)).isInstanceOf(IamStopAdminAdapter::class.java)
@@ -111,7 +99,6 @@ class BusApplicationContextTest {
     @Test
     fun `실제 핸들러 매핑은 모두 라우트 허용 목록 안에 있고 internal 경로가 없다`() {
         val paths = handlerMapping.handlerMethods.keys.flatMap { it.patternValues }
-        // /error 는 Spring Boot 기본 오류 컨트롤러다. 공개 포트에서는 인증 필터가 직접 요청을 404로 끝낸다(아래 HTTP 테스트).
         val outside = paths.filterNot { it == "/error" || ApiPathPolicy.isRoutable(it, exposeApiDocs = false) }
 
         assertThat(paths).isNotEmpty
