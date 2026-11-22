@@ -41,14 +41,23 @@ import java.util.function.Consumer
 class AdminMemberServiceTest {
 
     @MockK private lateinit var roleRepository: RoleRepository
+
     @MockK private lateinit var passwordEncoder: PasswordEncoder
+
     @MockK private lateinit var adminRegisterRequestValidator: AdminRegisterRequestValidator
+
     @MockK private lateinit var memberRepository: MemberRepository
+
     @MockK private lateinit var roleResolutionService: RoleResolutionService
+
     @MockK private lateinit var jwtProvider: JwtProvider
+
     @MockK private lateinit var memberRoleRepository: MemberRoleRepository
+
     @MockK private lateinit var rolePermissionRepository: RolePermissionRepository
+
     @MockK private lateinit var memberStatusHistoryRepository: MemberStatusHistoryRepository
+
     @MockK(relaxed = true) private lateinit var auditLogService: com.media.bus.iam.audit.service.AuditLogService
 
     @InjectMockKs private lateinit var adminMemberService: AdminMemberService
@@ -102,16 +111,11 @@ class AdminMemberServiceTest {
         return rp
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // findAllMembers
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("findAllMembers")
     inner class FindAllMembers {
 
         @Test
-        @DisplayName("정상 페이지네이션 조회")
         fun `정상 조회`() {
             val member = mockMember()
             every { memberRepository.findAllPaged(0, 20) } returns listOf(member)
@@ -128,16 +132,11 @@ class AdminMemberServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // findMemberDetail
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("findMemberDetail")
     inner class FindMemberDetail {
 
         @Test
-        @DisplayName("정상 상세 조회")
         fun `정상 조회`() {
             val member = mockMember()
             val role = mockRole()
@@ -157,7 +156,6 @@ class AdminMemberServiceTest {
         }
 
         @Test
-        @DisplayName("회원 없으면 MEMBER_NOT_FOUND 예외")
         fun `회원 없음`() {
             every { memberRepository.findById(targetMemberId) } returns null
 
@@ -169,16 +167,11 @@ class AdminMemberServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // suspendMember
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("suspendMember")
     inner class SuspendMember {
 
         @Test
-        @DisplayName("정상 정지 처리")
         fun `정상 정지`() {
             val member = mockMember()
             val requester = mockMember(id = requesterId)
@@ -187,7 +180,6 @@ class AdminMemberServiceTest {
             every { roleResolutionService.resolveMemberType(targetMemberId) } returns MemberType.MEMBER
             every { jwtProvider.deleteRefreshToken(targetMemberId.toString()) } just Runs
 
-            // Exposed static factory mock — 트랜잭션 컨텍스트 없이 동작하도록
             mockkObject(MemberStatusHistoryEntity.Companion)
             every { MemberStatusHistoryEntity.create(any(), any(), any(), any(), any()) } returns mockk(relaxed = true)
 
@@ -200,7 +192,6 @@ class AdminMemberServiceTest {
         }
 
         @Test
-        @DisplayName("자기 자신 정지 시 CANNOT_SUSPEND_SELF 예외")
         fun `자기 자신 정지`() {
             assertThatThrownBy { adminMemberService.suspendMember(targetMemberId, targetMemberId, "사유") }
                 .isInstanceOf(BusinessException::class.java)
@@ -210,7 +201,6 @@ class AdminMemberServiceTest {
         }
 
         @Test
-        @DisplayName("ADMIN_MASTER 정지 시 CANNOT_SUSPEND_ADMIN_MASTER 예외")
         fun `ADMIN_MASTER 정지`() {
             val member = mockMember()
             every { memberRepository.findById(targetMemberId) } returns member
@@ -224,7 +214,6 @@ class AdminMemberServiceTest {
         }
 
         @Test
-        @DisplayName("비ACTIVE 회원 정지 시 MEMBER_NOT_ACTIVE 예외")
         fun `비ACTIVE 회원`() {
             val member = mockMember(status = MemberStatus.SUSPENDED)
             every { memberRepository.findById(targetMemberId) } returns member
@@ -237,16 +226,11 @@ class AdminMemberServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // unsuspendMember
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("unsuspendMember")
     inner class UnsuspendMember {
 
         @Test
-        @DisplayName("정상 정지 해제")
         fun `정상 해제`() {
             val member = mockMember(status = MemberStatus.SUSPENDED)
             val requester = mockMember(id = requesterId)
@@ -264,7 +248,6 @@ class AdminMemberServiceTest {
         }
 
         @Test
-        @DisplayName("비SUSPENDED 회원 해제 시 MEMBER_NOT_SUSPENDED 예외")
         fun `비SUSPENDED 회원`() {
             val member = mockMember(status = MemberStatus.ACTIVE)
             every { memberRepository.findById(targetMemberId) } returns member
@@ -277,12 +260,7 @@ class AdminMemberServiceTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // searchMembers
-    // ──────────────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("키워드 검색 정상 처리")
     fun `searchMembers 정상`() {
         val member = mockMember()
         every { memberRepository.searchByKeyword("test") } returns listOf(MemberWithRole(member, "MEMBER"))

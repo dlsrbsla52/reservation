@@ -13,11 +13,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 
-/**
- * `StopCommandGuard` 단위 테스트.
- * - stopId가 이미 존재하면 → 409 CONFLICT (중복 방지)
- * - stopId가 존재하지 않으면 → 예외 없음 (신규 등록 허용)
- */
+/** `StopCommandGuard` 단위 테스트. */
 @ExtendWith(MockKExtension::class)
 class StopCommandGuardTest {
 

@@ -8,15 +8,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 관리자 정류소 API의 프런트 JSON 계약
- *
- * `xCrd` 같은 프로퍼티는 게터가 `getXCrd()`라 Jackson 기본 네이밍이 `xcrd`로 내보낸다.
- * 프런트는 `xCrd`/`yCrd`를 쓰므로 응답·요청 모두 이 이름이어야 한다. MVC와 같은 Jackson 3로 확인한다.
- *
- * (예전 `StopInfoDeserializationTest`·`SimpleStopCreateRequestSerializationTest`의 iam ↔ stop JSON 계약은
- * 모듈 간 호출이 직접 호출로 바뀌어 없어졌다. 프런트와의 계약만 남긴다.)
- */
+/** 관리자 정류소 API의 프런트 JSON 계약 */
 class AdminStopDtoJsonTest {
 
     private val mapper = JsonMapper.builder().build()

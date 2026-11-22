@@ -3,10 +3,7 @@ package com.media.bus.reservation.reservation.entity.enums
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-/**
- * 예약 상태 전이와 선점 판정의 계약.
- * `holdsSlot` 은 DB 부분 유니크 인덱스(`status IN ('PENDING','CONSULTING')`)와 같은 집합이어야 한다.
- */
+/** 예약 상태 전이와 선점 판정의 계약. */
 class ReservationStatusTest {
 
     @Test

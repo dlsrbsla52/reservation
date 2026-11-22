@@ -58,7 +58,16 @@ modules/reservation/src/main/kotlin/com/media/bus/reservation/
 - **제약 위반 변환** — Exposed DAO는 쓰기를 커밋까지 미루므로, 제약 위반을 409로 돌려주려면 서비스 안에서 `flushTranslating`으로 먼저 내보낸다.
 - **광고면 확장** — 지금은 모든 row가 `StopSlot.DEFAULT_NO`(1)이다. 면이 여러 개가 되면 요청 DTO에서 면 번호를 받아 넘긴다.
 
-검증: 위 동작은 PostgreSQL 기능에 기대므로 `StopHoldPostgresIT`(기본 비활성, 일회용 PostgreSQL 필요)로 확인한다. 실행 방법은 그 파일의 KDoc에 있다.
+검증: 위 동작은 PostgreSQL 기능(부분 유니크 인덱스, 제외 제약, 행 잠금)에 기대므로 목이나 H2로는 확인할 수 없다. `StopHoldPostgresIT`(기본 비활성)가 비어 있는 일회용 PostgreSQL에 Liquibase changelog를 적용하고 실제 서비스를 여러 스레드에서 동시에 호출한다. Spring 컨텍스트 없이 서비스를 직접 만들므로 `@Transactional` 대신 호출마다 Exposed `transaction {}`으로 감싼다.
+
+```bash
+docker run -d --rm --name reservation-it-pg -e POSTGRES_PASSWORD=it -p 25433:5432 postgres:18.3
+RESERVATION_IT_JDBC_URL=jdbc:postgresql://localhost:25433/postgres \
+  ./gradlew :modules:reservation:test --tests "*StopHoldPostgresIT"
+docker stop reservation-it-pg
+```
+
+접속 계정은 `RESERVATION_IT_DB_USER` / `RESERVATION_IT_DB_PASSWORD`로 바꾼다(기본 postgres / it). 스키마를 만들고 데이터를 쓰므로 개발·운영 DB를 가리키지 않는다.
 
 ## Database
 

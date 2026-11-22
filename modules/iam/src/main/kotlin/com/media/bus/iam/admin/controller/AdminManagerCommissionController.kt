@@ -14,13 +14,7 @@ import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
-/**
- * ## 어드민 사이트 전용 매니저 수수료 및 정산 컨트롤러
- *
- * 일반 사용자 계약 API(`/api/v1/commission/me`)는 본인 채결한 계약의 수수료만 확인 할 수 있지만,
- * 어드민은 임의 매니저의 수수료 및 정산 현황을 조회 하고 수정할 수 있어야 한다.
- *
- */
+/** 어드민 사이트 전용 매니저 수수료 및 정산 컨트롤러 */
 @Tag(
     name = "어드민 매니저 수수료 및 정산 관리",
     description = "어드민 사이트 전용 매니저의 수수료 및 정산 관리 API. ADMIN_MASTER/ADMIN_DEVELOPER + MANAGE 권한 필요.",
@@ -32,10 +26,6 @@ class AdminManagerCommissionController(
     private val commissionFacade: AdminManagerCommissionFacade,
 ) {
 
-    // ─────────────────────────────────────────────────────────────────
-    // 영업사원 기본 정산 비율
-    // ─────────────────────────────────────────────────────────────────
-
     /** 영업사원의 기본 정산 비율을 조회한다. */
     @Operation(summary = "영업사원 기본 정산 비율 조회", description = "특정 영업사원의 현재 기본 정산 비율을 조회합니다.")
     @GetMapping("/{memberId}")
@@ -44,10 +34,7 @@ class AdminManagerCommissionController(
     ): ApiResponse<ManagerCommissionResponse> =
         ApiResponse.success(ManagerCommissionResponse.of(commissionFacade.getManagerCommission(memberId)))
 
-    /**
-     * 영업사원의 기본 정산 비율을 수정한다.
-     * 변경 이력이 자동으로 기록된다.
-     */
+    /** 영업사원의 기본 정산 비율을 수정한다. */
     @Operation(summary = "영업사원 기본 정산 비율 수정", description = "특정 영업사원의 기본 정산 비율을 수정합니다. 변경 이력이 기록됩니다.")
     @PutMapping("/{memberId}")
     fun updateManagerCommission(
@@ -72,10 +59,6 @@ class AdminManagerCommissionController(
     ): ApiResponse<List<CommissionRateHistoryResponse>> =
         ApiResponse.success(commissionFacade.getCommissionHistory(memberId).map { CommissionRateHistoryResponse.of(it) })
 
-    // ─────────────────────────────────────────────────────────────────
-    // 계약별 정산 비율 오버라이드
-    // ─────────────────────────────────────────────────────────────────
-
     /** 계약의 정산 비율 오버라이드를 조회한다. 오버라이드가 없으면 null을 반환한다. */
     @Operation(summary = "계약별 정산 비율 오버라이드 조회", description = "특정 계약의 정산 비율 오버라이드를 조회합니다. 없으면 data가 null입니다.")
     @GetMapping("/contract/{contractId}/override")
@@ -86,11 +69,7 @@ class AdminManagerCommissionController(
         return ApiResponse.success(override?.let { ContractCommissionOverrideResponse.of(it) })
     }
 
-    /**
-     * 계약의 정산 비율 오버라이드를 등록하거나 수정한다.
-     * 오버라이드가 없으면 새로 생성하고, 있으면 비율을 갱신한다.
-     * 변경 이력이 자동으로 기록된다.
-     */
+    /** 계약의 정산 비율 오버라이드를 등록하거나 수정한다. */
     @Operation(summary = "계약별 정산 비율 오버라이드 등록/수정", description = "특정 계약의 정산 비율을 오버라이드합니다. 없으면 생성, 있으면 수정합니다. 변경 이력이 기록됩니다.")
     @PutMapping("/contract/{contractId}/override")
     fun upsertContractCommissionOverride(

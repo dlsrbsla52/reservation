@@ -10,12 +10,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.util.*
 
-/**
- * ## 감사 로그 Exposed DAO 엔티티
- *
- * 민감 작업 추적용 이벤트 로그. 팩토리 메서드 `create()`로만 생성을 허용한다.
- * 신규 필드를 추가할 경우 Liquibase changelog 및 [AuditActorType], [AuditResult] 확장을 고려한다.
- */
+/** 감사 로그 Exposed DAO 엔티티 */
 class AuditLogEntity(id: EntityID<UUID>) : BaseEntity(id) {
 
     companion object : UUIDEntityClass<AuditLogEntity>(AuditLogTable) {

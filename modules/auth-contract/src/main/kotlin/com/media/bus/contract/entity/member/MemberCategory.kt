@@ -16,5 +16,4 @@ enum class MemberCategory(
     USER("일반 사용자"),
     BUSINESS("비즈니스"),
     ADMIN("관리자"),
-    ;
 }

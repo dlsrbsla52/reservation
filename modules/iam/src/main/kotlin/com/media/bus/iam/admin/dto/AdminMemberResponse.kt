@@ -22,10 +22,7 @@ data class AdminMemberResponse(
     val memberType: MemberType,
 ) {
     companion object {
-        /**
-         * Member 엔티티와 MemberType으로 응답 DTO를 생성한다.
-         * MemberType은 엔티티에 없으므로 Role 조회 결과를 별도 전달한다.
-         */
+        /** Member 엔티티와 MemberType으로 응답 DTO를 생성한다. */
         fun of(member: MemberEntity, memberType: MemberType): AdminMemberResponse =
             AdminMemberResponse(
                 memberId = member.id.value,

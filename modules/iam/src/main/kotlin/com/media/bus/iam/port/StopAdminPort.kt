@@ -5,15 +5,7 @@ import com.media.bus.iam.port.dto.stop.*
 import java.math.BigDecimal
 import java.util.*
 
-/**
- * ## 관리자 기능이 쓰는 stop 모듈 포트
- *
- * 설계 의도:
- * - iam은 stop 모듈을 컴파일 의존하지 않는다. 소비자(iam)가 필요한 기능을 이 포트로 정의하고,
- *   구현은 바깥에서 주입한다.
- * - 구현은 `app` 모듈의 `IamStopAdminAdapter`이고, stop의 공개 진입점(Service)을 직접 호출한다.
- * - 메서드 계약(빈 결과, 예외 상태·코드)은 예전 HTTP 클라이언트(`StopServiceClient`)와 같게 유지한다.
- */
+/** 관리자 기능이 쓰는 stop 모듈 포트 */
 interface StopAdminPort {
 
     /** pk(UUID) 기준으로 정류소를 조회한다. 없으면 빈 리스트. */

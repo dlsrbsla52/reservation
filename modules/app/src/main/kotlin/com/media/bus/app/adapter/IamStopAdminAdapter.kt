@@ -17,15 +17,7 @@ import java.math.BigDecimal
 import java.util.*
 import com.media.bus.stop.dto.request.SimpleStopCreateRequest as StopSimpleStopCreateRequest
 
-/**
- * ## iam 관리자 기능 → stop 어댑터
- *
- * 예전 `InternalStopController`가 위임하던 stop 서비스를 직접 부른다. 입력 검증은 제공자 진입점에 있다
- * (`StopService.getBusStopsByIds`·`createOneStop`, `StopPriceService`, `StopSearchCriteria.of`, `StopBoundsCriteria.of`).
- *
- * DTO는 필드별로 명시해 변환한다. 예전 JSON 왕복은 이름이 같은 필드를 자동으로 옮겼지만, 여기서는 기본값이 있는
- * 필드(예: `StopInfo.unitPrice`)를 빠뜨려도 컴파일되므로 `IamStopAdminAdapterTest`가 변환 결과를 고정한다.
- */
+/** iam 관리자 기능 → stop 어댑터 */
 @Component
 class IamStopAdminAdapter(
     private val stopService: StopService,
@@ -41,14 +33,12 @@ class IamStopAdminAdapter(
     override fun getStopByStopName(stopName: String): List<StopInfo> = search(StopSearchCriteria.of(null, null, stopName))
 
     override fun getStopsByPks(pks: Collection<UUID>): List<StopInfo> {
-        // 빈 입력은 호출하지 않는다. 제공자는 빈 목록을 400으로 거절한다.
         if (pks.isEmpty()) return emptyList()
         return callProvider { stopService.getBusStopsByIds(pks).map(::toStopInfo) }
     }
 
     override fun getStopPage(page: Int, size: Int, keyword: String?, stopsType: String?): PageResult<StopInfo> =
         callProvider {
-            // stopsType 문자열 검증은 StopService 가 StopType.parseFilter 로 한다(알 수 없는 값 → 400)
             val result = stopService.getBusStopPage(page, size, keyword, stopsType)
             PageResult(
                 items = result.items.map(::toStopInfo),
@@ -78,7 +68,6 @@ class IamStopAdminAdapter(
         limit: Int?,
         stopsType: String?,
     ): StopBoundsInfo = callProvider {
-        // 좌표·limit·유형 검증은 StopBoundsCriteria.of 가 한다(공개 지도 API 와 같은 규칙)
         val result = stopMapQueryService.findMarkersInBounds(
             StopBoundsCriteria.of(swLat, swLng, neLat, neLng, limit, stopsType),
         )
@@ -105,14 +94,12 @@ class IamStopAdminAdapter(
             xCrd = request.xCrd,
             yCrd = request.yCrd,
             nodeId = request.nodeId,
-            // 예전에는 JSON 역직렬화가 잘못된 유형을 400 으로 거절했다
             stopsType = parseCode(request.stopsType, "stopsType", StopType::fromName),
         )
         stopService.createOneStop(registeredById, stopRequest)
     }
 
     override fun registerBulk(): StopBulkRegisterInfo = callProvider {
-        // 서울 공공 API 실패(ServiceException)는 callProvider 가 예전과 같은 500/00100 으로 바꾼다
         val result = stopRegisterService.registerAllFromPublicApi()
         StopBulkRegisterInfo(
             savedCount = result.savedCount,

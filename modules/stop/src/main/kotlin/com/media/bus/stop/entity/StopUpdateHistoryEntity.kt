@@ -10,24 +10,12 @@ import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
 import java.math.BigDecimal
 import java.util.*
 
-/**
- * ## 정류소 변경 이력 Exposed DAO 엔티티
- *
- * 정류소 필드가 변경될 때 변경 전후 값을 기록한다.
- * `StopEntity.applyUpdate()`에서만 생성된다.
- */
+/** 정류소 변경 이력 Exposed DAO 엔티티 */
 class StopUpdateHistoryEntity(id: EntityID<UUID>) : DateBaseEntity(id, StopUpdateHistoryTable) {
 
     companion object : UUIDEntityClass<StopUpdateHistoryEntity>(StopUpdateHistoryTable) {
 
-        /**
-         * 정류소 변경 이력 생성 팩토리.
-         * 변경 전 값은 기존 `stop`에서, 변경 후 값은 `newRow`에서 추출한다.
-         *
-         * 좌표만은 문자열 원본이 아니라 **파싱을 마친 [BigDecimal]** 을 전달받는다.
-         * `StopEntity.applyUpdate` 가 변경 감지를 위해 이미 파싱한 값을 재사용해
-         * 이중 파싱과 감지값·기록값 불일치를 방지하기 위함이다.
-         */
+        /** 정류소 변경 이력 생성 팩토리. */
         fun create(
             stop: StopEntity,
             newRow: SeoulBusStopRow,
@@ -51,15 +39,15 @@ class StopUpdateHistoryEntity(id: EntityID<UUID>) : DateBaseEntity(id, StopUpdat
         }
     }
 
-    var stopId       by StopUpdateHistoryTable.stopId
-    var oldStopName  by StopUpdateHistoryTable.oldStopName
-    var newStopName  by StopUpdateHistoryTable.newStopName
-    var oldXCrd      by StopUpdateHistoryTable.oldXCrd
-    var newXCrd      by StopUpdateHistoryTable.newXCrd
-    var oldYCrd      by StopUpdateHistoryTable.oldYCrd
-    var newYCrd      by StopUpdateHistoryTable.newYCrd
-    var oldNodeId    by StopUpdateHistoryTable.oldNodeId
-    var newNodeId    by StopUpdateHistoryTable.newNodeId
+    var stopId by StopUpdateHistoryTable.stopId
+    var oldStopName by StopUpdateHistoryTable.oldStopName
+    var newStopName by StopUpdateHistoryTable.newStopName
+    var oldXCrd by StopUpdateHistoryTable.oldXCrd
+    var newXCrd by StopUpdateHistoryTable.newXCrd
+    var oldYCrd by StopUpdateHistoryTable.oldYCrd
+    var newYCrd by StopUpdateHistoryTable.newYCrd
+    var oldNodeId by StopUpdateHistoryTable.oldNodeId
+    var newNodeId by StopUpdateHistoryTable.newNodeId
     var oldStopsType by StopUpdateHistoryTable.oldStopsType
     var newStopsType by StopUpdateHistoryTable.newStopsType
     var changeSource by StopUpdateHistoryTable.changeSource

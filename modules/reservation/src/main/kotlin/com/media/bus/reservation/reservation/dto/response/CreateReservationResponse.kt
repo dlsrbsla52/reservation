@@ -4,13 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 예약 생성 응답 DTO
- *
- * 여러 정류소를 한 번에 요청하면 정류소마다 독립적으로 선점을 시도한다.
- * 일부가 이미 선점됐어도 나머지는 예약되므로, 요청 전체의 성공/실패가 아니라 **정류소별 결과**를 돌려준다.
- * HTTP 상태는 전부 실패해도 200 이다 — 클라이언트는 `results` 의 `success` 로 판단한다.
- */
+/** 예약 생성 응답 DTO */
 @Schema(description = "예약 생성 결과")
 data class CreateReservationResponse(
     @param:Schema(description = "예약에 성공한 정류소 수")

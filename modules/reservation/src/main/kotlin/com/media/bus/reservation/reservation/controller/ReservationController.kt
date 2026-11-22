@@ -23,7 +23,6 @@ import java.util.*
 class ReservationController(
     private val facade: ReservationFacade,
 ) {
-    /// 예약 생성.
     @Authorize
     @Operation(
         summary = "예약 생성",
@@ -37,7 +36,6 @@ class ReservationController(
     ): ApiResponse<CreateReservationResponse> =
         ApiResponse.success(facade.createReservation(principal, request))
 
-    /// 내 예약 목록 조회 (페이지네이션).
     @Authorize
     @Operation(summary = "내 예약 목록 조회", description = "로그인한 사용자의 예약 목록을 페이지 단위로 조회합니다.")
     @GetMapping("/me")
@@ -48,7 +46,6 @@ class ReservationController(
     ): ApiResponse<PageResult<MyReservationResponse>> =
         ApiResponse.success(facade.getMyReservations(principal, page, size))
 
-    /// 예약 단건 상세 조회.
     @Authorize
     @Operation(summary = "예약 단건 상세 조회", description = "예약 ID로 상세 정보와 상담 이력을 조회합니다. 본인 예약만 조회 가능합니다.")
     @GetMapping("/{reservationId}")
@@ -58,7 +55,6 @@ class ReservationController(
     ): ApiResponse<ReservationDetailResponse> =
         ApiResponse.success(facade.getReservationDetail(principal, reservationId))
 
-    /// 예약 취소.
     @Authorize
     @Operation(summary = "예약 취소", description = "상담 전(PENDING) 단계에서만 예약을 취소할 수 있습니다.")
     @DeleteMapping("/{reservationId}")

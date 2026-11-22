@@ -2,20 +2,7 @@ package com.media.bus.stop.dto.external
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-/**
- * ## 서울 열린데이터광장 getBusStopInfo API 전체 응답 래퍼
- *
- * 응답 구조:
- * ```json
- * {
- *   "busStopLocationXyInfo": {
- *     "list_total_count": 11237,
- *     "RESULT": { "CODE": "INFO-000", "MESSAGE": "정상 처리되었습니다" },
- *     "row": [ { ... } ]
- *   }
- * }
- * ```
- */
+/** 서울 열린데이터광장 getBusStopInfo API 전체 응답 래퍼 */
 data class SeoulBusStopApiResponse(
     @param:JsonProperty("busStopLocationXyInfo")
     val busStopInfo: Body?,

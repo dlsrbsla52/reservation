@@ -27,6 +27,7 @@ class MdcLoggingFilter : OncePerRequestFilter() {
     companion object {
         private const val REQUEST_ID_HEADER = "X-Request-ID"
         private const val MDC_REQUEST_ID = "requestId"
+
         /** 인증 필터가 검증한 회원 ID를 넣는 MDC 키. */
         const val MDC_MEMBER_ID = "memberId"
     }

@@ -6,7 +6,6 @@ import io.github.resilience4j.bulkhead.BulkheadRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Autowired
@@ -57,8 +56,7 @@ class TransactionalBulkheadAspectTest {
     }
 
     @Test
-    @DisplayName("Bulkhead 허용량을 초과하는 동시 요청은 차단되어야 한다")
-    fun shouldRejectExcessiveCalls() {
+    fun `Bulkhead 허용량을 초과하는 동시 요청은 차단되어야 한다`() {
         val maxCalls = 5
         val totalTaskCount = 10
 
@@ -106,16 +104,14 @@ class TransactionalBulkheadAspectTest {
     }
 
     @Test
-    @DisplayName("동일 스레드 내 중첩 트랜잭션 호출 시 퍼밋을 추가 점유하지 않아야 한다")
-    fun shouldSupportReentrancy() {
+    fun `동일 스레드 내 중첩 트랜잭션 호출 시 퍼밋을 추가 점유하지 않아야 한다`() {
         val initialPermits = bulkhead.metrics.availableConcurrentCalls
         testService.outerTransaction()
         assertThat(bulkhead.metrics.availableConcurrentCalls).isEqualTo(initialPermits)
     }
 
     @Test
-    @DisplayName("비즈니스 예외 발생 시에도 퍼밋은 정상 반납되어야 한다")
-    fun shouldReleasePermitOnException() {
+    fun `비즈니스 예외 발생 시에도 퍼밋은 정상 반납되어야 한다`() {
         val initialPermits = bulkhead.metrics.availableConcurrentCalls
         assertThrows(RuntimeException::class.java) { testService.exceptionTransaction() }
         assertThat(bulkhead.metrics.availableConcurrentCalls).isEqualTo(initialPermits)

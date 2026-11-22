@@ -4,12 +4,7 @@ import com.media.bus.contract.entity.member.MemberType
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.*
 
-/**
- * 회원가입 요청 DTO.
- * - 일반 회원(MEMBER): businessNumber 불필요
- * - 비즈니스 회원(BUSINESS): businessNumber 필수
- * Cross-Field 검증은 AuthService 계층에서 수행한다.
- */
+/** 회원가입 요청 DTO. */
 @Schema(description = "회원가입 요청 DTO")
 data class RegisterRequest(
 

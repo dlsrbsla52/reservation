@@ -11,12 +11,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 계약 저장소
- *
- * Exposed DAO 기반 계약 조회 메서드 제공.
- * 계약 생성은 `ContractEntity.create()` 팩토리 메서드로 트랜잭션 내에서 자동 저장된다.
- */
+/** 계약 저장소 */
 @Repository
 class ContractRepository {
 
@@ -47,7 +42,6 @@ class ContractRepository {
         condition.stopId?.let { conditions += ContractTable.stopId eq it }
         condition.status?.let { conditions += ContractTable.status eq it }
         condition.keyword?.trim()?.takeIf { it.isNotEmpty() }?.let {
-            // 사용자 입력의 %, _를 와일드카드가 아닌 문자 그대로 검색한다.
             val pattern = LikePattern("%", '\\') + LikePattern.ofLiteral(it) + LikePattern("%", '\\')
             conditions += ContractTable.contractName like pattern
         }
@@ -59,12 +53,7 @@ class ContractRepository {
     @Transactional(readOnly = true)
     fun findById(id: UUID): ContractEntity? = ContractEntity.findById(id)
 
-    /**
-     * 광고면에 `[start, end)` 기간과 겹치는 점유 계약(PENDING/ACTIVE)이 있는지 확인한다.
-     *
-     * DB 제외 제약과 같은 반열림 구간 기준이다. 이 조회는 친절한 오류 응답을 위한 사전 검사이고,
-     * 동시 요청 사이의 최종 판정은 제외 제약이 한다.
-     */
+    /** 광고면에 `[start, end)` 기간과 겹치는 점유 계약(PENDING/ACTIVE)이 있는지 확인한다. */
     @Transactional(readOnly = true)
     fun existsOccupyingOverlap(stopId: UUID, slotNo: Short, start: OffsetDateTime, end: OffsetDateTime): Boolean =
         ContractTable.selectAll()

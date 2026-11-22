@@ -3,12 +3,7 @@ package com.media.bus.iam.member.dto
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Size
 
-/**
- * ## 계정 비활성화 요청 DTO
- *
- * 사용자가 본인 계정을 일시 비활성화(`INACTIVE`)할 때 사용한다.
- * 사유는 감사 로그 용도로만 기록되며 선택 입력이다.
- */
+/** 계정 비활성화 요청 DTO */
 @Schema(description = "계정 비활성화 요청 DTO")
 data class DeactivateRequest(
 

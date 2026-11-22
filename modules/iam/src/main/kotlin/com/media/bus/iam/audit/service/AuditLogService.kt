@@ -13,36 +13,12 @@ import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import java.util.*
 
-/**
- * ## 감사 로그 기록 서비스
- *
- * 민감 작업 수행 지점에서 호출하여 `audit.audit_log` 테이블에 이벤트를 적재한다.
- *
- * **설계 결정**
- * - AOP 방식 대신 **명시적 호출(imperative)** 로 구현하여 프록시·컨텍스트 손실 위험을 회피한다.
- * - 요청 IP/User-Agent는 [RequestContextHolder]에서 자동 추출하므로 호출부에서 신경 쓰지 않아도 된다.
- * - 쓰기 실패가 원 트랜잭션을 망가뜨리지 않도록 `Propagation.REQUIRES_NEW`로 분리한다.
- * - 로그 적재 자체가 실패해도 업무 로직은 계속 진행되도록 예외를 삼킨다 — 단, 에러 로그는 남긴다.
- *
- * **Virtual Threads 주의**
- * [RequestContextHolder]는 기본적으로 InheritableThreadLocal을 사용한다. MDC와 동일하게
- * 요청 처리 스레드 내에서만 동작하며, 수동으로 생성한 스레드에는 전파되지 않는다.
- */
+/** 감사 로그 기록 서비스 */
 @Service
 class AuditLogService {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * 감사 이벤트를 기록한다.
-     *
-     * @param actorId    행위자 회원 ID — 미인증/시스템 이벤트는 null
-     * @param actorType  행위자 유형
-     * @param action     동작 식별자 ([com.media.bus.iam.audit.AuditAction] 상수 사용)
-     * @param targetType 대상 객체 유형 — 선택
-     * @param targetId   대상 객체 식별자 (UUID 또는 코드) — 선택
-     * @param result     처리 결과 (기본 SUCCESS)
-     * @param detail     추가 상세 정보 JSON — 실패 사유, 변경 전후 값 등
-     */
+    /** 감사 이벤트를 기록한다. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun record(
         actorId: UUID?,
@@ -67,8 +43,6 @@ class AuditLogService {
                 detail = detail,
             )
         } catch (e: Exception) {
-            // 감사 로그 실패가 비즈니스 흐름을 끊지 않도록 예외를 삼킨다.
-            // 단, 이벤트가 유실되지 않도록 반드시 에러 로그로 관측 가능하게 남긴다.
             log.error(
                 "[AuditLogService.record] 감사 로그 적재 실패. action={}, actorId={}, result={}, cause={}",
                 action, actorId, result, e.message, e,
@@ -76,16 +50,7 @@ class AuditLogService {
         }
     }
 
-    /**
-     * 성공 이벤트 기록 — 가독성을 위한 헬퍼.
-     *
-     * **Self-invocation 회피**
-     * 헬퍼 내부에서 [record] 를 직접 호출하면 같은 빈 호출(self-invocation)이라
-     * `record` 의 `@Transactional(REQUIRES_NEW)` 어드바이스가 우회된다.
-     * outer 트랜잭션이 readOnly 라면 outer commit 시점에 `cannot execute INSERT in a
-     * read-only transaction` 오류가 발생한다.
-     * 헬퍼 자체에 동일 propagation 을 지정해 Spring proxy 가 새 트랜잭션을 열도록 한다.
-     */
+    /** 성공 이벤트 기록 — 가독성을 위한 헬퍼. */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun success(
         actorId: UUID?,

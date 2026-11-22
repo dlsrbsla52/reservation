@@ -28,14 +28,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
-/**
- * ## 어드민 멤버 생성 비즈니스 로직 서비스
- *
- * 일반 가입(`AuthService.register`)과의 차이점:
- * - `emailVerified = true`로 즉시 설정 (manager가 직접 생성하므로 인증 불필요)
- * - 이메일 인증 토큰 Redis 저장 생략
- * - ADMIN 계열 타입만 허용 (`AdminRegisterRequestValidator` 위임)
- */
+/** 어드민 멤버 생성 비즈니스 로직 서비스 */
 @Service
 class AdminMemberService(
     private val roleRepository: RoleRepository,
@@ -51,18 +44,11 @@ class AdminMemberService(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * 어드민 멤버를 생성한다.
-     * 1. 입력 검증 (`AdminRegisterRequestValidator`에 위임)
-     * 2. 이메일 인증 완료 상태로 Member 저장
-     * 3. 역할(Role) 조회 및 MemberRole 저장
-     */
+    /** 어드민 멤버를 생성한다. */
     @Transactional
     fun createAdminMember(request: CreateAdminMemberRequest): AdminMemberResponse {
-        // 입력 검증
         adminRegisterRequestValidator.validate(request)
 
-        // 어드민은 manager가 직접 생성하므로 emailVerified = true로 설정
         val member = MemberEntity.createAdmin(
             loginId = request.loginId,
             encodedPassword = passwordEncoder.encode(request.password)!!,
@@ -71,17 +57,16 @@ class AdminMemberService(
             memberName = request.memberName,
         )
 
-        // role 마스터 테이블에서 MemberType에 해당하는 Role 조회 및 역할 부여
         val role = roleRepository.findByName(request.memberType.name)
             ?: throw BaseException(AuthResult.ROLE_NOT_FOUND)
-        MemberRoleEntity.of(member, role)
+        MemberRoleEntity.create(member, role)
 
         log.info(
             "[AdminMemberService.createAdminMember] 어드민 멤버 생성 완료. memberId={}, memberType={}",
             member.id.value, request.memberType,
         )
         auditLogService.success(
-            actorId = null, // 인증 정보는 컨트롤러 단에서 별도 주입 — 간단화
+            actorId = null,
             actorType = AuditActorType.ADMIN,
             action = AuditAction.ADMIN_CREATE,
             targetType = AuditTargetType.MEMBER,
@@ -91,10 +76,6 @@ class AdminMemberService(
 
         return AdminMemberResponse.of(member, request.memberType)
     }
-
-    // ─────────────────────────────────────────────────────────────────
-    // 회원 관리 (조회, 검색, 정지, 해제)
-    // ─────────────────────────────────────────────────────────────────
 
     /** 전체 회원 목록을 페이지네이션으로 조회한다. */
     @Transactional(readOnly = true)
@@ -134,14 +115,7 @@ class AdminMemberService(
         return AdminMemberDetailResponse.of(member, memberType, role, permissions)
     }
 
-    /**
-     * 회원 계정을 정지한다.
-     * - 자기 자신 정지 불가
-     * - ADMIN_MASTER 정지 불가
-     * - ACTIVE 상태만 정지 가능
-     * - 정지 후 Refresh Token 무효화
-     * - 정지 이력 저장 (사유, 처리자)
-     */
+    /** 회원 계정을 정지한다. */
     @Transactional
     fun suspendMember(requesterId: UUID, targetMemberId: UUID, reason: String) {
         if (requesterId == targetMemberId) {
@@ -151,7 +125,6 @@ class AdminMemberService(
         val member = memberRepository.findById(targetMemberId)
             ?: throw BaseException(AuthResult.MEMBER_NOT_FOUND)
 
-        // ACTIVE 또는 INACTIVE(사용자 자체 비활성) 상태만 정지 가능. SUSPENDED/WITHDRAWN은 거부.
         if (member.status != MemberStatus.ACTIVE && member.status != MemberStatus.INACTIVE) {
             throw BusinessException(AuthResult.MEMBER_NOT_ACTIVE)
         }
@@ -167,7 +140,6 @@ class AdminMemberService(
         val previousStatus = member.status
         member.suspend()
 
-        // 상태 변경 이력 저장
         MemberStatusHistoryEntity.create(
             member = member,
             previousStatus = previousStatus,
@@ -189,10 +161,7 @@ class AdminMemberService(
         )
     }
 
-    /**
-     * 정지된 회원의 계정을 해제한다.
-     * SUSPENDED 상태만 해제 가능하며, 해제 이력도 저장한다.
-     */
+    /** 정지된 회원의 계정을 해제한다. */
     @Transactional
     fun unsuspendMember(requesterId: UUID, targetMemberId: UUID, reason: String) {
         val member = memberRepository.findById(targetMemberId)
@@ -208,7 +177,6 @@ class AdminMemberService(
         val previousStatus = member.status
         member.unsuspend()
 
-        // 상태 변경 이력 저장
         MemberStatusHistoryEntity.create(
             member = member,
             previousStatus = previousStatus,

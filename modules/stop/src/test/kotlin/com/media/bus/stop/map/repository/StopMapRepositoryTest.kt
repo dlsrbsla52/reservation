@@ -16,13 +16,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.util.*
 
-/**
- * `StopMapRepository` 의 bbox 조회를 H2(PostgreSQL 모드)로 검증한다.
- *
- * 이 테스트의 핵심 목적은 **좌표를 NUMERIC 으로 바꾼 이유를 회귀 방지로 고정**하는 것이다.
- * VARCHAR 시절에는 문자열 비교라 `"9.9" > "10.1"` 처럼 자릿수가 다른 좌표에서
- * 범위 조회가 조용히 틀린 결과를 반환했다.
- */
+/** `StopMapRepository` 의 bbox 조회를 H2(PostgreSQL 모드)로 검증한다. */
 class StopMapRepositoryTest {
 
     private val stopMapRepository = StopMapRepository()
@@ -50,9 +44,9 @@ class StopMapRepositoryTest {
     @Test
     fun `영역_안의_정류소만_반환한다`() {
         transaction {
-            createStop("서울시청", "126.9780", "37.5665")   // 영역 안
-            createStop("남쪽바깥", "126.9780", "37.1000")   // 위도 하한 미만
-            createStop("동쪽바깥", "128.0000", "37.5665")   // 경도 상한 초과
+            createStop("서울시청", "126.9780", "37.5665")
+            createStop("남쪽바깥", "126.9780", "37.1000")
+            createStop("동쪽바깥", "128.0000", "37.5665")
 
             val result = stopMapRepository.findMarkersInBounds(
                 StopBoundsCriteria.of("37.4", "126.8", "37.7", "127.2", null),
@@ -77,17 +71,12 @@ class StopMapRepositoryTest {
         }
     }
 
-    /**
-     * VARCHAR 컬럼이었다면 사전식 비교로 "9.9" > "10.1" 이 되어 결과가 뒤집힌다.
-     * NUMERIC 전환이 유지되는 한 이 테스트는 통과한다.
-     */
     @Test
     fun `자릿수가_다른_좌표도_숫자로_비교한다`() {
         transaction {
             createStop("한자리경도", "9.9", "37.5")
             createStop("두자리경도", "10.1", "37.5")
 
-            // 경도 9.0 ~ 10.0 구간 — 숫자 비교라면 "한자리경도"만 걸린다
             val result = stopMapRepository.findMarkersInBounds(
                 StopBoundsCriteria.of("37.0", "9.0", "38.0", "10.0", null),
             )
@@ -106,7 +95,6 @@ class StopMapRepositoryTest {
                 StopBoundsCriteria.of("37.0", "126.0", "38.0", "128.0", 3),
             )
 
-            // limit=3 이지만 잘림 판정용으로 4건을 읽어온다
             assertThat(result).hasSize(4)
         }
     }
@@ -120,7 +108,6 @@ class StopMapRepositoryTest {
                 StopBoundsCriteria.of("37.0", "126.0", "38.0", "128.0", null),
             ).single()
 
-            // lat=위도(y_crd), lng=경도(x_crd) — 뒤바뀌면 마커가 엉뚱한 곳에 찍힌다
             assertThat(marker.lat.toPlainString()).startsWith("37.6472686")
             assertThat(marker.lng.toPlainString()).startsWith("127.0627647")
         }

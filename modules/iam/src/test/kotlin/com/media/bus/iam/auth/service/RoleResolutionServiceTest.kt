@@ -32,7 +32,6 @@ class RoleResolutionServiceTest {
     private val testMemberId = UUID.randomUUID()
 
     @Test
-    @DisplayName("정상 역할 반환")
     fun `정상 역할 반환`() {
         val role = mockk<RoleEntity>(relaxed = true)
         every { role.name } returns "MEMBER"
@@ -48,7 +47,6 @@ class RoleResolutionServiceTest {
     }
 
     @Test
-    @DisplayName("역할이 없으면 ROLE_NOT_FOUND 예외")
     fun `역할 없음`() {
         every { memberRoleRepository.findWithRoleByMemberId(testMemberId) } returns emptyList()
 
@@ -60,7 +58,6 @@ class RoleResolutionServiceTest {
     }
 
     @Test
-    @DisplayName("ADMIN_MASTER 역할 반환")
     fun `ADMIN_MASTER 반환`() {
         val role = mockk<RoleEntity>(relaxed = true)
         every { role.name } returns "ADMIN_MASTER"

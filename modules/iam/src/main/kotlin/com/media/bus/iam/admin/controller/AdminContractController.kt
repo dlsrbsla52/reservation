@@ -1,7 +1,6 @@
 package com.media.bus.iam.admin.controller
 
 import com.media.bus.common.exceptions.BusinessException
-import com.media.bus.common.result.type.CommonResult
 import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberType
@@ -12,6 +11,7 @@ import com.media.bus.iam.admin.dto.AdminContractResponse
 import com.media.bus.iam.admin.dto.AdminMemberContractListResponse
 import com.media.bus.iam.admin.dto.CreateAdminContractRequest
 import com.media.bus.iam.admin.facade.AdminBusinessContractFacade
+import com.media.bus.iam.auth.result.AuthResult
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -64,12 +64,13 @@ class AdminContractController(
         contractStartTo: OffsetDateTime?,
     ) {
         if (keyword != null && keyword.length > MAX_KEYWORD_LENGTH) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "keyword는 ${MAX_KEYWORD_LENGTH}자 이하여야 합니다.")
+            throw BusinessException(AuthResult.CONTRACT_KEYWORD_TOO_LONG)
         }
         if (contractStartFrom != null && contractStartTo != null && contractStartFrom > contractStartTo) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "contractStartFrom은 contractStartTo 이후일 수 없습니다.")
+            throw BusinessException(AuthResult.CONTRACT_SEARCH_INVALID_PERIOD)
         }
     }
+
     @Operation(summary = "계약 생성")
     @PostMapping
     fun createContract(

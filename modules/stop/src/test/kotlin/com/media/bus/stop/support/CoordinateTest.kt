@@ -12,7 +12,6 @@ class CoordinateTest {
     fun `정상_좌표는_scale_7로_정규화된다`() {
         val parsed = Coordinate.parseLongitude("127.0627647339")
 
-        // NUMERIC(10,7) 이므로 소수 8자리 이하는 반올림된다
         assertThat(parsed.scale()).isEqualTo(Coordinate.SCALE)
         assertThat(parsed).isEqualByComparingTo(BigDecimal("127.0627647"))
     }
@@ -49,9 +48,7 @@ class CoordinateTest {
 
     @Test
     fun `지수_표기는_범위_검증을_거쳐_거부되거나_정규화된다`() {
-        // 1e2 = 100 → 경도로는 유효
         assertThat(Coordinate.parseOrNullLongitude("1e2")).isEqualByComparingTo(BigDecimal("100"))
-        // 1e3 = 1000 → 경도 범위 초과이므로 거부되어야 한다
         assertThat(Coordinate.parseOrNullLongitude("1e3")).isNull()
     }
 
@@ -64,7 +61,6 @@ class CoordinateTest {
 
     @Test
     fun `isSame은_scale_차이를_무시한다`() {
-        // BigDecimal.equals 였다면 false — 이 차이가 변경 오탐지의 원인이다
         assertThat(BigDecimal("37.0") == BigDecimal("37.0000000")).isFalse()
         assertThat(Coordinate.isSame(BigDecimal("37.0"), BigDecimal("37.0000000"))).isTrue()
         assertThat(Coordinate.isSame(null, null)).isTrue()

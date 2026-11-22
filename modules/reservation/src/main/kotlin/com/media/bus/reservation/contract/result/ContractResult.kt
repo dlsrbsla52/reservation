@@ -3,12 +3,7 @@ package com.media.bus.reservation.contract.result
 import com.media.bus.common.result.Result
 import org.springframework.http.HttpStatus
 
-/**
- * ## 계약(contract) 도메인 전용 결과 코드 Enum
- *
- * 예약 모듈의 `ReservationResult(R*)`와 구분하기 위해 `C` 접두사를 사용한다.
- * 공통 모듈의 `CommonResult`(00000~00299)와 충돌하지 않는다.
- */
+/** 계약(contract) 도메인 전용 결과 코드 Enum */
 enum class ContractResult(
     override val code: String,
     override val message: String,
@@ -19,6 +14,8 @@ enum class ContractResult(
     CONTRACT_ACCESS_DENIED("C0002", "해당 계약에 접근할 권한이 없습니다.", HttpStatus.FORBIDDEN),
     CONTRACT_INVALID_PERIOD("C0003", "계약 종료일은 시작일 이후여야 합니다.", HttpStatus.BAD_REQUEST),
     CONTRACT_PERIOD_OVERLAP("C0004", "해당 정류소에 기간이 겹치는 계약이 이미 있습니다.", HttpStatus.CONFLICT),
+    CONTRACT_KEYWORD_TOO_LONG("C0005", "keyword는 100자 이하여야 합니다."),
+    CONTRACT_SEARCH_INVALID_PERIOD("C0006", "contractStartFrom은 contractStartTo 이후일 수 없습니다."),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

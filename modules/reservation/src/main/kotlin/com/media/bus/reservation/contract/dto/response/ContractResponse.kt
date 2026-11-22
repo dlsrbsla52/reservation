@@ -23,12 +23,7 @@ data class ContractResponse(
     @param:Schema(description = "생성일시") val createdAt: OffsetDateTime,
 ) {
     companion object {
-        /**
-         * ContractEntity로부터 응답 DTO를 생성한다.
-         *
-         * @param stopNumber stop 서비스에서 조회한 정류소 번호 (없으면 null)
-         * @param stopName   stop 서비스에서 조회한 정류소 이름 (없으면 null)
-         */
+        /** ContractEntity로부터 응답 DTO를 생성한다. */
         fun from(
             contract: ContractEntity,
             stopNumber: String? = null,

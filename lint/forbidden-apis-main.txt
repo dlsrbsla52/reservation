@@ -1,0 +1,14 @@
+# main 코드 전용 금지 API. 테스트는 실패 상황을 흉내 내려고 예외를 직접 만들 수 있어 제외한다.
+# require/check/error/requireNotNull/checkNotNull은 인라인 함수라 바이트코드에 아래 생성자 호출로 남는다.
+# UnsupportedOperationException(String)은 Kotlin 컴파일러가 기본 인자 $default 메서드에 생성하므로 넣지 않는다.
+
+@defaultMessage [bus:NoHardcodedExceptionMessage] 예외 메시지를 문자열로 쓰지 않는다. 모듈 Result enum에 코드를 추가하고 BusinessException(XxxResult.Y)(4xx)나 ServiceException(XxxResult.Y)(5xx)를 던진다. 디버깅에 필요한 값은 log로 남긴다. 참고: modules/stop/src/main/kotlin/com/media/bus/stop/result/StopResult.kt
+java.lang.IllegalStateException#<init>(java.lang.String)
+java.lang.IllegalStateException#<init>(java.lang.String,java.lang.Throwable)
+java.lang.IllegalArgumentException#<init>(java.lang.String)
+java.lang.IllegalArgumentException#<init>(java.lang.String,java.lang.Throwable)
+java.lang.RuntimeException#<init>(java.lang.String)
+java.lang.RuntimeException#<init>(java.lang.String,java.lang.Throwable)
+java.lang.Exception#<init>(java.lang.String)
+java.lang.Exception#<init>(java.lang.String,java.lang.Throwable)
+java.util.NoSuchElementException#<init>(java.lang.String)

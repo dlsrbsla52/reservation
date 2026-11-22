@@ -132,6 +132,7 @@ class AuthorizeHandlerInterceptorTest {
         @Authorize
         fun authenticatedOnly() {}
     }
+
     @Test
     fun `일반 사이트 토큰은 관리자 카테고리와 MANAGE 단독 규칙을 통과하지 못한다`() {
         val admin = principal(MemberType.ADMIN_MASTER, setOf(Permission.MANAGE))
@@ -150,5 +151,4 @@ class AuthorizeHandlerInterceptorTest {
     @Retention(AnnotationRetention.RUNTIME)
     @Authorize(categories = [MemberCategory.ADMIN])
     annotation class AdminRule
-
 }

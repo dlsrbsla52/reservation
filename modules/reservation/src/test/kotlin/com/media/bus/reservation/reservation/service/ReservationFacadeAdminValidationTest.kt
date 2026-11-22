@@ -19,12 +19,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## ReservationFacade 관리자 진입점 입력 검증 테스트
- *
- * 예전에는 `InternalReservationController`의 `@Valid`·페이지 보정에만 있던 규칙이
- * Facade에서 실행되는지 확인한다(모듈 간 직접 호출 대비).
- */
+/** ReservationFacade 관리자 진입점 입력 검증 테스트 */
 @DisplayName("ReservationFacade 관리자 진입점 입력 검증")
 class ReservationFacadeAdminValidationTest {
 

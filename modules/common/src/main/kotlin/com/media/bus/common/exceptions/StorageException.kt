@@ -10,9 +10,8 @@ import com.media.bus.common.result.type.CommonResult
  */
 class StorageException(
     result: Result = CommonResult.STORAGE_ERROR,
-    message: String? = null,
     cause: Throwable? = null,
-) : BaseException(result, message, cause) {
+) : BaseException(result, cause) {
 
     companion object {
         private const val serialVersionUID: Long = 8976424805831311732L

@@ -1,0 +1,71 @@
+# 코드 스타일 단일 원본. IntelliJ(Reformat Code·Optimize Imports)와 ktlint(./gradlew ktlintCheck, Stop hook)가 같이 읽는다.
+# 기준: 지금 코드의 다수 스타일 = IntelliJ 기본 Kotlin 스타일. IntelliJ Reformat이 재현하지 못하는 ktlint 규칙은 끈다.
+# bus 규칙 목록과 이유: docs/agents/rules.md
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+ij_continuation_indent_size = 4
+ij_kotlin_code_style_defaults = KOTLIN_OFFICIAL
+
+# IntelliJ 기본값을 명시해 맥·IDE 설정과 무관하게 같은 결과가 나오게 한다
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
+ij_kotlin_packages_to_use_import_on_demand = java.util.*,kotlinx.android.synthetic.**,io.ktor.**
+ij_kotlin_name_count_to_use_star_import = 5
+ij_kotlin_name_count_to_use_star_import_for_members = 3
+ij_kotlin_align_in_columns_case_branch = false
+ij_kotlin_keep_blank_lines_in_code = 1
+ij_kotlin_keep_blank_lines_in_declarations = 1
+ij_kotlin_keep_blank_lines_before_right_brace = 0
+
+# ktlint 표준 규칙: IntelliJ 스타일로 켜고, IntelliJ가 재현하지 못해 지금 스타일과 충돌하는 규칙만 끈다
+ktlint_code_style = intellij_idea
+ktlint_standard = enabled
+# 줄 길이 기준 줄바꿈·합치기: IntelliJ Reformat은 기존 줄바꿈을 유지한다
+ktlint_standard_function-signature = disabled
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_wrapping = disabled
+ktlint_standard_chain-wrapping = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_if-else-wrapping = disabled
+ktlint_standard_condition-wrapping = disabled
+ktlint_standard_max-line-length = disabled
+# trailing comma는 IntelliJ Reformat이 ij_kotlin_allow_trailing_comma*로 붙인다(ktlint 규칙은 wrapping 규칙에 묶여 있어 끈다)
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+# 리팩터링성 규칙: 포맷터가 아니라 사람이 정한다
+ktlint_standard_function-expression-body = disabled
+ktlint_standard_blank-line-between-when-conditions = disabled
+ktlint_standard_annotation = disabled
+# import 형태는 IntelliJ Optimize Imports(위 ij_kotlin_* 값)가 정한다
+ktlint_standard_no-wildcard-imports = disabled
+
+# bus 규칙: 기본은 끄고 아래 범위에서만 켠다
+ktlint_bus_comment-policy = disabled
+ktlint_bus_test-method-name = disabled
+ktlint_bus_no-method-display-name = disabled
+ktlint_bus_no-hardcoded-exception-message = disabled
+
+# 주석 정책: common·auth-contract는 공유 라이브러리라 설명 주석을 유지한다
+[modules/{app,iam,stop,reservation}/src/**.kt]
+ktlint_bus_comment-policy = enabled
+
+[modules/*/src/test/**.kt]
+ktlint_bus_test-method-name = enabled
+ktlint_bus_no-method-display-name = enabled
+
+[modules/*/src/main/**.kt]
+ktlint_bus_no-hardcoded-exception-message = enabled

@@ -1,0 +1,6 @@
+# 바이트코드 금지 API 목록. 모든 모듈의 main·test 클래스를 `./gradlew check`(forbiddenApisMain/Test)가 검사한다.
+# 형식: <클래스|메서드 시그니처> @ <위반 메시지>. 메시지는 AI가 읽고 바로 고칠 수 있게 "대신 할 것 + 참고 파일"로 쓴다.
+
+java.lang.ThreadLocal @ [bus:NoThreadLocal] Virtual Thread 환경이라 ThreadLocal을 쓰지 않는다. 요청 범위 값은 ScopedValue로 전달한다. 참고: modules/common/src/main/kotlin/com/media/bus/common/core/aop/TransactionalBulkheadAspect.kt
+java.lang.InheritableThreadLocal @ [bus:NoThreadLocal] Virtual Thread 환경이라 InheritableThreadLocal을 쓰지 않는다. 요청 범위 값은 ScopedValue로 전달한다. 참고: modules/common/src/main/kotlin/com/media/bus/common/core/aop/TransactionalBulkheadAspect.kt
+

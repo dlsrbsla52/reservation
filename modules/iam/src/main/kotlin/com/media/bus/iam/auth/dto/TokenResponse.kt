@@ -2,10 +2,7 @@ package com.media.bus.iam.auth.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
 
-/**
- * JWT 발급 응답 DTO.
- * Refresh Token은 HttpOnly Cookie로 전달되므로 응답 바디에 포함하지 않는다.
- */
+/** JWT 발급 응답 DTO. */
 @Schema(description = "인증 토큰 응답 DTO")
 data class TokenResponse(
     @param:Schema(description = "Access Token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")

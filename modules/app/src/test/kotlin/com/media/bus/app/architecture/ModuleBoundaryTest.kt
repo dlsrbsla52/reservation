@@ -4,12 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.io.File
 
-/**
- * ## 도메인 모듈 간 컴파일 의존 금지
- *
- * iam·stop·reservation 은 서로의 Gradle 프로젝트에 의존하지 않는다. 연결은 `app` 어댑터에서만 한다.
- * 의존이 생기면 다시 서비스로 쪼갤 때 비용이 커지고, 포트를 우회한 직접 호출이 가능해진다.
- */
+/** 도메인 모듈 간 컴파일 의존 금지 */
 class ModuleBoundaryTest {
 
     @Test

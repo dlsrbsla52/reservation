@@ -22,8 +22,8 @@ class StopPriceEntity(id: EntityID<UUID>) : DateBaseEntity(id, StopPriceTable) {
             }
     }
 
-    var stopId         by StopPriceTable.stopId
-    var unitPrice      by StopPriceTable.unitPrice
+    var stopId by StopPriceTable.stopId
+    var unitPrice by StopPriceTable.unitPrice
     var registeredById by StopPriceTable.registeredById
 
     /** 단가를 변경하고 수정일시를 갱신한다. */

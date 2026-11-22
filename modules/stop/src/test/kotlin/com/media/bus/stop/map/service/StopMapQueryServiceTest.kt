@@ -14,10 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import java.math.BigDecimal
 import java.util.*
 
-/**
- * `StopMapQueryService` 단위 테스트.
- * Repository 가 `limit + 1` 건을 돌려준다는 계약 위에서 잘림 판정만 검증한다.
- */
+/** `StopMapQueryService` 단위 테스트. */
 @ExtendWith(MockKExtension::class)
 class StopMapQueryServiceTest {
 
@@ -42,7 +39,6 @@ class StopMapQueryServiceTest {
     @Test
     fun `limit을_초과해_오면_잘라내고_truncated를_true로_설정한다`() {
         val criteria = criteria(limit = 3)
-        // Repository 는 잘림 판정용으로 한 건을 더 읽어온다
         every { stopMapRepository.findMarkersInBounds(criteria) } returns markers(4)
 
         val result = stopMapQueryService.findMarkersInBounds(criteria)

@@ -1,7 +1,6 @@
 package com.media.bus.common.entity.common
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
 /**
@@ -13,7 +12,6 @@ import org.junit.jupiter.api.Test
 class UuidV7Test {
 
     @Test
-    @DisplayName("생성된 UUID는 RFC 9562 UUIDv7 형식(version 7, variant 2)이어야 한다.")
     fun `UUIDv7 형식을 만족한다`() {
         repeat(1_000) {
             val uuid = UuidV7.generate()
@@ -26,7 +24,6 @@ class UuidV7Test {
     }
 
     @Test
-    @DisplayName("상위 48비트 타임스탬프는 현재 시각(Unix epoch milliseconds)과 일치해야 한다.")
     fun `타임스탬프 prefix가 현재 시각을 담는다`() {
         val before = System.currentTimeMillis()
         val uuid = UuidV7.generate()
@@ -39,7 +36,6 @@ class UuidV7Test {
     }
 
     @Test
-    @DisplayName("동일 프로세스에서 연속 생성한 UUID는 엄격히 단조 증가해야 한다.")
     fun `연속 생성 시 단조 증가한다`() {
         // 같은 밀리초에 다수 생성되도록 충분히 많이 뽑는다.
         // 이전 자체 구현은 같은 ms 안에서 난수 suffix에 의존해 이 검증을 통과하지 못했다.
@@ -69,7 +65,6 @@ class UuidV7Test {
     }
 
     @Test
-    @DisplayName("대량 생성 시 UUID가 중복되지 않아야 한다.")
     fun `중복이 발생하지 않는다`() {
         val count = 10_000
         val uuids = List(count) { UuidV7.generate() }

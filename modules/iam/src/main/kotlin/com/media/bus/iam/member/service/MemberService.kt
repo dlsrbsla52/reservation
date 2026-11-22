@@ -8,6 +8,7 @@ import com.media.bus.iam.audit.AuditAction
 import com.media.bus.iam.audit.AuditTargetType
 import com.media.bus.iam.audit.entity.enumerated.AuditActorType
 import com.media.bus.iam.audit.service.AuditLogService
+import com.media.bus.iam.auth.result.AuthResult
 import com.media.bus.iam.auth.service.AuthService
 import com.media.bus.iam.auth.service.RoleResolutionService
 import com.media.bus.iam.member.dto.FindLoginIdResponse
@@ -69,17 +70,11 @@ class MemberService(
         return toResponse(member)
     }
 
-    /**
-     * 회원이 아이디를 분실했을 경우 처리.
-     * phoneNumber, email 중 최소 하나는 필수 — 둘 다 없으면 예외.
-     *
-     * 토큰 없이 호출되는 공개 API라 로그인 아이디만 돌려준다([FindLoginIdResponse]).
-     * [toResponse]를 쓰지 않으므로 회원 유형 조회도 하지 않는다.
-     */
+    /** 회원이 아이디를 분실했을 경우 처리. */
     @Transactional(readOnly = true)
     fun findMe(request: FindMeRequest): FindLoginIdResponse {
         if (request.memberName.isBlank() || (request.phoneNumber.isNullOrBlank() && request.email.isNullOrBlank())) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "이름과 phoneNumber 또는 email 중 하나는 필수입니다.")
+            throw BusinessException(AuthResult.FIND_ME_KEY_REQUIRED)
         }
 
         val member = memberRepository.findMe(request)
@@ -88,11 +83,7 @@ class MemberService(
         return FindLoginIdResponse(loginId = member.loginId)
     }
 
-    /**
-     * 회원 탈퇴 처리.
-     * 2차 본인 인증 완료 여부를 확인한 뒤 회원 상태를 `WITHDRAWN`으로 변경한다.
-     * 처리 완료 후 인증 상태를 삭제하여 1회성으로 사용한다.
-     */
+    /** 회원 탈퇴 처리. */
     @Transactional
     fun withdraw(memberId: String) {
         authService.checkVerified(memberId)
@@ -129,21 +120,7 @@ class MemberService(
         )
     }
 
-    /**
-     * 사용자가 스스로 계정을 일시 비활성화한다.
-     *
-     * 탈퇴(`withdraw`)와 달리 복구 가능한 상태(`INACTIVE`)로 전환하며,
-     * 추후 `/auth/reactivate`를 통해 로그인 시 ACTIVE로 복귀 가능하다.
-     *
-     * 처리 절차:
-     * 1. 2차 본인 인증 완료 여부 확인 (`authService.checkVerified`)
-     * 2. ACTIVE 상태만 비활성화 가능 (이미 INACTIVE/SUSPENDED/WITHDRAWN인 경우 거부)
-     * 3. 상태 전환 + 이력 저장(changedBy = 본인)
-     * 4. 모든 Refresh Token 무효화
-     * 5. 2차 인증 상태 제거 (1회성 사용)
-     *
-     * @param reason 사용자가 입력한 비활성화 사유 (감사 로그 용도)
-     */
+    /** 사용자가 스스로 계정을 일시 비활성화한다. */
     @Transactional
     fun deactivate(memberId: String, reason: String) {
         authService.checkVerified(memberId)
@@ -158,7 +135,6 @@ class MemberService(
         val previousStatus = member.status
         member.deactivate()
 
-        // 본인이 처리한 변경이므로 changedBy = 본인
         MemberStatusHistoryEntity.create(
             member = member,
             previousStatus = previousStatus,
@@ -167,7 +143,6 @@ class MemberService(
             changedBy = member,
         )
 
-        // 모든 디바이스 강제 로그아웃
         jwtProvider.deleteRefreshToken(memberId)
         authService.clearVerification(memberId)
 
@@ -187,10 +162,7 @@ class MemberService(
         if (value.isNullOrBlank()) "null"
         else "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
-    /**
-     * Member 엔티티를 MemberResponse로 변환한다.
-     * 역할 조회, MemberType 결정, 응답 생성을 통합 처리한다.
-     */
+    /** Member 엔티티를 MemberResponse로 변환한다. */
     private fun toResponse(member: MemberEntity): MemberResponse {
         val memberType = roleResolutionService.resolveMemberType(member.id.value)
         return MemberResponse(

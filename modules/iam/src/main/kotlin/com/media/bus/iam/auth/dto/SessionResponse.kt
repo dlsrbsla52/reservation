@@ -2,12 +2,7 @@ package com.media.bus.iam.auth.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
 
-/**
- * ## 활성 세션 응답 DTO
- *
- * `/api/v1/auth/sessions` 조회 시 각 디바이스의 세션 메타데이터를 반환한다.
- * Refresh Token 원문은 탈취 위험 때문에 포함하지 않는다.
- */
+/** 활성 세션 응답 DTO */
 @Schema(description = "활성 세션 정보")
 data class SessionResponse(
 

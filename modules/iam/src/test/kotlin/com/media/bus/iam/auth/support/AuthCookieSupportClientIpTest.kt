@@ -5,12 +5,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.mock.web.MockHttpServletRequest
 
-/**
- * ## 클라이언트 IP 추출 — `X-Forwarded-For` 위조 차단
- *
- * 앱 8080이 요청을 직접 받으므로 클라이언트가 보낸 `X-Forwarded-For`를 믿으면
- * 세션 기기 정보·감사 로그의 IP가 위조된다. 커넥션의 `remoteAddr`만 써야 한다.
- */
+/** 클라이언트 IP 추출 — `X-Forwarded-For` 위조 차단 */
 @DisplayName("AuthCookieSupport.extractClientIp")
 class AuthCookieSupportClientIpTest {
 

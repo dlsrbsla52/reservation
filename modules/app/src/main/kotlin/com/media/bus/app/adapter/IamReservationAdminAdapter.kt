@@ -25,16 +25,7 @@ import com.media.bus.reservation.contract.dto.request.CreateContractRequest as R
 import com.media.bus.reservation.contract.dto.response.AdminContractView as ReservationAdminContractView
 import com.media.bus.reservation.reservation.dto.request.CompleteToContractRequest as ReservationCompleteToContractRequest
 
-/**
- * ## iam 관리자 기능 → reservation 어댑터
- *
- * 예전 `InternalContractController`·`InternalReservationController`가 위임하던 Facade를 직접 부른다.
- * DB Service로 건너뛰지 않는다 — Facade가 회원 재검증, 정류소 결합, 선점 캐시 해제(`stopHoldGate.evict`)를 맡는다.
- *
- * - 입력 검증(DTO 제약, 검색 조건, 페이지 보정)은 Facade 진입점에 있다.
- * - 어댑터가 하는 일: iam의 문자열 코드값 → reservation enum 변환(실패 시 400), DTO 필드 변환.
- * - 트랜잭션은 두지 않는다. Facade는 트랜잭션 밖에서 정류소를 확인하고, DB 작업은 각 Service의 `@Transactional`이 연다.
- */
+/** iam 관리자 기능 → reservation 어댑터 */
 @Component
 class IamReservationAdminAdapter(
     private val internalContractFacade: InternalContractFacade,
@@ -162,7 +153,7 @@ class IamReservationAdminAdapter(
         return try {
             OffsetDateTime.parse(value)
         } catch (e: DateTimeParseException) {
-            throw BusinessException(CommonResult.VALIDATION_FAIL, "허용되지 않는 값입니다: $field=$value", e)
+            throw BusinessException(CommonResult.VALIDATION_FAIL, e)
         }
     }
 

@@ -11,17 +11,12 @@ import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
 import org.assertj.core.api.Assertions.*
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
-/**
- * ## AdminRegisterRequestValidator 단위 테스트
- *
- * 검증 순서에 따른 각 분기를 독립적으로 검증한다.
- */
+/** AdminRegisterRequestValidator 단위 테스트 */
 @ExtendWith(MockKExtension::class)
 class AdminRegisterRequestValidatorTest {
 
@@ -31,14 +26,9 @@ class AdminRegisterRequestValidatorTest {
     @InjectMockKs
     private lateinit var validator: AdminRegisterRequestValidator
 
-    // ──────────────────────────────────────────────────────────────
-    // 1. ADMIN 타입 허용 목록 검사
-    // ──────────────────────────────────────────────────────────────
-
     @ParameterizedTest(name = "비ADMIN 타입 [{0}] → ADMIN_TYPE_REQUIRED 예외")
     @EnumSource(value = MemberType::class, names = ["MEMBER", "BUSINESS"])
-    @DisplayName("ADMIN 계열이 아닌 타입으로 요청 시 ADMIN_TYPE_REQUIRED 예외를 던져야 한다.")
-    fun `validate_nonAdminType_throwsAdminTypeRequired`(nonAdminType: MemberType) {
+    fun `ADMIN 계열이 아닌 타입이면 ADMIN_TYPE_REQUIRED 예외를 던진다`(nonAdminType: MemberType) {
         val request = buildRequest(nonAdminType)
 
         assertThatThrownBy { validator.validate(request) }
@@ -51,8 +41,7 @@ class AdminRegisterRequestValidatorTest {
 
     @ParameterizedTest(name = "ADMIN 타입 [{0}] → 타입 검증 통과")
     @EnumSource(value = MemberType::class, names = ["ADMIN_USER", "ADMIN_MASTER", "ADMIN_DEVELOPER"])
-    @DisplayName("ADMIN 계열 타입으로 요청 시 타입 검증을 통과해야 한다.")
-    fun `validate_adminType_passesTypeCheck`(adminType: MemberType) {
+    fun `ADMIN 계열 타입이면 타입 검증을 통과한다`(adminType: MemberType) {
         val request = buildRequest(adminType)
         every { memberRepository.existsByLoginId(request.loginId) } returns false
         every { memberRepository.existsByEmail(request.email) } returns false
@@ -60,13 +49,8 @@ class AdminRegisterRequestValidatorTest {
         assertThatNoException().isThrownBy { validator.validate(request) }
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // 2. loginId 중복 검사
-    // ──────────────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("이미 존재하는 loginId로 요청 시 DUPLICATE_USERNAME_FAIL 예외를 던져야 한다.")
-    fun `validate_duplicateLoginId_throwsDuplicateUsername`() {
+    fun `이미 존재하는 loginId면 DUPLICATE_USERNAME_FAIL 예외를 던진다`() {
         val request = buildRequest(MemberType.ADMIN_USER)
         every { memberRepository.existsByLoginId(request.loginId) } returns true
 
@@ -74,13 +58,8 @@ class AdminRegisterRequestValidatorTest {
             .isInstanceOf(BusinessException::class.java)
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // 3. email 중복 검사
-    // ──────────────────────────────────────────────────────────────
-
     @Test
-    @DisplayName("이미 존재하는 email로 요청 시 DUPLICATE_EMAIL_FAIL 예외를 던져야 한다.")
-    fun `validate_duplicateEmail_throwsDuplicateEmail`() {
+    fun `이미 존재하는 email이면 DUPLICATE_EMAIL_FAIL 예외를 던진다`() {
         val request = buildRequest(MemberType.ADMIN_MASTER)
         every { memberRepository.existsByLoginId(request.loginId) } returns false
         every { memberRepository.existsByEmail(request.email) } returns true
@@ -88,10 +67,6 @@ class AdminRegisterRequestValidatorTest {
         assertThatThrownBy { validator.validate(request) }
             .isInstanceOf(BusinessException::class.java)
     }
-
-    // ──────────────────────────────────────────────────────────────
-    // 헬퍼
-    // ──────────────────────────────────────────────────────────────
 
     private fun buildRequest(memberType: MemberType): CreateAdminMemberRequest =
         CreateAdminMemberRequest(

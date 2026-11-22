@@ -8,23 +8,11 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 역할-권한 매핑 Exposed Repository
- *
- * 로그인 및 토큰 재발급 시 해당 역할의 권한 이름 집합을 조회한다.
- * DB를 권한의 단일 source of truth로 사용하므로, 운영 중 권한 변경이 즉시 반영된다.
- * (단, 기존 발급된 Access Token의 TTL 내에서는 구 권한이 유지된다.)
- */
+/** 역할-권한 매핑 Exposed Repository */
 @Repository
 class RolePermissionRepository {
 
-    /**
-     * 역할 이름으로 해당 역할에 매핑된 권한 이름 집합을 조회한다.
-     * AuthService의 로그인/토큰 갱신 시 1회 호출된다.
-     *
-     * @param roleName `MemberType.name()` 값 (예: "ADMIN_USER")
-     * @return 권한 이름 집합 (예: ["READ", "WRITE"])
-     */
+    /** 역할 이름으로 해당 역할에 매핑된 권한 이름 집합을 조회한다. */
     fun findPermissionNamesByRoleName(roleName: String): Set<String> =
         (RolePermissionTable innerJoin RoleTable innerJoin PermissionTable)
             .select(PermissionTable.name)
@@ -37,14 +25,7 @@ class RolePermissionRepository {
         RolePermissionEntity.find { RolePermissionTable.roleId eq EntityID(roleId, RoleTable) }
             .toList()
 
-    /**
-     * 역할 ID로 매핑된 권한(`PermissionEntity`) 목록을 단일 조인 쿼리로 조회한다.
-     *
-     * 매핑 엔티티를 거쳐 `RolePermissionEntity.permission`(lazy reference)에 접근하면
-     * 권한 건수만큼 추가 SELECT가 발생하는 N+1 문제가 생긴다.
-     * 따라서 `PermissionTable innerJoin RolePermissionTable`로 권한 행을 직접 조회하고
-     * `wrapRows`로 엔티티를 구성하여 1회 쿼리로 끝낸다.
-     */
+    /** 역할 ID로 매핑된 권한(`PermissionEntity`) 목록을 단일 조인 쿼리로 조회한다. */
     fun findPermissionsByRoleId(roleId: UUID): List<PermissionEntity> =
         PermissionEntity.wrapRows(
             (PermissionTable innerJoin RolePermissionTable)

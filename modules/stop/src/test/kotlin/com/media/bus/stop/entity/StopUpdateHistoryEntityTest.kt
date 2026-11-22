@@ -57,7 +57,6 @@ class StopUpdateHistoryEntityTest {
             assertThat(history.oldStopsType).isEqualTo(StopType.CENTER_LANE)
             assertThat(history.newStopsType).isEqualTo(StopType.GENERAL_LANE)
             assertThat(history.changeSource).isEqualTo(ChangeSource.USER)
-            // 좌표는 scale이 7로 정규화되므로 값 비교는 compareTo 기반으로 한다
             assertThat(history.oldXCrd).isEqualByComparingTo(BigDecimal("127.0"))
             assertThat(history.newXCrd).isEqualByComparingTo(BigDecimal("127.1"))
             assertThat(history.oldYCrd).isEqualByComparingTo(BigDecimal("37.0"))
@@ -95,10 +94,6 @@ class StopUpdateHistoryEntityTest {
         }
     }
 
-    /**
-     * 좌표 표기 형식만 다르고 값이 같은 경우를 변경으로 오탐지하면
-     * 공공 API 재동기화마다 전체 정류소에 대해 불필요한 UPDATE와 이력이 쌓인다.
-     */
     @Test
     fun `applyUpdate_좌표_표기만_다르고_값이_같으면_null_반환`() {
         val stopId = UUID.randomUUID().toString().take(8)
@@ -118,7 +113,6 @@ class StopUpdateHistoryEntityTest {
         val stopId = UUID.randomUUID().toString().take(8)
 
         transaction {
-            // 위도는 -90 ~ 90 범위를 벗어날 수 없다
             assertThatThrownBy { createStop(stopId, "정류소", "127.0", "91.0", "NODE001", "중앙차로") }
                 .isInstanceOf(BusinessException::class.java)
         }

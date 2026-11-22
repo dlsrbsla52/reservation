@@ -2,13 +2,7 @@ package com.media.bus.reservation.contract.entity.enums
 
 import com.media.bus.common.entity.common.BaseEnum
 
-/**
- * ## 납부 방법 Enum
- *
- * - BANK_TRANSFER: 계좌이체
- * - CARD: 카드
- * - CASH: 현금
- */
+/** 납부 방법 Enum */
 @Suppress("unused")
 enum class PaymentMethod(
     override val displayName: String,

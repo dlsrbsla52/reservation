@@ -32,9 +32,13 @@ import java.util.*
 class MemberServiceTest {
 
     @MockK private lateinit var memberRepository: MemberRepository
+
     @MockK private lateinit var jwtProvider: JwtProvider
+
     @MockK private lateinit var roleResolutionService: RoleResolutionService
+
     @MockK private lateinit var authService: AuthService
+
     @MockK(relaxed = true) private lateinit var auditLogService: com.media.bus.iam.audit.service.AuditLogService
 
     @InjectMockKs private lateinit var memberService: MemberService
@@ -57,16 +61,11 @@ class MemberServiceTest {
         return member
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // 조회
-    // ──────────────────────────────────────────────────────────────
-
     @Nested
     @DisplayName("회원 조회")
     inner class Find {
 
         @Test
-        @DisplayName("memberId로 정상 조회")
         fun `findByMemberId 정상`() {
             val member = mockMember()
             every { memberRepository.findById(testMemberId) } returns member
@@ -79,7 +78,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("memberId로 조회 시 회원 없으면 예외")
         fun `findByMemberId 없음`() {
             every { memberRepository.findById(testMemberId) } returns null
 
@@ -88,7 +86,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("loginId로 정상 조회")
         fun `findByLoginId 정상`() {
             val member = mockMember()
             every { memberRepository.findByLoginId("testuser") } returns member
@@ -100,7 +97,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("loginId로 조회 시 회원 없으면 예외")
         fun `findByLoginId 없음`() {
             every { memberRepository.findByLoginId("unknown") } returns null
 
@@ -109,7 +105,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("email로 정상 조회")
         fun `findByEmail 정상`() {
             val member = mockMember()
             every { memberRepository.findByEmail("test@example.com") } returns member
@@ -121,7 +116,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("findMe 는 로그인 아이디만 돌려준다(공개 API)")
         fun `findMe 정상`() {
             val request = FindMeRequest(memberName = "홍길동", phoneNumber = "01012345678", email = null)
             val member = mockMember()
@@ -130,21 +124,15 @@ class MemberServiceTest {
             val result = memberService.findMe(request)
 
             assertThat(result).isEqualTo(FindLoginIdResponse(loginId = "testuser"))
-            // 응답에 회원 유형을 담지 않으므로 역할 조회도 하지 않는다.
             verify(exactly = 0) { roleResolutionService.resolveMemberType(any()) }
         }
     }
-
-    // ──────────────────────────────────────────────────────────────
-    // 민감 작업 (탈퇴, 수정)
-    // ──────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("민감 작업")
     inner class SensitiveOps {
 
         @Test
-        @DisplayName("탈퇴 정상 처리")
         fun `withdraw 정상`() {
             val member = mockMember()
             every { authService.checkVerified(testMemberIdStr) } just Runs
@@ -158,7 +146,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("탈퇴 시 2차 인증 미완료면 예외")
         fun `withdraw 2차 인증 미완료`() {
             every { authService.checkVerified(testMemberIdStr) } throws
                 NoAuthenticationException(AuthResult.VERIFY_REQUIRED)
@@ -168,7 +155,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("정보 수정 정상 처리")
         fun `modify 정상`() {
             val member = mockMember()
             val request = MemberModifyRequest(phoneNumber = "01099998888", email = "new@example.com")
@@ -181,7 +167,6 @@ class MemberServiceTest {
         }
 
         @Test
-        @DisplayName("정보 수정 시 2차 인증 미완료면 예외")
         fun `modify 2차 인증 미완료`() {
             val request = MemberModifyRequest(phoneNumber = "01099998888", email = "new@example.com")
             every { authService.checkVerified(testMemberIdStr) } throws
@@ -191,16 +176,16 @@ class MemberServiceTest {
                 .isInstanceOf(NoAuthenticationException::class.java)
         }
     }
+
     @Test
     fun `아이디 찾기 연락처 누락과 공백은 400 검증 오류이며 저장소를 호출하지 않는다`() {
         listOf(null, "", "  ").forEach { contact ->
             val exception = org.junit.jupiter.api.assertThrows<BusinessException> {
                 memberService.findMe(FindMeRequest("홍길동", contact, null))
             }
-            assertThat(exception.result).isEqualTo(com.media.bus.common.result.type.CommonResult.VALIDATION_FAIL)
+            assertThat(exception.result).isEqualTo(AuthResult.FIND_ME_KEY_REQUIRED)
             assertThat(exception.httpStatus.value()).isEqualTo(400)
         }
         verify(exactly = 0) { memberRepository.findMe(any()) }
     }
-
 }

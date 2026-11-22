@@ -15,12 +15,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
-/**
- * ## 어드민 권한 관리 비즈니스 로직 서비스
- *
- * 역할/권한 조회, 역할-권한 매핑 관리, 회원-역할 변경 기능을 제공한다.
- * 모든 메서드는 `ADMIN_MASTER` + `MANAGE` 권한이 필요하다 (컨트롤러에서 인가).
- */
+/** 어드민 권한 관리 비즈니스 로직 서비스 */
 @Service
 class AdminAuthorizationService(
     private val roleRepository: RoleRepository,
@@ -71,11 +66,10 @@ class AdminAuthorizationService(
         val permission = permissionRepository.findByName(request.permissionName)
             ?: throw BaseException(AuthResult.PERMISSION_NOT_FOUND)
 
-        // 이미 할당된 권한인지 확인
         rolePermissionRepository.findByRoleIdAndPermissionName(roleId, request.permissionName)
             ?.let { throw BaseException(AuthResult.ROLE_PERMISSION_ALREADY_EXISTS) }
 
-        RolePermissionEntity.of(role, permission)
+        RolePermissionEntity.create(role, permission)
 
         log.info(
             "[AdminAuthorizationService.assignPermissionToRole] 역할에 권한 할당 완료. roleId={}, permissionName={}",
@@ -124,11 +118,9 @@ class AdminAuthorizationService(
         val existingMemberRole = memberRoleRepository.findByMemberId(memberId)
 
         if (existingMemberRole != null) {
-            // 기존 역할이 있으면 변경
             existingMemberRole.role = newRole
         } else {
-            // 역할이 없으면 새로 할당
-            MemberRoleEntity.of(member, newRole)
+            MemberRoleEntity.create(member, newRole)
         }
 
         log.info(

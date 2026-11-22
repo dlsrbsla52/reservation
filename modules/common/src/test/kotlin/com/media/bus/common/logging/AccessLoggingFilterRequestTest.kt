@@ -71,7 +71,6 @@ class AccessLoggingFilterRequestTest {
         val logger = LogManager.getLogger(AccessLoggingFilter::class.java) as Logger
         appender.start()
         logger.addAppender(appender)
-        try { block(messages, complete) }
-        finally { logger.removeAppender(appender); appender.stop() }
+        try { block(messages, complete) } finally { logger.removeAppender(appender); appender.stop() }
     }
 }

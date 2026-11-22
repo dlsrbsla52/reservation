@@ -3,7 +3,6 @@ package com.media.bus.common.result.type
 import com.media.bus.common.result.Result
 import org.springframework.http.HttpStatus
 
-
 /**
  * ## 작업 결과에 대한 Enum
  *
@@ -51,6 +50,11 @@ enum class CommonResult(
     TOKEN_GENERATE_FAIL("00240", "토큰 생성에 실패하였습니다."),
     TOKEN_VERIFICATION_FAIL("00241", "검증 토큰이 유효하지 않거나 기간이 만료되었습니다."),
     TOKEN_NOEXIST_REVOKE_FAIL("00242", "제거 대상 토큰이 저장소에 존재하지 않습니다."),
+    CLAIM_ENCRYPTION_KEY_NOT_BASE64("00243", "jwt.claim-encryption-key 가 Base64 형식이 아닙니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    CLAIM_ENCRYPTION_KEY_INVALID_LENGTH("00244", "jwt.claim-encryption-key 는 32바이트(AES-256)여야 합니다. `openssl rand -base64 32`로 생성하세요.", HttpStatus.INTERNAL_SERVER_ERROR),
+    CLAIM_DECRYPTION_FAIL("00245", "암호화 클레임 복호화에 실패하였습니다."),
+    CLAIM_FORMAT_FAIL("00246", "암호화 클레임 형식이 올바르지 않습니다."),
+    TOKEN_SUBJECT_MISSING_FAIL("00247", "토큰에 sub 클레임이 없습니다."),
     DUPLICATE_USERNAME_FAIL("00250", "이미 사용 중인 아이디입니다.", HttpStatus.CONFLICT),
     DUPLICATE_EMAIL_FAIL("00251", "이미 사용 중인 이메일입니다.", HttpStatus.CONFLICT),
     BUSINESS_NUMBER_REQUIRED_FAIL("00252", "비즈니스 회원 가입 시 사업자 번호는 필수입니다."),
@@ -61,7 +65,7 @@ enum class CommonResult(
     ACCOUNT_INACTIVE_FAIL("00258", "사용자가 비활성화한 계정입니다. 재활성화가 필요합니다.", HttpStatus.FORBIDDEN),
     ACCOUNT_NOT_INACTIVE_FAIL("00259", "비활성 상태가 아닌 계정은 재활성화할 수 없습니다."),
     USER_NOT_DENY_ADMIN("00257", "어드민 회원은 신청할 수 없습니다.", HttpStatus.FORBIDDEN),
-    VALIDATION_FAIL("00260","입력 값 검증에 실패하였습니다."),
+    VALIDATION_FAIL("00260", "입력 값 검증에 실패하였습니다."),
     BULKHEAD_FULL("00270", "서버가 처리할 수 있는 최대 동시 요청 수를 초과하였습니다. 잠시 후 다시 시도해 주세요."),
 
     // 요청 경로·메서드·본문 형식 (Spring MVC 가 핸들러를 찾기 전에 거절하는 요청)

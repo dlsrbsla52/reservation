@@ -1,5 +1,7 @@
 package com.media.bus.contract.security
 
+import com.media.bus.common.exceptions.ServiceException
+import com.media.bus.common.result.type.CommonResult
 import io.jsonwebtoken.MalformedJwtException
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -36,10 +38,10 @@ class ClaimCipher(base64Key: String) {
         val raw = try {
             Base64.getDecoder().decode(base64Key.trim())
         } catch (e: IllegalArgumentException) {
-            throw IllegalStateException("jwt.claim-encryption-key 가 Base64 형식이 아닙니다.", e)
+            throw ServiceException(CommonResult.CLAIM_ENCRYPTION_KEY_NOT_BASE64, e)
         }
-        check(raw.size == KEY_BYTES) {
-            "jwt.claim-encryption-key 는 32바이트(AES-256)여야 합니다. 현재 ${raw.size}바이트. `openssl rand -base64 32`로 생성하세요."
+        if (raw.size != KEY_BYTES) {
+            throw ServiceException(CommonResult.CLAIM_ENCRYPTION_KEY_INVALID_LENGTH)
         }
         SecretKeySpec(raw, "AES")
     }
@@ -64,13 +66,13 @@ class ClaimCipher(base64Key: String) {
     fun decrypt(encoded: String): String =
         try {
             val bytes = Base64.getUrlDecoder().decode(encoded)
-            require(bytes.size > IV_BYTES) { "암호문 길이가 너무 짧습니다." }
+            if (bytes.size <= IV_BYTES) throw MalformedJwtException(CommonResult.CLAIM_FORMAT_FAIL.message)
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_BITS, bytes, 0, IV_BYTES))
             String(cipher.doFinal(bytes, IV_BYTES, bytes.size - IV_BYTES), StandardCharsets.UTF_8)
         } catch (e: GeneralSecurityException) {
-            throw MalformedJwtException("암호화 클레임 복호화 실패", e)
+            throw MalformedJwtException(CommonResult.CLAIM_DECRYPTION_FAIL.message, e)
         } catch (e: IllegalArgumentException) {
-            throw MalformedJwtException("암호화 클레임 형식 오류", e)
+            throw MalformedJwtException(CommonResult.CLAIM_FORMAT_FAIL.message, e)
         }
 }

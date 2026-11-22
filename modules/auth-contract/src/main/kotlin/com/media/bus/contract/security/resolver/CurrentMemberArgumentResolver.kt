@@ -23,7 +23,7 @@ class CurrentMemberArgumentResolver : HandlerMethodArgumentResolver {
 
     override fun supportsParameter(parameter: MethodParameter): Boolean =
         parameter.hasParameterAnnotation(CurrentMember::class.java)
-                && MemberPrincipal::class.java.isAssignableFrom(parameter.parameterType)
+            && MemberPrincipal::class.java.isAssignableFrom(parameter.parameterType)
 
     override fun resolveArgument(
         parameter: MethodParameter,

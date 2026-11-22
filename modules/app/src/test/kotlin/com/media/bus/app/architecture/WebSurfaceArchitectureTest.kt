@@ -18,20 +18,7 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.WildcardType
 
-/**
- * ## 공개 포트에 열리는 웹 표면 회귀 방지
- *
- * 모놀리스는 앱의 모든 핸들러가 8080 한 포트에 열린다. 예전 gateway 가 막아 주던 것을 테스트로 고정한다.
- * 스프링 컨텍스트 없이 클래스패스의 `@RestController`를 스캔한다(DB·Redis 불필요).
- *
- * - `/api/v1/internal` 하위 매핑 0개 — 모듈 간 호출은 포트·어댑터로만 한다.
- * - `/api/v1/admin` 하위 핸들러는 클래스나 메서드에 `@Authorize`가 있어야 한다(인증 필터의 발급처 검사와 2중 방어).
- * - 반대로 `@Authorize`가 관리자만 허용하는 핸들러는 `/api/v1/admin` 하위에만 둔다(밖에 두면 발급처 검사를 받지 않는다).
- * - 컨트롤러가 `X-User-*` 등 신뢰 헤더를 `@RequestHeader`로 읽지 않는다 — 회원 정보는 `@CurrentMember`로만 받는다.
- * - 통합 OpenAPI 에서 서로 다른 DTO 가 같은 스키마 이름을 쓰지 않는다. swagger-core 는 `@Schema(name)`이 없으면
- *   단순 클래스명을 키로 쓰고 springdoc 은 같은 키를 조용히 합친다. 모듈을 합치면 서로 다른 모듈의 같은 이름 DTO 가
- *   한 스키마로 섞일 수 있다.
- */
+/** 공개 포트에 열리는 웹 표면 회귀 방지 */
 @DisplayName("웹 표면 아키텍처")
 class WebSurfaceArchitectureTest {
 

@@ -9,36 +9,21 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.*
 
-/**
- * ## 회원 역할 조회 공통 서비스
- *
- * AuthService, MemberService, AdminMemberService에서 반복되던
- * "역할 조회 → 검증 → MemberType 반환" 패턴을 통합한다.
- */
+/** 회원 역할 조회 공통 서비스 */
 @Service
 class RoleResolutionService(
     private val memberRoleRepository: MemberRoleRepository,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * 여러 회원 ID의 MemberType을 1쿼리로 일괄 반환한다.
-     * 목록 조회 시 N+1을 방지하기 위해 사용한다.
-     *
-     * @return memberId → MemberType 매핑 Map (역할 없는 회원은 예외)
-     */
+    /** 여러 회원 ID의 MemberType을 1쿼리로 일괄 반환한다. */
     fun resolveTypesForMembers(memberIds: List<UUID>): Map<UUID, MemberType> =
         memberRoleRepository.findRoleMapByMemberIds(memberIds)
             .mapValues { (_, roleName) ->
                 MemberType.fromName(roleName) ?: throw BusinessException(AuthResult.ROLE_NOT_FOUND)
             }
 
-    /**
-     * 회원 ID로 역할을 조회하여 MemberType을 반환한다.
-     *
-     * @param memberId 회원 UUID
-     * @throws BaseException 역할이 없거나 MemberType 매핑 실패 시
-     */
+    /** 회원 ID로 역할을 조회하여 MemberType을 반환한다. */
     fun resolveMemberType(
         memberId: UUID,
     ): MemberType {

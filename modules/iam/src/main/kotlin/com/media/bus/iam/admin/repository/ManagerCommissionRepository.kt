@@ -6,9 +6,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 영업사원 기본 정산 비율 Repository
- */
+/** 영업사원 기본 정산 비율 Repository */
 @Repository
 class ManagerCommissionRepository {
 

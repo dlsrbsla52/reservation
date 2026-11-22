@@ -7,11 +7,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 회원 상태 변경 이력 Repository
- *
- * 특정 회원의 정지/해제 이력을 조회한다.
- */
+/** 회원 상태 변경 이력 Repository */
 @Repository
 class MemberStatusHistoryRepository {
 

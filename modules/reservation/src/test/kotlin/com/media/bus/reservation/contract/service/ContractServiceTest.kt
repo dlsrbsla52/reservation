@@ -15,13 +15,7 @@ import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## ContractService 계약 생성 검증 테스트
- *
- * 회원·어드민 생성 경로가 모두 `createContract`로 수렴하므로,
- * 계약 기간 무결성(종료일 > 시작일)이 이 지점에서 차단되는지 확인한다.
- * 기간 검증은 DB 접근(트랜잭션) 이전에 수행되므로 Repository 목만으로 검증 가능하다.
- */
+/** ContractService 계약 생성 검증 테스트 */
 class ContractServiceTest {
     private val contractRepository = mockk<ContractRepository>()
     private val contractService = ContractService(contractRepository)

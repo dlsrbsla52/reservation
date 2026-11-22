@@ -13,12 +13,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
-/**
- * ## 어드민 권한 관리 컨트롤러
- *
- * 역할/권한 조회 및 역할-권한 매핑, 회원-역할 관리 API를 제공한다.
- * `ADMIN_MASTER` + `MANAGE` 권한을 가진 사용자만 접근 가능하다.
- */
+/** 어드민 권한 관리 컨트롤러 */
 @Tag(name = "어드민 권한 관리 API", description = "역할/권한 조회 및 관리 API. ADMIN_MASTER + MANAGE 권한 필요.")
 @RestController
 @RequestMapping("/api/v1/admin/authorization")
@@ -26,8 +21,6 @@ import java.util.*
 class AdminAuthorizationController(
     private val adminAuthorizationService: AdminAuthorizationService,
 ) {
-
-    // ──────────────────────────── 역할 ────────────────────────────
 
     @Operation(summary = "전체 역할 목록 조회", description = "시스템에 등록된 모든 역할을 조회합니다.")
     @GetMapping("/roles")
@@ -39,14 +32,10 @@ class AdminAuthorizationController(
     fun getRoleDetail(@PathVariable roleId: UUID): ApiResponse<RoleDetailResponse> =
         ApiResponse.success(adminAuthorizationService.findRoleDetail(roleId))
 
-    // ──────────────────────────── 권한 ────────────────────────────
-
     @Operation(summary = "전체 권한 목록 조회", description = "시스템에 등록된 모든 권한을 조회합니다.")
     @GetMapping("/permissions")
     fun getPermissions(): ApiResponse<List<PermissionResponse>> =
         ApiResponse.success(adminAuthorizationService.findAllPermissions())
-
-    // ──────────────────────── 역할-권한 매핑 ────────────────────────
 
     @Operation(summary = "역할별 권한 조회", description = "지정된 역할에 할당된 권한 목록을 조회합니다.")
     @GetMapping("/roles/{roleId}/permissions")
@@ -71,8 +60,6 @@ class AdminAuthorizationController(
     ): ApiResponse<Unit?> = ApiResponse.successWith {
         adminAuthorizationService.revokePermissionFromRole(roleId, permissionName)
     }
-
-    // ──────────────────────── 회원-역할 관리 ────────────────────────
 
     @Operation(summary = "회원 역할/권한 조회", description = "지정된 회원의 역할과 권한 정보를 조회합니다.")
     @GetMapping("/members/{memberId}/role")

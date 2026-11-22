@@ -8,11 +8,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.*
 
-/**
- * ## 예약 단건 상세 응답 DTO
- *
- * 예약의 기본 정보 + 상담 이력 전체 + 현재 상태를 함께 제공한다.
- */
+/** 예약 단건 상세 응답 DTO */
 @Schema(description = "예약 상세")
 data class ReservationDetailResponse(
     @param:Schema(description = "예약 ID")

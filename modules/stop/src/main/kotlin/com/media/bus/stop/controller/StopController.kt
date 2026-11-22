@@ -41,7 +41,6 @@ class StopController(
     ): ApiResponse<PageResult<BusStopResponse>> {
         val hasCriteria = pk != null || stopId != null || stopName != null
         return if (hasCriteria) {
-            // 식별자 조회는 단건성이라 유형 필터를 적용하지 않는다(적용하면 pk 조회가 빈 결과가 될 수 있다).
             val list = stopService.getBusStop(StopSearchCriteria.of(pk?.let { setOf(it) }, stopId, stopName))
             ApiResponse.success(
                 PageResult(items = list, totalCnt = list.size.toLong(), pageRows = size, pageNum = 0),

@@ -9,17 +9,10 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
-/**
- * ## MemberRepository Exposed 단위 테스트
- *
- * H2 인메모리 DB로 Exposed DAO 동작을 검증한다.
- * - UUID 지정 생성 시 해당 ID가 그대로 저장되는지 확인
- * - UuidV7.generate()로 생성 시 UUID가 자동으로 부여되는지 확인
- */
+/** MemberRepository Exposed 단위 테스트 */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MemberRepositoryTest {
 
@@ -39,8 +32,7 @@ class MemberRepositoryTest {
     }
 
     @Test
-    @DisplayName("UUID를 지정하여 멤버를 생성하면, 해당 ID가 그대로 저장되어야 한다.")
-    fun `createWithSpecificUuid_shouldPersistGivenId`() {
+    fun `UUID를 지정해 멤버를 생성하면 그 ID가 그대로 저장된다`() {
         transaction {
             val specificId = UuidV7.generate()
             val member = MemberEntity.new(specificId) {
@@ -62,8 +54,7 @@ class MemberRepositoryTest {
     }
 
     @Test
-    @DisplayName("UuidV7.generate()로 멤버를 생성하면, UUID가 자동으로 부여되어야 한다.")
-    fun `createWithGeneratedUuid_shouldHaveNonNullId`() {
+    fun `UuidV7로 생성한 멤버에는 UUID가 부여된다`() {
         transaction {
             val ts = System.currentTimeMillis()
             val member = MemberEntity.new(UuidV7.generate()) {
@@ -83,8 +74,7 @@ class MemberRepositoryTest {
     }
 
     @Test
-    @DisplayName("existsByLoginId — 존재하는 loginId는 true를 반환해야 한다.")
-    fun `existsByLoginId_existingId_returnsTrue`() {
+    fun `existsByLoginId는 존재하는 loginId면 true를 반환한다`() {
         transaction {
             val ts = System.currentTimeMillis()
             MemberEntity.new(UuidV7.generate()) {
@@ -102,6 +92,7 @@ class MemberRepositoryTest {
             assertThat(memberRepository.existsByLoginId("nonexistent_$ts")).isFalse
         }
     }
+
     @Test
     fun `아이디 찾기는 활성과 비활성 회원만 조회한다`() {
         transaction {
@@ -123,5 +114,4 @@ class MemberRepositoryTest {
             }
         }
     }
-
 }

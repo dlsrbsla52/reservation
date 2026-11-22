@@ -6,9 +6,8 @@ import com.media.bus.common.result.type.CommonResult
 /** 인증에 실패할 경우 throw */
 class NoAuthenticationException(
     result: Result = CommonResult.AUTHENTICATION_FAIL,
-    message: String? = null,
     cause: Throwable? = null,
-) : BaseException(result, message, cause) {
+) : BaseException(result, cause) {
 
     companion object {
         private const val serialVersionUID: Long = 6940889666952870454L

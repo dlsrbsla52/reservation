@@ -12,6 +12,7 @@ import java.util.function.Supplier
 class MdcContextUtilTest {
 
     @BeforeEach fun setUp() { MDC.clear() }
+
     @AfterEach fun tearDown() { MDC.clear() }
 
     @Nested
@@ -19,15 +20,13 @@ class MdcContextUtilTest {
     inner class CaptureTest {
 
         @Test
-        @DisplayName("MDC가 비어있을 때 빈 Map을 반환한다")
-        fun returnsEmptyMapWhenMdcIsEmpty() {
+        fun `MDC가 비어있을 때 빈 Map을 반환한다`() {
             val result = MdcContextUtil.capture()
             assertThat(result).isNotNull.isEmpty()
         }
 
         @Test
-        @DisplayName("현재 MDC 내용의 복사본을 반환한다")
-        fun returnsCopyOfCurrentMdc() {
+        fun `현재 MDC 내용의 복사본을 반환한다`() {
             MDC.put("requestId", "req-001")
             MDC.put("memberId", "user-001")
 
@@ -39,8 +38,7 @@ class MdcContextUtilTest {
         }
 
         @Test
-        @DisplayName("반환된 Map을 변경해도 원본 MDC에 영향을 주지 않는다")
-        fun capturedMapIsIndependentFromOriginal() {
+        fun `반환된 Map을 변경해도 원본 MDC에 영향을 주지 않는다`() {
             MDC.put("requestId", "req-original")
             val captured = MdcContextUtil.capture()
 
@@ -59,8 +57,7 @@ class MdcContextUtilTest {
     inner class WrapRunnableTest {
 
         @Test
-        @DisplayName("호출 시점 MDC가 실행 스레드로 전파된다")
-        fun propagatesMdcToNewThread() {
+        fun `호출 시점 MDC가 실행 스레드로 전파된다`() {
             MDC.put("requestId", "req-runnable-001")
             MDC.put("memberId", "user-runnable")
             val capturedReqId = AtomicReference<String>()
@@ -76,8 +73,7 @@ class MdcContextUtilTest {
         }
 
         @Test
-        @DisplayName("실행 완료 후 실행 스레드의 이전 MDC가 복원된다 — 스레드 풀 재사용 시 오염 방지")
-        fun restoresPreviousContextOfWorkerThread() {
+        fun `실행 완료 후 실행 스레드의 이전 MDC가 복원된다 — 스레드 풀 재사용 시 오염 방지`() {
             MDC.put("callerKey", "callerValue")
             val afterRun = AtomicReference<String>()
 
@@ -96,8 +92,7 @@ class MdcContextUtilTest {
         }
 
         @Test
-        @DisplayName("MDC가 빈 상태에서도 안전하게 실행된다")
-        fun handlesEmptyMdcSafely() {
+        fun `MDC가 빈 상태에서도 안전하게 실행된다`() {
             val capturedMdc = AtomicReference<Map<String, String>>()
 
             CompletableFuture.runAsync(MdcContextUtil.wrap(Runnable {
@@ -108,8 +103,7 @@ class MdcContextUtilTest {
         }
 
         @Test
-        @DisplayName("Runnable 실행 중 예외가 발생해도 이전 MDC가 복원된다")
-        fun restoresContextEvenOnException() {
+        fun `Runnable 실행 중 예외가 발생해도 이전 MDC가 복원된다`() {
             val afterException = AtomicReference<String>()
 
             val worker = Thread.ofVirtual().start {
@@ -135,8 +129,7 @@ class MdcContextUtilTest {
     inner class WrapCallableTest {
 
         @Test
-        @DisplayName("호출 시점 MDC가 Callable 실행 스레드로 전파된다")
-        fun propagatesMdcToCallable() {
+        fun `호출 시점 MDC가 Callable 실행 스레드로 전파된다`() {
             MDC.put("requestId", "req-callable-001")
             val capturedReqId = AtomicReference<String>()
 
@@ -149,8 +142,7 @@ class MdcContextUtilTest {
         }
 
         @Test
-        @DisplayName("Callable의 반환값이 정상 전달된다")
-        fun returnsCallableResult() {
+        fun `Callable의 반환값이 정상 전달된다`() {
             val result = CompletableFuture.supplyAsync(
                 asSupplier(MdcContextUtil.wrap(Callable { "expected-result" }))
             ).get()
@@ -159,8 +151,7 @@ class MdcContextUtilTest {
         }
 
         @Test
-        @DisplayName("Callable 실행 중 예외가 발생해도 이전 MDC가 복원된다")
-        fun restoresContextEvenOnException() {
+        fun `Callable 실행 중 예외가 발생해도 이전 MDC가 복원된다`() {
             val afterException = AtomicReference<String>()
 
             val worker = Thread.ofVirtual().start {

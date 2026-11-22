@@ -7,11 +7,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.springframework.stereotype.Repository
 import java.util.*
 
-/**
- * ## 감사 로그 Repository
- *
- * 특정 회원 또는 action 단위 조회용. 대량 조회가 필요한 경우 별도 페이지네이션/기간 필터를 추가한다.
- */
+/** 감사 로그 Repository */
 @Repository
 class AuditLogRepository {
 

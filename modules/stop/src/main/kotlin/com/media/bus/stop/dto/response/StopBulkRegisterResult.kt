@@ -2,9 +2,7 @@ package com.media.bus.stop.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
 
-/**
- * ## 버스 정류소 일괄 등록 결과 DTO
- */
+/** 버스 정류소 일괄 등록 결과 DTO */
 @Schema(description = "버스 정류소 일괄 등록 결과")
 data class StopBulkRegisterResult(
     @param:Schema(description = "신규 저장된 정류소 수")

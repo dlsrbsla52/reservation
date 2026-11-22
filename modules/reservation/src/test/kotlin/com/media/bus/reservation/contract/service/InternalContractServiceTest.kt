@@ -11,12 +11,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.util.*
 
-/**
- * ## InternalContractService 어드민 계약 상세 조회 테스트
- *
- * 존재하지 않는 계약 ID로 상세 조회 시 `CONTRACT_NOT_FOUND`가 발생하는지 검증한다.
- * 계약이 없으면 상세(ContractDetail) 조회 이전에 차단되어야 한다.
- */
+/** InternalContractService 어드민 계약 상세 조회 테스트 */
 class InternalContractServiceTest {
     private val contractRepository = mockk<ContractRepository>()
     private val contractDetailRepository = mockk<ContractDetailRepository>()

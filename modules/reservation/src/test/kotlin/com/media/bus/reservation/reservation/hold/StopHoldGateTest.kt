@@ -12,10 +12,7 @@ import org.springframework.data.redis.core.script.RedisScript
 import java.time.Duration
 import java.util.*
 
-/**
- * 선점 게이트의 계약.
- * 게이트는 부하를 줄이는 장치일 뿐이라, Redis 가 죽었을 때 예약을 막아서는 안 된다(판정은 DB 제약이 한다).
- */
+/** 선점 게이트의 계약. */
 class StopHoldGateTest {
 
     private val valueOps = mockk<ValueOperations<String, String>>()

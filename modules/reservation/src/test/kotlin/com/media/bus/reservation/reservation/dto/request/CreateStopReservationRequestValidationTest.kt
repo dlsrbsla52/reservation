@@ -10,15 +10,7 @@ import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import java.time.LocalDate
 
-/**
- * ## 예약 요청 본문의 역직렬화 계약
- *
- * MVC의 Jackson(3, Kotlin 모듈 없음)은 Kotlin nullability를 직접 검사하지 않는다.
- * - `stopId` 원소: `["", ...]`·`[null, ...]`은 null 원소가 든 `Set<UUID>`가 되고, 막지 않으면 Facade에서 NPE(500)가 났다.
- * - `desiredContractStartDate`: 필수다(컬럼이 V001부터 NOT NULL). 예전에는 nullable 타입이라 빼면 INSERT가 제약 위반으로 500이 났다.
- *
- * 둘 다 역직렬화 단계에서 실패해야 한다. MVC에서는 `HttpMessageNotReadableException` → 400/`00260`이다.
- */
+/** 예약 요청 본문의 역직렬화 계약 */
 @DisplayName("CreateStopReservationRequest 역직렬화")
 class CreateStopReservationRequestValidationTest {
 
