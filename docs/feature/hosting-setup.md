@@ -53,29 +53,25 @@
   - `cloudflared` 서비스 추가: `cloudflare/cloudflared:<버전 고정>`, `tunnel --no-autoupdate run`, 토큰은 환경변수로 주입
   - 서버 기동은 `docker compose up -d --no-build` (서버에서 Gradle 빌드 금지)
   - app의 `mem_limit`과 `-Xmx`를 4GB 서버 기준으로 다시 정함 (시작값 예: `mem_limit: 1536m`, `-Xmx1g`, 부하 측정 후 확정)
-- [ ] `application.yml` 프록시 헤더 설정
-  - `server.forward-headers-strategy: native`
-  - `server.tomcat.remoteip.internal-proxies`를 cloudflared 컨테이너 주소로 한정
+- [x] `application.yml` 프록시 헤더 설정 (2026-11-25 반영)
+  - `server.forward-headers-strategy: native`, `server.tomcat.remoteip.remote-ip-header: x-forwarded-for`, `server.tomcat.remoteip.internal-proxies: ${TRUSTED_PROXIES:<루프백 정규식>}`
+  - 기본값은 루프백만 믿는다(헤더 위조 방지). **운영 `.env`의 `TRUSTED_PROXIES`를 cloudflared 컨테이너 IP 하나로 지정해야** 문의 호출 제한(`request.remoteAddr` 기준)이 방문자 IP별로 동작한다. 지정하지 않으면 모든 요청이 cloudflared IP 하나로 보여 5회/10분 제한을 전체가 나눠 쓴다. 사설 대역 전체를 넣지 않는다
+  - cloudflared 컨테이너 IP는 compose 네트워크에 고정 IP를 주거나 `docker inspect`로 확인한다
   - 근거: `docs/infra/docker-compose-deployment.md`의 기존 권고
 - [ ] 운영 환경변수(`.env`)
   - 운영값: `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGIN=https://www.mbus.co.kr`, `CORS_ADMIN_ALLOWED_ORIGIN`은 비워 두면 일반 origin과 같게 동작
   - 기존 값 유지: `JWT_SECRET`, `JWT_CLAIM_ENCRYPTION_KEY`, `POSTGRES_PASSWORD`, `SEOUL_API_KEY`
-  - 신규: R2 접속값, Tunnel 토큰
-- [ ] 이미지 업로드 API
-  - 명세를 mbus `docs/api-contract.md`에 먼저 쓰고 구현함.
-  - 업로드 URL 발급: `POST /api/v1/admin/images/upload-url` → R2 presigned PUT URL
-    - AWS SDK v2 `S3Presigner` 사용. common 모듈에 이미 있는 `software.amazon.awssdk:s3` 의존성을 쓰므로 추가 의존성 없음
-    - endpoint `https://<계정ID>.r2.cloudflarestorage.com`, region `auto`
-  - 등록·삭제·정렬 API
-    - 정류장 사진은 `/api/v1/admin/stop/{stopId}/images`, 갤러리는 `/api/v1/admin/gallery` 아래에 둠
-    - iam `admin/controller`에 두고 포트·어댑터 패턴으로 연결 (`AdminStopPriceController` 구조 참고)
-  - 업로드 제한: 허용 형식 webp·jpeg·png, 크기 상한 지정
-  - 객체 키 규칙: `stops/{stopId}/{uuid}.webp`, `gallery/{uuid}.webp`
-  - Liquibase changeset: 이미지 메타데이터 테이블 (객체 키, 공개 URL, 정렬 순서, 노출 여부, 생성일)
-  - 공개 조회 API (비로그인 화면용)
-    - `ApiPathPolicy`는 메서드와 경로가 정확히 일치해야 공개로 판정함. 그래서 경로 변수가 없는 고정 경로로 설계 (예: `GET /api/v1/stop/images?stopId=`)
-    - `PUBLIC_ENDPOINTS`에 등록하고, 새 prefix를 쓰면 `ROUTED_PREFIXES`에도 추가
-  - 환경변수: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL`
+  - 신규: R2 접속값, Tunnel 토큰, `TRUSTED_PROXIES`(cloudflared 컨테이너 IP 하나)
+- [x] 이미지 업로드 API (포트폴리오·공지사항, 2026-11-25 `content` 모듈로 구현. 설계: mbus `docs/feature/homepage-migration.md`)
+  - 업로드 URL 발급: `POST /api/v1/admin/content/images/upload-url` → R2 presigned PUT URL (`common`의 AWS SDK v2 `S3Presigner`)
+  - 관리: `/api/v1/admin/content/{portfolio,notice,faq,inquiry}` (iam admin 컨트롤러 → `ContentAdminPort` → app 어댑터)
+  - 공개 조회: `GET /api/v1/content/{portfolio,notice,faq}` (+ `/detail?id=`), 문의 등록 `POST /api/v1/content/inquiry`
+  - 업로드 제한: webp·jpeg·png, 10MB. 객체 키 `portfolio/{uuid}.webp`·`portfolio/{uuid}_thumb.webp`·`notice/{uuid}.webp`
+  - 환경변수: `CONTENT_STORAGE_ENDPOINT`(`https://<계정ID>.r2.cloudflarestorage.com`), `CONTENT_STORAGE_REGION`(`auto`), `CONTENT_STORAGE_BUCKET`, `CONTENT_STORAGE_ACCESS_KEY`, `CONTENT_STORAGE_SECRET_KEY`, `CONTENT_STORAGE_PUBLIC_BASE_URL`(`https://img.mbus.co.kr`)
+  - 로컬 확인은 `docker-compose-local.yml`의 RustFS(로컬 확인용, 운영 미배포)로 한다. local 프로필은 운영 `CONTENT_STORAGE_*`를 읽지 않고 `LOCAL_CONTENT_STORAGE_*`(기본값은 로컬 더미 값)만 읽는다
+  - 트랜잭션 밖에서 외부 호출: 문의 호출 제한(Redis)과 이미지 업로드 확인(S3 HEAD)은 DB 트랜잭션 시작 전에 끝낸다. 타임아웃: Redis 500ms, S3 호출 5s(시도 2s)
+  - 문의 관리: 조회(목록·상세)는 `READ`, 처리 상태 변경·삭제(`DELETE /api/v1/admin/content/inquiry/{id}`)는 `WRITE` 권한. 처리 완료(`DONE`) 후 `content.inquiry.retention`(기본 90일)이 지난 문의는 매일 03:30(KST)에 자동 삭제한다
+- [ ] 정류장 사진 API (`/api/v1/admin/stop/{stopId}/images`, 공개 `GET /api/v1/stop/images?stopId=`): 아직 없음. 같은 업로드 방식을 stop 모듈에 붙인다
 - [ ] DB 백업 스크립트 (서버 cron, 매일 1회)
   - `docker compose exec -T database pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc | aws s3 cp - "s3://<버킷>/postgres/$(date +%F).dump"`
   - 종료 코드로 실패를 감지해 알림을 보내고 실행 로그를 보관
@@ -127,7 +123,7 @@
 - [ ] Pages 사용자 지정 도메인 `www.mbus.co.kr` 연결 (3.7 전환 단계에서), `mbus.co.kr` → `www` 리다이렉트 규칙 추가
 - [ ] R2 설정
   - 버킷 생성 후 사용자 지정 도메인 `img.mbus.co.kr` 연결
-  - CORS: 허용 origin `https://www.mbus.co.kr`, 메서드 PUT·GET
+  - CORS: 허용 origin `https://www.mbus.co.kr`(관리자 사이트를 별도 호스트로 쓰면 그 origin도 함께), 메서드 PUT·GET, `AllowedHeaders: content-type`(presigned PUT은 `Content-Type`을 서명하므로 브라우저가 보내는 이 헤더를 허용해야 한다)
   - 버킷 한정 API 토큰(Object Read & Write) 발급
 - [ ] Tunnel 생성: 공개 호스트 `api.mbus.co.kr` → `http://app:8080`, 발급된 토큰을 서버 `.env`에 등록
 

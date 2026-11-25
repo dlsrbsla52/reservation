@@ -70,7 +70,8 @@ Browser
 HTTPS 도메인을 붙일 때는 Caddy/Nginx 같은 리버스 프록시를 앞에 두고 `https://example.com`은 프론트로, `/api/**`는 app으로 보내는 구성이 더 단순하다. 이때 다음을 함께 정한다.
 
 - app 8080은 호스트에 공개하지 않고(`ports` 대신 `expose`, 또는 `127.0.0.1:8080`에만 공개) 프록시만 접근하게 한다.
-- 클라이언트 IP를 `X-Forwarded-For`로 받으려면 `server.forward-headers-strategy: native`와 `server.tomcat.remoteip.internal-proxies`를 **프록시 주소 하나로** 좁혀 설정한다. 기본값은 사설 대역 전체(Docker 브리지 포함)를 믿는다. 지금 앱은 이 설정이 없어 `X-Forwarded-For`를 신뢰하지 않는다.
+- 클라이언트 IP는 `X-Forwarded-For`로 받는다. `application.yml`에 `server.forward-headers-strategy: native`, `server.tomcat.remoteip.remote-ip-header: x-forwarded-for`, `server.tomcat.remoteip.internal-proxies: ${TRUSTED_PROXIES:...}`가 설정돼 있고, 기본값은 루프백만 믿는다(Tomcat 기본값은 사설 대역 전체라 쓰지 않는다). `docker-compose.yml`이 `TRUSTED_PROXIES`를 app 환경변수로 넘긴다.
+- **운영에서는 `.env`의 `TRUSTED_PROXIES`를 프록시(cloudflared 컨테이너) IP 하나로 좁혀 지정해야 한다**(정규식, 예: `172\.18\.0\.5`). 지정하지 않으면 프록시가 보낸 헤더가 무시돼 모든 요청이 프록시 IP 하나로 보이고, 공개 문의의 IP별 호출 제한이 전체 방문자에게 한 번에 걸린다. 사설 대역 전체를 넣으면 같은 네트워크의 다른 컨테이너가 헤더를 위조할 수 있다.
 
 ## 운영 실행
 
@@ -97,11 +98,25 @@ docker compose -f docker-compose-local.yml up -d database valkey
 ./gradlew :modules:app:bootRun --args='--spring.profiles.active=local'
 ```
 
+홈페이지 콘텐츠 이미지 업로드(관리자 포트폴리오·공지사항)까지 확인하려면 로컬 확인용 저장소를 함께 올린다.
+
+```bash
+docker compose -f docker-compose-local.yml up -d database valkey rustfs rustfs-init
+```
+
+> **RustFS는 로컬 확인용이다.** 운영은 Cloudflare R2를 쓰며 `docker-compose.yml`과 앱 이미지에는 RustFS가 없다.
+> 운영과 같은 코드(S3 presigned PUT → 등록 → 공개 URL)를 로컬에서 끝까지 확인하려고 두는 S3 호환 저장소다.
+> MinIO는 2025-10 커뮤니티 이미지 배포 중단으로 받을 수 없어 RustFS(`rustfs/rustfs:1.0.6`)를 쓴다.
+> `rustfs-init`이 버킷 `bus-content` 생성, 공개 읽기 정책, `CORS_ALLOWED_ORIGIN`(기본 `http://localhost:3000`)의 PUT CORS를 설정하고 끝난다.
+> 접속 키는 `LOCAL_CONTENT_STORAGE_ACCESS_KEY`·`LOCAL_CONTENT_STORAGE_SECRET_KEY`(기본값은 로컬 전용 더미 값 `local-only-access-key`)이고 rustfs·rustfs-init·app 컨테이너와 `application-local.yml`이 같은 값을 쓴다.
+> local 프로필은 운영 `CONTENT_STORAGE_*`를 읽지 않으므로, 운영 R2 키가 `.env`에 있어도 로컬 실행이 운영 저장소에 붙지 않는다.
+
 주요 로컬 포트:
 
 | 서비스 | 호스트 포트 |
 |--------|-------------|
 | App | `8080` (Swagger UI: `/swagger-ui.html`, local 프로필만) |
+| RustFS (로컬 확인용 이미지 저장소) | `9000` (S3 API), `9001` (콘솔) |
 | App 디버그(JDWP) | `18080` |
 | PostgreSQL | `15433` |
 | Valkey | `6379` |
