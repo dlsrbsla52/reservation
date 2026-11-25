@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+  <!-- V001: 홈페이지 콘텐츠 스키마와 포트폴리오·공지·FAQ·온라인 문의 테이블 -->
+  <include file="/db/changelog/content/V001__content_tables.xml"/>
+
+</databaseChangeLog>

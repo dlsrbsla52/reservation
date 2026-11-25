@@ -58,6 +58,55 @@ class AccessLoggingFilterRequestTest {
         }
     }
 
+    @Test
+    fun `공개 문의 접수는 4xx여도 요청과 응답 본문을 기록하지 않는다`() {
+        capture { messages, complete ->
+            val request = MockHttpServletRequest("POST", "/api/v1/content/inquiry").apply {
+                contentType = "application/json"
+                setContent("{\"name\":\"dummy-name\",\"phone\":\"01000000000\",\"content\":\"dummy-content\"}".toByteArray())
+            }
+            AccessLoggingFilter().doFilter(request, MockHttpServletResponse(), FilterChain { req, res ->
+                req.inputStream.readAllBytes()
+                (res as jakarta.servlet.http.HttpServletResponse).status = 400
+                res.contentType = "application/json"
+                res.writer.write("{\"message\":\"dummy-name 실패\"}")
+            })
+            assertThat(complete.await(2, TimeUnit.SECONDS)).isTrue()
+            val access = messages.single { it.startsWith("ACCESS ") }
+            assertThat(access).contains("-> 400").doesNotContain("dummy-name", "01000000000", "dummy-content", "req=", "res=")
+        }
+    }
+
+    @Test
+    fun `관리자 문의 경로는 하위 경로까지 응답 본문을 기록하지 않고 응답은 그대로 보낸다`() {
+        capture { messages, complete ->
+            val response = MockHttpServletResponse()
+            val request = MockHttpServletRequest("GET", "/api/v1/admin/content/inquiry/0190aaaa-0000-7000-8000-000000000000")
+            AccessLoggingFilter().doFilter(request, response, FilterChain { _, res ->
+                (res as jakarta.servlet.http.HttpServletResponse).status = 404
+                res.contentType = "application/json"
+                res.writer.write("{\"name\":\"dummy-name\",\"email\":\"dummy@example.com\"}")
+            })
+            assertThat(complete.await(2, TimeUnit.SECONDS)).isTrue()
+            assertThat(messages.joinToString()).doesNotContain("dummy-name", "dummy@example.com", "res=")
+            assertThat(response.contentAsString).contains("dummy-name")
+        }
+    }
+
+    @Test
+    fun `문의와 이름이 비슷한 다른 경로는 기존처럼 에러 본문을 기록한다`() {
+        capture { messages, complete ->
+            val request = MockHttpServletRequest("GET", "/api/v1/content/inquiry-guide")
+            AccessLoggingFilter().doFilter(request, MockHttpServletResponse(), FilterChain { _, res ->
+                (res as jakarta.servlet.http.HttpServletResponse).status = 404
+                res.contentType = "application/json"
+                res.writer.write("{\"message\":\"없음\"}")
+            })
+            assertThat(complete.await(2, TimeUnit.SECONDS)).isTrue()
+            assertThat(messages.single { it.startsWith("ACCESS ") }).contains("res=")
+        }
+    }
+
     private fun capture(block: (ConcurrentLinkedQueue<String>, CountDownLatch) -> Unit) {
         val messages = ConcurrentLinkedQueue<String>()
         val complete = CountDownLatch(1)

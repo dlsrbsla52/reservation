@@ -60,7 +60,7 @@ ktlint_bus_no-method-display-name = disabled
 ktlint_bus_no-hardcoded-exception-message = disabled
 
 # 주석 정책: common·auth-contract는 공유 라이브러리라 설명 주석을 유지한다
-[modules/{app,iam,stop,reservation}/src/**.kt]
+[modules/{app,iam,stop,reservation,content}/src/**.kt]
 ktlint_bus_comment-policy = enabled
 
 [modules/*/src/test/**.kt]

@@ -28,6 +28,12 @@ import org.springframework.web.util.ContentCachingResponseWrapper
  *   2. **본 로거가 DEBUG 레벨** — 평상시엔 OFF, 조사할 때만 켠다(무재배포 토글).
  *      `POST /actuator/loggers/com.media.bus.common.logging.AccessLoggingFilter {"configuredLevel":"DEBUG"}`
  * 그 외 성공 응답은 `ACCESS ... -> 200 (ms)` 한 줄만 남겨 로그량/디스크/PII 노출을 최소화한다.
+ *
+ * ### 본문 기록 제외 경로 (개인정보)
+ * 이름·연락처·이메일·문의 내용이 오가는 경로는 4xx 이거나 DEBUG 여도 요청·응답 본문을 남기지 않는다([isBodyLogExcluded]).
+ *   - `/api/v1/member/find/me` (아이디 찾기)
+ *   - `/api/v1/content/inquiry` (공개 온라인 문의 접수)
+ *   - `/api/v1/admin/content/inquiry` 와 그 하위 (관리자 문의 조회·처리·삭제 — 응답에 문의자 정보가 들어 있다)
  * (ACCESS 라인 자체는 항상 INFO로 남으므로, 토글과 무관하게 모든 요청의 진입/상태/지연은 추적된다.)
  *
  * 보안 처리:
@@ -62,6 +68,13 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         private const val MASKED = "***"
         private const val MAX_BODY_LENGTH = 2048
 
+        // 본문(요청·응답)을 로그에 남기지 않을 경로. 정확히 같거나 그 하위 경로면 제외한다.
+        private val BODY_LOG_EXCLUDED_PATHS = listOf(
+            "/api/v1/member/find/me",
+            "/api/v1/content/inquiry",
+            "/api/v1/admin/content/inquiry",
+        )
+
         // 본문이 있을 수 있는 메서드만 요청 본문 캐싱 대상
         private val METHODS_WITH_BODY = setOf("POST", "PUT", "PATCH")
 
@@ -80,8 +93,9 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         // 본문 캐싱이 필요한 요청에만 wrapper를 씌워 메모리 부담을 최소화한다.
         // 컨트롤러가 InputStream을 1회 읽고 나면 원본은 비므로, 로깅 측에서 본문을 보려면 캐싱 필수.
         // cacheLimit: 본문 캐싱 최대 바이트. 로그 노출 한도와 일치시켜 불필요한 메모리 보유를 막는다.
+        val bodyLogExcluded = isBodyLogExcluded(request)
         val wrappedRequest =
-            if (shouldCacheRequestBody(request)) ContentCachingRequestWrapper(request, MAX_BODY_LENGTH) else null
+            if (!bodyLogExcluded && shouldCacheRequestBody(request)) ContentCachingRequestWrapper(request, MAX_BODY_LENGTH) else null
         val effectiveRequest: HttpServletRequest = wrappedRequest ?: request
 
         // 응답은 본문을 읽으려면 항상 캐싱해야 한다 (컨트롤러가 쓴 직후엔 OutputStream으로 흘러가 버림).
@@ -100,7 +114,7 @@ class AccessLoggingFilter : OncePerRequestFilter() {
             val status = wrappedResponse.status
 
             // 본문 기록 여부: 에러(>=400)이거나 DEBUG 토글이 켜졌을 때만. 평상시 성공은 한 줄만.
-            val includeBody = status >= 400 || log.isDebugEnabled
+            val includeBody = !bodyLogExcluded && (status >= 400 || log.isDebugEnabled)
             val reqSnippet = if (includeBody) wrappedRequest?.let { extractRequestBody(it) }.orEmpty() else ""
             val resSnippet = if (includeBody) extractResponseBody(wrappedResponse) else ""
 
@@ -127,6 +141,12 @@ class AccessLoggingFilter : OncePerRequestFilter() {
         return uri.startsWith("/actuator") || uri.startsWith("/health")
     }
 
+    /** 개인정보가 오가는 경로라 DEBUG·4xx 에서도 요청·응답 본문을 기록하지 않는지 판단한다. */
+    private fun isBodyLogExcluded(request: HttpServletRequest): Boolean {
+        val uri = request.requestURI ?: return false
+        return BODY_LOG_EXCLUDED_PATHS.any { uri == it || uri.startsWith("$it/") }
+    }
+
     /**
      * 요청 본문을 캐싱할 가치가 있는 요청인지 판단.
      *
@@ -134,8 +154,6 @@ class AccessLoggingFilter : OncePerRequestFilter() {
      * - multipart/octet-stream: 파일 업로드 등 대용량 바이너리 → 메모리 폭증 위험
      */
     private fun shouldCacheRequestBody(request: HttpServletRequest): Boolean {
-        // 아이디 찾기의 이름·연락처는 DEBUG에서도 본문 로그에 남기지 않는다.
-        if (request.requestURI == "/api/v1/member/find/me") return false
         if (request.method.uppercase() !in METHODS_WITH_BODY) return false
         val contentType = request.contentType?.lowercase().orEmpty()
         return !contentType.startsWith("multipart/") &&

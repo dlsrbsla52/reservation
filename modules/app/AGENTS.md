@@ -3,7 +3,7 @@
 <!-- 이 모듈 지침의 원본. CLAUDE.md는 @AGENTS.md로 가져오고 GEMINI.md는 심볼릭 링크다. -->
 
 `modules/app`은 모듈러 모놀리스의 **유일한 실행 모듈**이다(포트 8080, Actuator `127.0.0.1:8081`).
-iam·stop·reservation 도메인 모듈을 한 JVM에서 띄우고, 보안 필터 체인·통합 설정·모듈 간 포트 어댑터를 둔다.
+iam·stop·reservation·content 도메인 모듈을 한 JVM에서 띄우고, 보안 필터 체인·통합 설정·모듈 간 포트 어댑터를 둔다.
 도메인 로직은 두지 않는다.
 
 Base package: `com.media.bus.app` (진입점 `com.media.bus.BusApplication`)
@@ -21,14 +21,14 @@ Base package: `com.media.bus.app` (진입점 `com.media.bus.BusApplication`)
 
 | 위치 | 역할 |
 |---|---|
-| `BusApplication` | 스캔 범위를 `app`·`iam`·`stop`·`reservation`으로 한정. `common`·`auth-contract`는 자동 구성으로만 빈 등록 |
+| `BusApplication` | 스캔 범위를 `app`·`iam`·`stop`·`reservation`·`content`로 한정. `common`·`auth-contract`는 자동 구성으로만 빈 등록 |
 | `security/SecurityConfig` | 단일 `SecurityFilterChain`. 인가 규칙은 `permitAll`이고 인증·경로 정책은 아래 필터가 한다. 인가(카테고리·권한)는 컨트롤러 `@Authorize` |
 | `security/JwtAuthenticationFilter` | 예전 gateway 역할: 신뢰 헤더 제거, 라우트 허용 목록(밖이면 404), 공개 경로 정확 일치, Bearer 검증(401), `/api/v1/admin` 발급처 검사(403), `MemberPrincipal`·MDC `memberId` 설정 |
 | `security/ApiPathPolicy` | 라우트 prefix·공개 엔드포인트(메서드+경로 정확 일치)·문서 경로 목록 |
 | `security/CorsConfig` | 관리자 경로는 관리자 origin만 허용 |
 | `adapter/*` | 소비 모듈 포트 구현. 제공 모듈 Service·Facade 호출 + DTO 변환 + 예외 변환(`callProvider`) |
 | `resources/application*.yml` | 설정은 여기에만 둔다(기본·`local`·`openapi`) |
-| `resources/db/changelog/db.changelog-master.xml` | 모듈별 master(iam → stop → reservation)를 include |
+| `resources/db/changelog/db.changelog-master.xml` | 모듈별 master(iam → stop → reservation → content)를 include |
 
 ## 규칙
 
@@ -41,6 +41,9 @@ Base package: `com.media.bus.app` (진입점 `com.media.bus.BusApplication`)
   - 호출은 `callProvider { }`로 감싼다: `BusinessException`·`StorageException`(404)은 그대로, `BulkheadFullException` → 429/`00270`, 그 밖의 `BaseException`(500) → 500/`00100`. 기준은 예외 타입이 아니라 `ExceptionAdvisor`가 매기는 HTTP 상태다 — 예전에 4xx로 응답하던 예외를 500으로 바꾸지 않는다.
   - 소비자의 문자열 코드값은 `parseCode`/`parseOptionalCode`로 enum 변환한다. `fromName`의 `null`을 필터로 넘기면 전체 조회가 되므로 반드시 400으로 바꾼다.
   - DTO는 필드별로 명시 변환하고, enum은 `.name`(예전 JSON 직렬화 값)으로 옮긴다. 기본값이 있는 필드는 어댑터 테스트로 유지 여부를 고정한다.
+- **프록시 뒤 클라이언트 IP:** `application.yml`이 `forward-headers-strategy: native`와 `remoteip.internal-proxies: ${TRUSTED_PROXIES:루프백}`를 둔다. 운영에서는 `TRUSTED_PROXIES`를 cloudflared 컨테이너 IP 하나로 지정한다(사설 대역 전체 금지). 공개 문의 호출 제한이 `request.remoteAddr`를 쓴다.
+- **로컬 저장소 설정:** `application-local.yml`은 운영 `CONTENT_STORAGE_*`를 읽지 않고 `LOCAL_CONTENT_STORAGE_*`(기본값은 로컬 RustFS 더미)만 읽는다.
+- **요청 DTO의 생략 가능한 Boolean·List는 nullable로 둔다.** Jackson 설정이 Kotlin 기본값을 쓰지 않아 non-null 기본값 필드를 JSON에서 빼면 400이 된다. 기본값은 어댑터에서 채운다(`RequestBodyDeserializationTest`가 막는다).
 - **Actuator**는 관리 포트(루프백)에만 있다. 공개 8080에서는 404다.
 
 ## 테스트
@@ -51,4 +54,6 @@ Base package: `com.media.bus.app` (진입점 `com.media.bus.BusApplication`)
 | `JwtAuthenticationFilterTest` | 헤더 위조 차단, 토큰 검증, 관리자 발급처, 라우트 허용 목록 |
 | `WebSurfaceArchitectureTest` | internal 매핑 0개, 관리자 핸들러 `@Authorize`, 관리자 전용 `@Authorize` 핸들러는 `/api/v1/admin` 하위에만, 신뢰 헤더 `@RequestHeader` 금지, OpenAPI 스키마 이름 중복 금지 |
 | `ModuleBoundaryTest` | iam·stop·reservation 사이 Gradle 의존 금지 |
-| `*AdapterTest` | DTO 변환(필드 누락, enum 문자열), 오류 변환 |
+| `*AdapterTest` | DTO 변환(필드 누락, enum 문자열), 오류 변환. `IamContentAdminAdapterTest`는 content 어댑터(생략 Boolean·List 기본값, 메모 null 유지, 문의 삭제) |
+| `web/ForwardedClientIpTest` | `X-Forwarded-For`는 신뢰 프록시(`TRUSTED_PROXIES`, 기본 루프백)가 보낼 때만 `remoteAddr`에 반영, 신뢰 밖 주소는 무시(`UntrustedForwardedClientIpTest`) |
+| `web/RequestBodyDeserializationTest` | Spring이 쓰는 `JsonMapper`로 관리자 content 요청 DTO의 생략 필드 역직렬화, 모든 `@RequestBody` DTO에 null 아닌 기본값 필드가 없는지 검사 |

@@ -10,6 +10,7 @@ object ApiPathPolicy {
         "/api/v1/stop",
         "/api/v1/reservation",
         "/api/v1/contract",
+        "/api/v1/content",
     )
 
     private val API_DOC_PREFIXES = listOf("/swagger-ui", "/api-docs")
@@ -28,6 +29,12 @@ object ApiPathPolicy {
         "POST /api/v1/auth/password-reset/confirm",
         "GET /api/v1/auth/verify-email",
         "POST /api/v1/member/find/me",
+        "GET /api/v1/content/portfolio",
+        "GET /api/v1/content/portfolio/detail",
+        "GET /api/v1/content/notice",
+        "GET /api/v1/content/notice/detail",
+        "GET /api/v1/content/faq",
+        "POST /api/v1/content/inquiry",
     )
 
     private const val ADMIN_PREFIX = "/api/v1/admin"

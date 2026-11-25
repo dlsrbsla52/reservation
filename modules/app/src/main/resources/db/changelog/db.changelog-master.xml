@@ -3,7 +3,8 @@
 <!--
   모듈러 모놀리스 루트 master. 각 모듈 master 를 include 한다.
   모듈 changelog 는 logicalFilePath 로 예전 이력 경로(db/changelog/<파일명>.xml)를 유지하므로
-  기존 DB 에서 다시 실행되지 않는다. 순서: iam → stop → reservation (스키마 간 FK 는 없다).
+  기존 DB 에서 다시 실행되지 않는다. 순서: iam → stop → reservation → content (스키마 간 FK 는 없다).
+  content 등 전환 이후 새 모듈은 logicalFilePath 를 모듈 경로(db/changelog/<module>/<파일명>.xml)로 둔다.
 -->
 <databaseChangeLog
   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
@@ -14,4 +15,5 @@
   <include file="/db/changelog/iam/db.changelog-master.xml"/>
   <include file="/db/changelog/stop/db.changelog-master.xml"/>
   <include file="/db/changelog/reservation/db.changelog-master.xml"/>
+  <include file="/db/changelog/content/db.changelog-master.xml"/>
 </databaseChangeLog>
