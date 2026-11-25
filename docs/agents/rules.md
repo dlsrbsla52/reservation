@@ -22,13 +22,13 @@ AGENTS.md의 규칙 중 기계가 판정할 수 있는 것을 빌드와 hook으�
 | `bus:NoHardcodedExceptionMessage` | 예외를 문자열로 생성. `IllegalStateException`·`IllegalArgumentException`·`RuntimeException`·`Exception`·`NoSuchElementException`의 String 생성자. `error()`·`require {}`·`check {}`·`requireNotNull`·`checkNotNull`도 바이트코드에 이 생성자로 남는다 | 전 모듈 main | 컴파일러 + forbiddenapis | 없음 |
 | `bus:no-hardcoded-exception-message` | 위와 같은 판정을 소스에서 한다. forbiddenapis가 모르는 외부 예외(`MalformedJwtException("…")`)까지 잡는다 | 전 모듈 main | ktlint | 없음 |
 | `bus:NoMockito` | `org.mockito.**`, `@MockitoBean`·`@MockitoSpyBean` | 전 모듈 test | forbiddenapis | 없음 |
-| `bus:comment-policy` | `//`·`/* */` 주석 금지(`// 예외:`·`language=`·`noinspection`만 허용). KDoc은 함수·클래스·object·보조 생성자·typealias에 한 줄만 | `app`·`iam`·`stop`·`reservation` main·test | ktlint | 주석 삭제, 여러 줄 KDoc은 첫 문장(제목이면 제목)으로 줄임 |
+| `bus:comment-policy` | `//`·`/* */` 주석 금지(`// 예외:`·`language=`·`noinspection`만 허용). KDoc은 함수·클래스·object·보조 생성자·typealias에 한 줄만 | `app`·`iam`·`stop`·`reservation`·`content` main·test | ktlint | 주석 삭제, 여러 줄 KDoc은 첫 문장(제목이면 제목)으로 줄임 |
 | `bus:test-method-name` | `@Test` 계열 메서드 이름이 백틱 + 한글 | 전 모듈 test | ktlint | 없음 |
 | `bus:no-method-display-name` | 메서드의 `@DisplayName`(클래스는 허용) | 전 모듈 test | ktlint | 어노테이션 삭제 |
 | `bus:entity-factory-name` | `*EntityClass` companion의 `of`·`from`·`newInstance` | 전 모듈 | ktlint | 없음 |
 | ktlint 표준 | IntelliJ 스타일(`intellij_idea`). 끈 규칙과 이유는 `.editorconfig`에 있다 | 전 모듈 | ktlint | 있음 |
 
-예외 메시지는 모듈 Result enum에 둔다: `CommonResult`(00000–00299), `AuthResult`(A), `StopResult`(S), `ReservationResult`(R), `ContractResult`(C). 디버깅에 필요한 값은 예외가 아니라 log로 남긴다.
+예외 메시지는 모듈 Result enum에 둔다: `CommonResult`(00000–00299), `AuthResult`(A), `StopResult`(S), `ReservationResult`(R), `ContractResult`(C), `ContentResult`(W). 디버깅에 필요한 값은 예외가 아니라 log로 남긴다.
 
 ## 결정 기록
 

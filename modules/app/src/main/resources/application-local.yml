@@ -25,6 +25,20 @@ resilience4j:
 cors:
   allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:3000}
 
+# 로컬 확인용 이미지 저장소: docker-compose-local.yml 의 rustfs(버킷 bus-content, 공개 읽기). 운영은 R2 를 쓴다.
+# 운영 .env 의 CONTENT_STORAGE_* 는 읽지 않는다 — local 프로필이 운영 R2 에 붙는 사고를 막으려고 LOCAL_CONTENT_STORAGE_* 만 읽는다.
+# 접속 키 기본값은 로컬 RustFS 전용 더미 값이다(운영 R2 에서는 동작하지 않는다).
+content:
+  storage:
+    endpoint: ${LOCAL_CONTENT_STORAGE_ENDPOINT:http://localhost:9000}
+    presign-endpoint: ${LOCAL_CONTENT_STORAGE_PRESIGN_ENDPOINT:}
+    access-key: ${LOCAL_CONTENT_STORAGE_ACCESS_KEY:local-only-access-key}
+    secret-key: ${LOCAL_CONTENT_STORAGE_SECRET_KEY:local-only-secret-key}
+    region: us-east-1
+    bucket: bus-content
+    public-base-url: ${LOCAL_CONTENT_STORAGE_PUBLIC_BASE_URL:http://localhost:9000/bus-content}
+    path-style: true
+
 # 로컬에서는 Swagger UI 를 8080 에서 연다
 app:
   security:

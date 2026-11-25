@@ -78,6 +78,17 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 이 없습니다. 프로젝트 루트 .env 를 확인하세요}
       JWT_CLAIM_ENCRYPTION_KEY: ${JWT_CLAIM_ENCRYPTION_KEY:?JWT_CLAIM_ENCRYPTION_KEY 가 없습니다. 프로젝트 루트 .env 를 확인하세요}
       SEOUL_API_KEY: ${SEOUL_API_KEY:-}
+      # 홈페이지 콘텐츠 이미지 저장소(Cloudflare R2). 비우면 관리자 이미지 업로드만 실패하고 나머지는 동작한다.
+      # 로컬 확인용 RustFS 는 docker-compose-local.yml 에만 있고 운영에는 없다.
+      CONTENT_STORAGE_ENDPOINT: ${CONTENT_STORAGE_ENDPOINT:-}
+      CONTENT_STORAGE_REGION: ${CONTENT_STORAGE_REGION:-auto}
+      CONTENT_STORAGE_BUCKET: ${CONTENT_STORAGE_BUCKET:-}
+      CONTENT_STORAGE_ACCESS_KEY: ${CONTENT_STORAGE_ACCESS_KEY:-}
+      CONTENT_STORAGE_SECRET_KEY: ${CONTENT_STORAGE_SECRET_KEY:-}
+      CONTENT_STORAGE_PUBLIC_BASE_URL: ${CONTENT_STORAGE_PUBLIC_BASE_URL:-}
+      # X-Forwarded-For 를 믿을 프록시(정규식). 기본값은 루프백뿐이라 Cloudflare Tunnel 뒤에서는 모든 요청이 cloudflared IP 하나로 보인다.
+      # 운영에서는 cloudflared 컨테이너 IP 하나로 좁혀 지정한다(예: 172\.18\.0\.5). 사설 대역 전체를 넣지 않는다.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127\.0\.0\.1|::1|0:0:0:0:0:0:0:1}
       REDIS_HOST: valkey
       REDIS_PORT: 6379
       COOKIE_SECURE: ${COOKIE_SECURE:?루트 .env에 COOKIE_SECURE를 설정하세요}

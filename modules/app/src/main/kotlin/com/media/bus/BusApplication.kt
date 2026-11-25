@@ -10,6 +10,7 @@ import org.springframework.boot.runApplication
         "com.media.bus.iam",
         "com.media.bus.stop",
         "com.media.bus.reservation",
+        "com.media.bus.content",
     ],
 )
 class BusApplication

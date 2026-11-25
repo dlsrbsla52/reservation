@@ -5,13 +5,13 @@
 ## 응답 규칙
 
 - 모든 설명, 주석, 커밋 메시지는 한국어로 작성한다.
-- 코드 주석은 `app`·`iam`·`stop`·`reservation`에서 쓰지 않는다(함수·클래스의 한 줄 KDoc만 허용, 진짜 예외 케이스는 `// 예외: <이유>`이고 사용자 승인이 필요하다). `common`·`auth-contract`는 설명 주석을 둔다. 근거·범위는 `docs/agents/rules.md`.
+- 코드 주석은 `app`·`iam`·`stop`·`reservation`·`content`에서 쓰지 않는다(함수·클래스의 한 줄 KDoc만 허용, 진짜 예외 케이스는 `// 예외: <이유>`이고 사용자 승인이 필요하다). `common`·`auth-contract`는 설명 주석을 둔다. 근거·범위는 `docs/agents/rules.md`.
 - 구현 배경, 설계 의도, 잠재적 사이드 이펙트는 코드 주석이 아니라 작업 보고와 커밋 메시지로 설명한다. 작업을 마치면 영향 범위와 검증 결과를 함께 보고한다.
 - AWS 환경(Aurora, Secrets Manager)과 CI/CD(GitLab, Docker) 파이프라인을 고려한 아키텍처 관점의 조언을 병행한다.
 
 ## 개요
 
-Spring Boot 4.1.2 모듈러 모놀리스 (root: `bus`), Kotlin 2.3.20, 6개 Gradle 모듈. ORM: Exposed 1.6.1. 실행 모듈: `modules/app`(JVM 1개, 포트 8080). 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
+Spring Boot 4.1.2 모듈러 모놀리스 (root: `bus`), Kotlin 2.3.20, 7개 Gradle 모듈. ORM: Exposed 1.6.1. 실행 모듈: `modules/app`(JVM 1개, 포트 8080). 공통 인프라: `modules/common`, 인증 계약: `modules/auth-contract`.
 
 - 2026-11 MSA(gateway + 서비스 3개)에서 전환했다. 배경과 단계는 `docs/modular-monolith-migration-plan.md`, 모듈 간 호출 대응표는 `docs/modular-monolith-s2s-mapping.md`.
 
@@ -44,12 +44,13 @@ docker compose -f docker-compose-local.yml up -d database valkey   # 앱은 IDE�
 | `iam` | JWT 발급·갱신·회원 관리, 관리자 API | `modules/iam/AGENTS.md` |
 | `stop` | 버스 정류소 CRUD | `modules/stop/AGENTS.md` |
 | `reservation` | 예약 핵심 비즈니스 | `modules/reservation/AGENTS.md` |
+| `content` | 홈페이지 콘텐츠(포트폴리오·공지·FAQ·온라인 문의), 이미지 저장소(R2) | `modules/content/AGENTS.md` |
 | `auth-contract` | JWT/인증 계약 공유 라이브러리 | `modules/auth-contract/AGENTS.md` |
 | `common` | 공통 인프라 라이브러리 | `modules/common/AGENTS.md` |
 
 인프라: PostgreSQL 18.3 (port **15433**), Valkey 8.1.6 / Redis (port **6379**)
 
-공개 경로: `/api/v1/{auth,member,admin,stop,reservation,contract}/**`만 8080에서 받는다. 그 밖의 경로(`/actuator`, `/error`, swagger 등)는 `app`의 인증 필터가 404로 끝낸다(로컬 프로필은 swagger 허용).
+공개 경로: `/api/v1/{auth,member,admin,stop,reservation,contract,content}/**`만 8080에서 받는다. 그 밖의 경로(`/actuator`, `/error`, swagger 등)는 `app`의 인증 필터가 404로 끝낸다(로컬 프로필은 swagger 허용).
 - **모듈 간 호출은 포트·어댑터로만 한다.** 소비 모듈이 포트 인터페이스를 정의하고(`iam.port.*`, `reservation.*.port.*`), `app`의 어댑터(`com.media.bus.app.adapter`)가 제공 모듈의 Service·Facade를 호출해 구현한다. HTTP internal API(`/api/v1/internal/**`)는 만들지 않는다 — `WebSurfaceArchitectureTest`가 막는다.
 - 어댑터는 제공 모듈의 공개 진입점(Service·Facade)만 부른다. Repository·Exposed Entity를 받지 않고, `@Transactional`을 붙이지 않는다. 입력 검증은 제공 모듈 진입점에 둔다(`InputValidator`).
 - `/api/v1/admin/**`는 인증 필터가 관리자 사이트 토큰(`aud=ADMIN`) + 관리자 회원 유형만 통과시킨다. 관리자 화면이 쓰는 기능은 서비스 공개 API를 직접 부르지 말고 iam admin API → 포트로 위임한다.
@@ -61,14 +62,14 @@ docker compose -f docker-compose-local.yml up -d database valkey   # 앱은 IDE�
 - **Virtual Threads 활성화** — `ThreadLocal` 금지, `ScopedValue` 사용. `synchronized` 대신 `ReentrantLock`
 - **Enum** — 모든 코드성 Enum은 `BaseEnum` 구현 (`displayName` 필드). companion object에 `fromName()` 정의
 - **Entity** — Exposed DAO 패턴. Table object + Entity class 분리. 정적 팩토리 메서드(`companion object`)로 생성 강제. 팩토리 이름은 `create`(또는 `createXxx`)
-- **모듈 경계** — 기존 아키텍처와 모듈 경계를 우선한다. `iam`/`stop`/`reservation`은 서로 Gradle 의존하지 않는다(`ModuleBoundaryTest`). 타 모듈 호출은 소비 모듈의 포트 → `app` 어댑터 경유
+- **모듈 경계** — 기존 아키텍처와 모듈 경계를 우선한다. `iam`/`stop`/`reservation`/`content`는 서로 Gradle 의존하지 않는다(`ModuleBoundaryTest`). 타 모듈 호출은 소비 모듈의 포트 → `app` 어댑터 경유
 - **응답** — `common`의 `ApiResponse<T>` 래퍼 필수
 - **예외** — Controller 내 try-catch 금지. `common` 글로벌 핸들러(`ExceptionAdvisor`)에 위임. 예외 클래스는 Kotlin 기본 인수 주생성자 사용
-- **예외 메시지** — 문자열로 쓰지 않는다. 모듈 Result enum(`CommonResult`·`AuthResult`·`StopResult`·`ReservationResult`·`ContractResult`)에 코드를 추가하고 `BusinessException(XxxResult.Y)`(4xx)나 `ServiceException(XxxResult.Y)`(5xx)를 던진다. 예외 클래스는 `message` 파라미터가 없다. `error()`·`require {}`·`check {}`도 쓰지 않는다. 디버깅용 값은 log로 남긴다
+- **예외 메시지** — 문자열로 쓰지 않는다. 모듈 Result enum(`CommonResult`·`AuthResult`·`StopResult`·`ReservationResult`·`ContractResult`·`ContentResult`)에 코드를 추가하고 `BusinessException(XxxResult.Y)`(4xx)나 `ServiceException(XxxResult.Y)`(5xx)를 던진다. 예외 클래스는 `message` 파라미터가 없다. `error()`·`require {}`·`check {}`도 쓰지 않는다. 디버깅용 값은 log로 남긴다
 - **KDoc** — 함수·클래스에만 한 줄 요약(`/** 요약 */`)으로 쓴다. `common`·`auth-contract`는 여러 줄 마크다운 KDoc을 유지한다
-- **DB 마이그레이션** — Liquibase changelog만 사용, 수동 DDL 금지. 모듈별 `db/changelog/{iam,stop,reservation}/`에 두고 `app`의 루트 master가 include한다. 새 changelog 파일의 `logicalFilePath`는 모듈 경로(`db/changelog/{module}/<파일명>.xml`)로 지정한다(V001 등 전환 전 파일은 예전 이력 경로 `db/changelog/<파일명>.xml`을 유지한다)
+- **DB 마이그레이션** — Liquibase changelog만 사용, 수동 DDL 금지. 모듈별 `db/changelog/{iam,stop,reservation,content}/`에 두고 `app`의 루트 master가 include한다. 새 changelog 파일의 `logicalFilePath`는 모듈 경로(`db/changelog/{module}/<파일명>.xml`)로 지정한다(V001 등 전환 전 파일은 예전 이력 경로 `db/changelog/<파일명>.xml`을 유지한다)
 - **테스트** — Repository: `@Mock`, Guard/Validator: 익명 Stub. MockK 사용 권장. 테스트 메서드 이름은 백틱 한국어 문장이고 메서드에 `@DisplayName`을 달지 않는다(클래스는 허용)
-- **스키마 격리** — DataSource는 하나지만 모듈별 schema를 쓴다(`auth`·`audit` iam / `stop` / `reservation`). Exposed Table은 스키마를 명시한다(`"auth.member"`). 다른 모듈 스키마의 테이블을 조인하지 않는다
+- **스키마 격리** — DataSource는 하나지만 모듈별 schema를 쓴다(`auth`·`audit` iam / `stop` / `reservation` / `content`). Exposed Table은 스키마를 명시한다(`"auth.member"`). 다른 모듈 스키마의 테이블을 조인하지 않는다
 
 ## 검증
 

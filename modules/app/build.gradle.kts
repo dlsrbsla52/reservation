@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":modules:iam"))
     implementation(project(":modules:stop"))
     implementation(project(":modules:reservation"))
+    implementation(project(":modules:content"))
     // 도메인 모듈의 common·auth-contract 의존은 implementation 이라 전이되지 않으므로 직접 선언한다
     implementation(project(":modules:auth-contract"))
     implementation(project(":modules:common"))
@@ -42,5 +43,6 @@ tasks.named("forkedSpringBootRun") {
         ":modules:iam:jar",
         ":modules:stop:jar",
         ":modules:reservation:jar",
+        ":modules:content:jar",
     )
 }

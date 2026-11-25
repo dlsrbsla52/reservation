@@ -41,4 +41,17 @@ class ApiPathPolicyTest {
         assertThat(ApiPathPolicy.isPublic("POST", "/api/v1/member/find/me")).isTrue()
         assertThat(ApiPathPolicy.isPublic("GET", "/api/v1/member/find/me")).isFalse()
     }
+
+    @Test
+    fun `홈페이지 콘텐츠는 조회와 문의 등록만 공개하고 관리자 콘텐츠 경로는 공개하지 않는다`() {
+        assertThat(ApiPathPolicy.isRoutable("/api/v1/content/portfolio", false)).isTrue()
+        listOf("/api/v1/content/portfolio", "/api/v1/content/portfolio/detail", "/api/v1/content/notice",
+            "/api/v1/content/notice/detail", "/api/v1/content/faq").forEach {
+            assertThat(ApiPathPolicy.isPublic("GET", it)).describedAs(it).isTrue()
+        }
+        assertThat(ApiPathPolicy.isPublic("POST", "/api/v1/content/inquiry")).isTrue()
+        assertThat(ApiPathPolicy.isPublic("GET", "/api/v1/content/inquiry")).isFalse()
+        assertThat(ApiPathPolicy.isPublic("DELETE", "/api/v1/content/portfolio")).isFalse()
+        assertThat(ApiPathPolicy.isPublic("GET", "/api/v1/admin/content/portfolio")).isFalse()
+    }
 }

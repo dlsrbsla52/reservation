@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog logicalFilePath="db/changelog/content/V001__content_tables.xml"
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+
+  <!-- V001-1. content 스키마 -->
+  <changeSet id="V001-1" author="hig">
+    <sql>CREATE SCHEMA IF NOT EXISTS content</sql>
+    <rollback>
+      <sql>DROP SCHEMA IF EXISTS content</sql>
+    </rollback>
+  </changeSet>
+
+  <!-- V001-2. 포트폴리오 -->
+  <changeSet id="V001-2" author="hig">
+    <createTable tableName="portfolio" schemaName="content" remarks="홈페이지 포트폴리오(광고 집행 사례)">
+      <column name="id" type="UUID" remarks="포트폴리오 PK (UUID v7)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="title" type="VARCHAR(100)" remarks="제목(정류장명 등)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="category" type="VARCHAR(20)" remarks="분류 [HOSPITAL(병원), ACADEMY(학원), FNB(F&amp;B), ETC(기타)]">
+        <constraints nullable="false"/>
+      </column>
+      <column name="description" type="VARCHAR(500)" remarks="설명(송출 횟수 등)"/>
+      <column name="image_key" type="VARCHAR(200)" remarks="원본 이미지 객체 키">
+        <constraints nullable="false"/>
+      </column>
+      <column name="thumbnail_key" type="VARCHAR(200)" remarks="썸네일 이미지 객체 키">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sort_order" type="INTEGER" remarks="정렬 순서(큰 값이 먼저)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="visible" type="BOOLEAN" defaultValueBoolean="true" remarks="공개 노출 여부">
+        <constraints nullable="false"/>
+      </column>
+      <column name="legacy_idx" type="INTEGER" remarks="기존 cafe24 게시판 글 번호(이관 중복 방지)">
+        <constraints unique="true" uniqueConstraintName="uk_portfolio_legacy_idx"/>
+      </column>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="생성일시">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="수정일시">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex indexName="idx_portfolio_sort" tableName="portfolio" schemaName="content">
+      <column name="sort_order" descending="true"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- V001-3. 공지사항과 첨부 이미지 -->
+  <changeSet id="V001-3" author="hig">
+    <createTable tableName="notice" schemaName="content" remarks="홈페이지 공지사항">
+      <column name="id" type="UUID" remarks="공지사항 PK (UUID v7)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="title" type="VARCHAR(200)" remarks="제목">
+        <constraints nullable="false"/>
+      </column>
+      <column name="body" type="TEXT" remarks="본문(텍스트, 줄바꿈 유지)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="pinned" type="BOOLEAN" defaultValueBoolean="false" remarks="상단 고정 여부">
+        <constraints nullable="false"/>
+      </column>
+      <column name="visible" type="BOOLEAN" defaultValueBoolean="true" remarks="공개 노출 여부">
+        <constraints nullable="false"/>
+      </column>
+      <column name="view_count" type="INTEGER" defaultValueNumeric="0" remarks="조회수">
+        <constraints nullable="false"/>
+      </column>
+      <column name="published_at" type="TIMESTAMP WITH TIME ZONE" remarks="게시일">
+        <constraints nullable="false"/>
+      </column>
+      <column name="legacy_idx" type="INTEGER" remarks="기존 cafe24 게시판 글 번호(이관 중복 방지)">
+        <constraints unique="true" uniqueConstraintName="uk_notice_legacy_idx"/>
+      </column>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="생성일시">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="수정일시">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex indexName="idx_notice_list" tableName="notice" schemaName="content">
+      <column name="pinned" descending="true"/>
+      <column name="published_at" descending="true"/>
+    </createIndex>
+
+    <createTable tableName="notice_image" schemaName="content" remarks="공지사항 첨부 이미지(본문 아래 순서대로 표시)">
+      <column name="id" type="UUID" remarks="PK (UUID v7)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="notice_id" type="UUID" remarks="공지사항 PK">
+        <constraints nullable="false" foreignKeyName="fk_notice_image_notice" referencedTableSchemaName="content"
+                     referencedTableName="notice" referencedColumnNames="id" deleteCascade="true"/>
+      </column>
+      <column name="image_key" type="VARCHAR(200)" remarks="이미지 객체 키">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sort_order" type="INTEGER" remarks="표시 순서(0부터)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex indexName="idx_notice_image_notice_id" tableName="notice_image" schemaName="content">
+      <column name="notice_id"/>
+    </createIndex>
+  </changeSet>
+
+  <!-- V001-4. FAQ -->
+  <changeSet id="V001-4" author="hig">
+    <createTable tableName="faq" schemaName="content" remarks="홈페이지 FAQ(문답 단위)">
+      <column name="id" type="UUID" remarks="FAQ PK (UUID v7)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="category" type="VARCHAR(20)" remarks="분류 [MEDIA(서울버스TV 매체), HOSPITAL(병원 광고)]">
+        <constraints nullable="false"/>
+      </column>
+      <column name="question" type="VARCHAR(300)" remarks="질문">
+        <constraints nullable="false"/>
+      </column>
+      <column name="answer" type="TEXT" remarks="답변(텍스트, 줄바꿈 유지)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sort_order" type="INTEGER" remarks="정렬 순서(작은 값이 먼저)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="visible" type="BOOLEAN" defaultValueBoolean="true" remarks="공개 노출 여부">
+        <constraints nullable="false"/>
+      </column>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="생성일시">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="수정일시">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <!-- V001-5. 온라인 문의 -->
+  <changeSet id="V001-5" author="hig">
+    <createTable tableName="inquiry" schemaName="content" remarks="홈페이지 온라인 문의">
+      <column name="id" type="UUID" remarks="문의 PK (UUID v7)">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR(50)" remarks="문의자 이름">
+        <constraints nullable="false"/>
+      </column>
+      <column name="phone" type="VARCHAR(20)" remarks="전화번호">
+        <constraints nullable="false"/>
+      </column>
+      <column name="email" type="VARCHAR(100)" remarks="이메일">
+        <constraints nullable="false"/>
+      </column>
+      <column name="content" type="TEXT" remarks="문의 내용">
+        <constraints nullable="false"/>
+      </column>
+      <column name="privacy_agreed" type="BOOLEAN" remarks="개인정보 수집·이용 동의">
+        <constraints nullable="false"/>
+      </column>
+      <column name="client_ip" type="VARCHAR(45)" remarks="접수 IP(호출 제한·악용 추적)"/>
+      <column name="status" type="VARCHAR(20)" remarks="처리 상태 [RECEIVED(접수), DONE(처리 완료)]">
+        <constraints nullable="false"/>
+      </column>
+      <column name="admin_memo" type="TEXT" remarks="처리 메모"/>
+      <column name="handled_by_id" type="UUID" remarks="처리한 관리자 회원 ID (auth.member.id 논리적 참조)"/>
+      <column name="handled_at" type="TIMESTAMP WITH TIME ZONE" remarks="처리일시"/>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="접수일시">
+        <constraints nullable="false"/>
+      </column>
+      <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP" remarks="수정일시">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <createIndex indexName="idx_inquiry_status" tableName="inquiry" schemaName="content">
+      <column name="status"/>
+    </createIndex>
+    <createIndex indexName="idx_inquiry_created_at" tableName="inquiry" schemaName="content">
+      <column name="created_at" descending="true"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>
