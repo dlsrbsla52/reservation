@@ -1,10 +1,14 @@
 package com.media.bus.iam.admin.facade
 
+import com.media.bus.common.exceptions.BusinessException
+import com.media.bus.common.exceptions.NoAuthorizationException
 import com.media.bus.common.web.wrapper.PageResult
-import com.media.bus.iam.admin.dto.AdminBusinessContractResponse
-import com.media.bus.iam.admin.dto.AdminContractResponse
-import com.media.bus.iam.admin.dto.AdminMemberContractListResponse
-import com.media.bus.iam.admin.dto.CreateAdminContractRequest
+import com.media.bus.contract.entity.member.MemberType
+import com.media.bus.contract.entity.member.Permission
+import com.media.bus.contract.security.MemberPrincipal
+import com.media.bus.iam.admin.dto.*
+import com.media.bus.iam.auth.result.AuthResult
+import com.media.bus.iam.member.entity.enumerated.MemberStatus
 import com.media.bus.iam.member.service.MemberService
 import com.media.bus.iam.port.ReservationAdminPort
 import com.media.bus.iam.port.dto.reservation.CreateContractRequest
@@ -45,10 +49,35 @@ class AdminBusinessContractFacade(
     }
 
     /** `ReservationAdminPort`로 관리자 계약을 생성한다. */
-    fun createContract(request: CreateAdminContractRequest): AdminContractResponse =
-        AdminContractResponse.from(
-            reservationAdminPort.createContract(CreateContractRequest.from(request)),
+    fun createContract(principal: MemberPrincipal, request: CreateAdminContractRequest): AdminContractResponse {
+        val managerId = request.managerId ?: principal.id
+        if (managerId != principal.id) {
+            if (principal.memberType != MemberType.ADMIN_MASTER) {
+                throw NoAuthorizationException()
+            }
+            val manager = memberService.findByMemberId(managerId.toString())
+            if (!manager.memberType.isAdmin || manager.status != MemberStatus.ACTIVE) {
+                throw BusinessException(AuthResult.INVALID_CONTRACT_MANAGER)
+            }
+        }
+        return AdminContractResponse.from(
+            reservationAdminPort.createContract(CreateContractRequest.from(request, managerId)),
         )
+    }
+
+    fun updateContractStatus(principal: MemberPrincipal, contractId: UUID, request: UpdateContractStatusRequest) =
+        reservationAdminPort.updateContractStatus(contractId, requiredManagerId(principal), request.status, request.cancelReason)
+
+    fun updateContractPaymentStatus(
+        principal: MemberPrincipal,
+        contractId: UUID,
+        request: UpdateContractPaymentStatusRequest,
+    ) = reservationAdminPort.updateContractPaymentStatus(
+        contractId, requiredManagerId(principal), request.paymentStatus, request.paidAmount, request.paidAt,
+    )
+
+    private fun requiredManagerId(principal: MemberPrincipal): UUID? =
+        principal.id.takeUnless { principal.memberType != MemberType.ADMIN_USER && principal.hasPermission(Permission.MANAGE) }
 
     /** `ReservationAdminPort`로 계약 상세를 조회한다. */
     fun getContractDetail(contractId: UUID): AdminBusinessContractResponse =

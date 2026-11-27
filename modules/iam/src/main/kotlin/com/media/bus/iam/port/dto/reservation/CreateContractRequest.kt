@@ -9,17 +9,19 @@ import java.util.*
 data class CreateContractRequest(
     val stopId: UUID,
     val contractName: String,
-    val totalAmount: BigDecimal,
+    val totalAmount: BigDecimal?,
     val payAmount: BigDecimal?,
     val paymentCycle: String,
     val paymentMethod: String,
     val memberId: UUID?,
     val note: String?,
     val contractStartDate: OffsetDateTime,
-    val contractEndDate: OffsetDateTime,
+    val contractEndDate: OffsetDateTime?,
+    val durationMonths: Int?,
+    val managerId: UUID?,
 ) {
     companion object {
-        fun from(request: CreateAdminContractRequest) = CreateContractRequest(
+        fun from(request: CreateAdminContractRequest, managerId: UUID) = CreateContractRequest(
             stopId = request.stopId,
             contractName = request.contractName,
             totalAmount = request.totalAmount,
@@ -30,6 +32,8 @@ data class CreateContractRequest(
             note = request.note,
             contractStartDate = request.contractStartDate,
             contractEndDate = request.contractEndDate,
+            durationMonths = request.durationMonths,
+            managerId = managerId,
         )
     }
 }

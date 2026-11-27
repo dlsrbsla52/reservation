@@ -59,6 +59,7 @@ data class AdminBusinessContractResponse(
 
     @param:Schema(description = "계약 생성일시")
     val createdAt: OffsetDateTime,
+    val managerId: UUID?,
 ) {
     companion object {
         /** reservation 내부 응답 DTO를 어드민 API 응답으로 변환한다. */
@@ -68,6 +69,7 @@ data class AdminBusinessContractResponse(
             stopNumber = view.stopNumber,
             stopName = view.stopName,
             memberId = view.memberId,
+            managerId = view.managerId,
             contractName = view.contractName,
             status = view.status,
             contractStartDate = view.contractStartDate,

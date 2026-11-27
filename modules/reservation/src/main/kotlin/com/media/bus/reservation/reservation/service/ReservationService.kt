@@ -210,6 +210,7 @@ class ReservationService(
             paymentMethod = request.paymentMethod,
             memberId = reservation.memberId,
             note = request.note,
+            managerId = reservation.assigneeId,
             contractStartDate = request.contractStartDate,
             contractEndDate = request.contractEndDate,
         )

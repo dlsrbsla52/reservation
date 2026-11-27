@@ -16,6 +16,14 @@ enum class ContractResult(
     CONTRACT_PERIOD_OVERLAP("C0004", "해당 정류소에 기간이 겹치는 계약이 이미 있습니다.", HttpStatus.CONFLICT),
     CONTRACT_KEYWORD_TOO_LONG("C0005", "keyword는 100자 이하여야 합니다."),
     CONTRACT_SEARCH_INVALID_PERIOD("C0006", "contractStartFrom은 contractStartTo 이후일 수 없습니다."),
+    CONTRACT_PERIOD_OPTION_REQUIRED("C0007", "계약 종료일 또는 양수인 계약 개월 수 중 하나만 지정해야 합니다."),
+    CONTRACT_STOP_PRICE_REQUIRED("C0008", "정류소 단가가 등록되어 있지 않습니다. 총 계약금액을 지정해주세요."),
+    CONTRACT_INVALID_AMOUNT("C0009", "총 계약금액은 0보다 크고 정수 13자리, 소수 2자리 이하여야 합니다."),
+    CONTRACT_INVALID_STATE_TRANSITION("C0010", "현재 계약 상태에서는 요청한 상태로 변경할 수 없습니다.", HttpStatus.CONFLICT),
+    CONTRACT_INVALID_CANCEL_REASON("C0011", "취소 사유는 계약 취소 시에만 500자 이내로 입력할 수 있습니다."),
+    CONTRACT_PAYMENT_DETAILS_REQUIRE_PAID("C0012", "납부 금액과 납부 일시는 납부완료 상태에서만 입력할 수 있습니다."),
+    CONTRACT_INVALID_PAID_AMOUNT("C0013", "납부 금액은 0보다 크고 정수 13자리, 소수 2자리 이하여야 합니다."),
+    CONTRACT_DETAIL_NOT_FOUND("C0014", "계약 납부 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

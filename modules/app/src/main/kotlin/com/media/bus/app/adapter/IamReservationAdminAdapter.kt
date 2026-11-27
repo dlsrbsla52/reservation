@@ -9,12 +9,14 @@ import com.media.bus.reservation.contract.dto.request.AdminContractSearchConditi
 import com.media.bus.reservation.contract.entity.enums.ContractStatus
 import com.media.bus.reservation.contract.entity.enums.PaymentCycle
 import com.media.bus.reservation.contract.entity.enums.PaymentMethod
+import com.media.bus.reservation.contract.entity.enums.PaymentStatus
 import com.media.bus.reservation.contract.service.InternalContractFacade
 import com.media.bus.reservation.reservation.dto.response.AdminReservationListResponse
 import com.media.bus.reservation.reservation.dto.response.ReservationDetailResponse
 import com.media.bus.reservation.reservation.entity.enums.ReservationStatus
 import com.media.bus.reservation.reservation.service.ReservationFacade
 import org.springframework.stereotype.Component
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
 import java.util.*
@@ -66,6 +68,8 @@ class IamReservationAdminAdapter(
                 note = request.note,
                 contractStartDate = request.contractStartDate,
                 contractEndDate = request.contractEndDate,
+                durationMonths = request.durationMonths,
+                managerId = request.managerId,
             ),
         )
         ContractView(
@@ -79,6 +83,29 @@ class IamReservationAdminAdapter(
             contractStartDate = contract.contractStartDate,
             contractEndDate = contract.contractEndDate,
             createdAt = contract.createdAt,
+        )
+    }
+
+    override fun updateContractStatus(
+        contractId: UUID,
+        requiredManagerId: UUID?,
+        status: String,
+        cancelReason: String?,
+    ) = callProvider {
+        internalContractFacade.updateContractStatus(
+            contractId, requiredManagerId, parseCode(status, "status", ContractStatus::fromName), cancelReason,
+        )
+    }
+
+    override fun updateContractPaymentStatus(
+        contractId: UUID,
+        requiredManagerId: UUID?,
+        status: String,
+        paidAmount: BigDecimal?,
+        paidAt: OffsetDateTime?,
+    ) = callProvider {
+        internalContractFacade.updateContractPaymentStatus(
+            contractId, requiredManagerId, parseCode(status, "paymentStatus", PaymentStatus::fromName), paidAmount, paidAt,
         )
     }
 
@@ -171,6 +198,7 @@ class IamReservationAdminAdapter(
         stopNumber = view.stopNumber,
         stopName = view.stopName,
         memberId = view.memberId,
+        managerId = view.managerId,
         contractName = view.contractName,
         status = view.status.name,
         contractStartDate = view.contractStartDate,

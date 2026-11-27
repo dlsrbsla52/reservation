@@ -27,5 +27,5 @@ class ReservationStopLookupAdapter(
         return callProvider { stopService.getBusStopsByIds(pks).map(::toStopInfo) }
     }
 
-    private fun toStopInfo(stop: BusStopResponse) = StopInfo(id = stop.id, stopId = stop.stopId, stopName = stop.stopName)
+    private fun toStopInfo(stop: BusStopResponse) = StopInfo(id = stop.id, stopId = stop.stopId, stopName = stop.stopName, unitPrice = stop.unitPrice)
 }

@@ -16,6 +16,12 @@ enum class ContractStatus(
     val occupiesSlot: Boolean
         get() = this == PENDING || this == ACTIVE
 
+    fun canTransitionTo(target: ContractStatus): Boolean = when (this) {
+        PENDING -> target == ACTIVE || target == CANCELLED
+        ACTIVE -> target == EXPIRED || target == CANCELLED
+        EXPIRED, CANCELLED -> false
+    }
+
     companion object {
         val OCCUPYING: List<ContractStatus> = entries.filter { it.occupiesSlot }
 

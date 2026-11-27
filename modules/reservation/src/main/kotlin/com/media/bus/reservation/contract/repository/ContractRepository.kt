@@ -53,6 +53,10 @@ class ContractRepository {
     @Transactional(readOnly = true)
     fun findById(id: UUID): ContractEntity? = ContractEntity.findById(id)
 
+    @Transactional
+    fun findByIdForUpdate(id: UUID): ContractEntity? =
+        ContractEntity.find { ContractTable.id eq id }.forUpdate().firstOrNull()
+
     /** 광고면에 `[start, end)` 기간과 겹치는 점유 계약(PENDING/ACTIVE)이 있는지 확인한다. */
     @Transactional(readOnly = true)
     fun existsOccupyingOverlap(stopId: UUID, slotNo: Short, start: OffsetDateTime, end: OffsetDateTime): Boolean =

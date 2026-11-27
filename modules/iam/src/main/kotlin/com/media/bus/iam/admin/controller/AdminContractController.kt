@@ -5,11 +5,10 @@ import com.media.bus.common.web.response.ApiResponse
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.contract.entity.member.MemberType
 import com.media.bus.contract.entity.member.Permission
+import com.media.bus.contract.security.MemberPrincipal
 import com.media.bus.contract.security.annotation.Authorize
-import com.media.bus.iam.admin.dto.AdminBusinessContractResponse
-import com.media.bus.iam.admin.dto.AdminContractResponse
-import com.media.bus.iam.admin.dto.AdminMemberContractListResponse
-import com.media.bus.iam.admin.dto.CreateAdminContractRequest
+import com.media.bus.contract.security.annotation.CurrentMember
+import com.media.bus.iam.admin.dto.*
 import com.media.bus.iam.admin.facade.AdminBusinessContractFacade
 import com.media.bus.iam.auth.result.AuthResult
 import io.swagger.v3.oas.annotations.Operation
@@ -72,10 +71,36 @@ class AdminContractController(
     }
 
     @Operation(summary = "계약 생성")
+    @Authorize(types = [MemberType.ADMIN_USER, MemberType.ADMIN_MASTER, MemberType.ADMIN_DEVELOPER], permissions = [Permission.WRITE])
     @PostMapping
     fun createContract(
+        @CurrentMember principal: MemberPrincipal,
         @RequestBody @Valid request: CreateAdminContractRequest,
-    ): ApiResponse<AdminContractResponse> = ApiResponse.success(facade.createContract(request))
+    ): ApiResponse<AdminContractResponse> = ApiResponse.success(facade.createContract(principal, request))
+
+    @Operation(summary = "계약 상태 변경")
+    @Authorize(types = [MemberType.ADMIN_USER, MemberType.ADMIN_MASTER, MemberType.ADMIN_DEVELOPER], permissions = [Permission.WRITE])
+    @PutMapping("/{contractId}/status")
+    fun updateContractStatus(
+        @CurrentMember principal: MemberPrincipal,
+        @PathVariable contractId: UUID,
+        @RequestBody @Valid request: UpdateContractStatusRequest,
+    ): ApiResponse<Unit?> {
+        facade.updateContractStatus(principal, contractId, request)
+        return ApiResponse.successWithMessage("계약 상태가 변경되었습니다.")
+    }
+
+    @Operation(summary = "계약 납부 상태 변경")
+    @Authorize(types = [MemberType.ADMIN_USER, MemberType.ADMIN_MASTER, MemberType.ADMIN_DEVELOPER], permissions = [Permission.WRITE])
+    @PutMapping("/{contractId}/payment-status")
+    fun updateContractPaymentStatus(
+        @CurrentMember principal: MemberPrincipal,
+        @PathVariable contractId: UUID,
+        @RequestBody @Valid request: UpdateContractPaymentStatusRequest,
+    ): ApiResponse<Unit?> {
+        facade.updateContractPaymentStatus(principal, contractId, request)
+        return ApiResponse.successWithMessage("계약 납부 상태가 변경되었습니다.")
+    }
 
     @Operation(summary = "매니저 계약 목록 조회")
     @GetMapping("/member/{memberId}")

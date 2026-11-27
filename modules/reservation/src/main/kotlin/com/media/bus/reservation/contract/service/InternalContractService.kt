@@ -4,12 +4,17 @@ import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.common.web.wrapper.PageResult
 import com.media.bus.reservation.contract.dto.request.AdminContractSearchCondition
 import com.media.bus.reservation.contract.dto.response.AdminContractView
+import com.media.bus.reservation.contract.entity.ContractEntity
+import com.media.bus.reservation.contract.entity.enums.ContractStatus
+import com.media.bus.reservation.contract.entity.enums.PaymentStatus
 import com.media.bus.reservation.contract.repository.ContractDetailRepository
 import com.media.bus.reservation.contract.repository.ContractRepository
 import com.media.bus.reservation.contract.result.ContractResult
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.time.OffsetDateTime
 import java.util.*
 
 /** 관리자 전용 계약 조회 서비스(트랜잭션 경계) */
@@ -57,6 +62,52 @@ class InternalContractService(
             pageRows = size,
             pageNum = page,
         )
+    }
+
+    @Transactional
+    fun updateContractStatus(contractId: UUID, requiredManagerId: UUID?, status: ContractStatus, cancelReason: String?) {
+        val contract = findManagedContractForUpdate(contractId, requiredManagerId)
+        val previous = contract.status
+        if (previous == status) return
+        if (!previous.canTransitionTo(status)) {
+            throw BusinessException(ContractResult.CONTRACT_INVALID_STATE_TRANSITION)
+        }
+        if (status == ContractStatus.CANCELLED) {
+            contract.cancel(OffsetDateTime.now(), cancelReason)
+        } else {
+            contract.status = status
+        }
+    }
+
+    @Transactional
+    fun updateContractPaymentStatus(
+        contractId: UUID,
+        requiredManagerId: UUID?,
+        status: PaymentStatus,
+        paidAmount: BigDecimal?,
+        paidAt: OffsetDateTime?,
+    ) {
+        findManagedContractForUpdate(contractId, requiredManagerId)
+        val detail = contractDetailRepository.findByContractIds(listOf(contractId)).firstOrNull()
+            ?: throw BusinessException(ContractResult.CONTRACT_DETAIL_NOT_FOUND)
+
+        if (status == PaymentStatus.PAID) {
+            detail.paidAmount = paidAmount ?: detail.paidAmount ?: detail.totalAmount
+            detail.paidAt = paidAt ?: detail.paidAt ?: OffsetDateTime.now()
+        } else {
+            detail.paidAmount = null
+            detail.paidAt = null
+        }
+        detail.paymentStatus = status
+    }
+
+    private fun findManagedContractForUpdate(contractId: UUID, requiredManagerId: UUID?): ContractEntity {
+        val contract = contractRepository.findByIdForUpdate(contractId)
+            ?: throw BusinessException(ContractResult.CONTRACT_NOT_FOUND)
+        if (requiredManagerId != null && contract.managerId != requiredManagerId) {
+            throw BusinessException(ContractResult.CONTRACT_ACCESS_DENIED)
+        }
+        return contract
     }
 
     /** 소유자 제한 없이 계약과 계약 상세를 조회한다. 접근 제어는 호출 경로가 맡는다(iam 관리자 API의 `@Authorize`와 app 인증 필터의 관리자 발급처 검사). */

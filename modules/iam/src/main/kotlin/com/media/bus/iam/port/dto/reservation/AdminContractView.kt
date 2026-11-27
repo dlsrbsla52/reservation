@@ -23,4 +23,5 @@ data class AdminContractView(
     val paidAmount: BigDecimal?,
     val paidAt: OffsetDateTime?,
     val createdAt: OffsetDateTime,
+    val managerId: UUID?,
 )

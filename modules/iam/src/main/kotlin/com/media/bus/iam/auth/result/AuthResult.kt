@@ -38,6 +38,7 @@ enum class AuthResult(
     UNKNOWN_ROLE_NAME("A0026", "회원 역할을 해석할 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
     FIND_ME_KEY_REQUIRED("A0027", "이름과 phoneNumber 또는 email 중 하나는 필수입니다."),
     LOGIN_ID_LOOKUP_RATE_LIMIT_UNAVAILABLE("A0028", "아이디 찾기 호출 제한을 확인할 수 없습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
+    INVALID_CONTRACT_MANAGER("A0029", "활성 상태인 관리자만 영업 담당자로 지정할 수 있습니다."),
     ;
 
     override fun httpStatus(): HttpStatus = httpStatus

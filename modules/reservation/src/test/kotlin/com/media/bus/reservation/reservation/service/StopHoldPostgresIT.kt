@@ -2,12 +2,17 @@ package com.media.bus.reservation.reservation.service
 
 import com.media.bus.common.exceptions.BusinessException
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest
+import com.media.bus.reservation.contract.entity.ContractDetailTable
 import com.media.bus.reservation.contract.entity.ContractTable
+import com.media.bus.reservation.contract.entity.enums.ContractStatus
 import com.media.bus.reservation.contract.entity.enums.PaymentCycle
 import com.media.bus.reservation.contract.entity.enums.PaymentMethod
+import com.media.bus.reservation.contract.entity.enums.PaymentStatus
+import com.media.bus.reservation.contract.repository.ContractDetailRepository
 import com.media.bus.reservation.contract.repository.ContractRepository
 import com.media.bus.reservation.contract.result.ContractResult
 import com.media.bus.reservation.contract.service.ContractService
+import com.media.bus.reservation.contract.service.InternalContractService
 import com.media.bus.reservation.reservation.dto.request.CompleteToContractRequest
 import com.media.bus.reservation.reservation.dto.request.CreateStopReservationRequest
 import com.media.bus.reservation.reservation.dto.response.StopInfo
@@ -25,14 +30,12 @@ import liquibase.database.jvm.JdbcConnection
 import liquibase.resource.ClassLoaderResourceAccessor
 import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import java.math.BigDecimal
 import java.sql.DriverManager
@@ -64,7 +67,7 @@ class StopHoldPostgresIT {
 
         DriverManager.getConnection(url, user, password).use { connection ->
             val database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(JdbcConnection(connection))
-            Liquibase("db/changelog/db.changelog-master.xml", ClassLoaderResourceAccessor(), database).update("")
+            Liquibase("db/changelog/reservation/db.changelog-master.xml", ClassLoaderResourceAccessor(), database).update("")
         }
 
         db = Database.connect(url = url, driver = "org.postgresql.Driver", user = user, password = password)
@@ -284,6 +287,100 @@ class StopHoldPostgresIT {
         }
 
         assertThat(next.isSuccess).isTrue()
+    }
+
+    @Test
+    fun `개월 계약은 월말 종료일과 월 단가를 적용하고 담당자를 저장한다`() {
+        val stop = stop().copy(unitPrice = BigDecimal("300000.00"))
+        val managerId = UUID.randomUUID()
+        val request = contractRequest(stop, "2027-01-31T00:00:00+09:00", "2027-02-28T00:00:00+09:00")
+        transaction(db) {
+            val contract = contractService.createContract(
+                stop,
+                request.copy(contractEndDate = null, durationMonths = 1, totalAmount = null, managerId = managerId),
+            )
+            assertThat(contract.contractEndDate.toInstant()).isEqualTo(request.contractEndDate?.toInstant())
+            assertThat(contract.managerId).isEqualTo(managerId)
+            val detail = ContractDetailTable.selectAll()
+                .where { ContractDetailTable.contractId eq contract.id.value }.single()
+            assertThat(detail[ContractDetailTable.totalAmount]).isEqualByComparingTo("300000.00")
+        }
+    }
+
+    @Test
+    fun `날짜 지정 계약은 일할 계산하며 직접 입력한 금액을 우선한다`() {
+        val stop = stop().copy(unitPrice = BigDecimal("310000.00"))
+        val request = contractRequest(stop, "2027-01-01T00:00:00+09:00", "2027-01-16T00:00:00+09:00")
+        val next = request.copy(
+            contractStartDate = OffsetDateTime.parse("2027-01-16T00:00:00+09:00"),
+            contractEndDate = OffsetDateTime.parse("2027-02-01T00:00:00+09:00"),
+            totalAmount = BigDecimal("1000.00"),
+        )
+
+        transaction(db) {
+            val prorated = contractService.createContract(stop, request.copy(totalAmount = null))
+            val overridden = contractService.createContract(stop, next)
+            val amounts = ContractDetailTable.selectAll()
+                .where { ContractDetailTable.contractId inList listOf(prorated.id.value, overridden.id.value) }
+                .associate { it[ContractDetailTable.contractId] to it[ContractDetailTable.totalAmount] }
+            assertThat(amounts[prorated.id.value]).isEqualTo(BigDecimal("150000.00"))
+            assertThat(amounts[overridden.id.value]).isEqualTo(BigDecimal("1000.00"))
+        }
+    }
+
+    @Test
+    fun `계약 담당자만 본인 계약 상태를 바꿀 수 있고 취소하면 광고면이 해제된다`() {
+        val adminService = InternalContractService(ContractRepository(), ContractDetailRepository())
+        val stop = stop()
+        val managerId = UUID.randomUUID()
+        val request = contractRequest(stop, "2027-01-01T00:00:00+09:00", "2027-02-01T00:00:00+09:00")
+        val id = transaction(db) { contractService.createContract(stop, request.copy(managerId = managerId)).id.value }
+
+        val denied = assertThrows<BusinessException> {
+            transaction(db) { adminService.updateContractStatus(id, UUID.randomUUID(), ContractStatus.ACTIVE, null) }
+        }
+        assertThat(denied.result).isEqualTo(ContractResult.CONTRACT_ACCESS_DENIED)
+
+        transaction(db) { adminService.updateContractStatus(id, managerId, ContractStatus.ACTIVE, null) }
+        transaction(db) { adminService.updateContractStatus(id, managerId, ContractStatus.CANCELLED, "고객 요청") }
+        transaction(db) { adminService.updateContractStatus(id, managerId, ContractStatus.CANCELLED, null) }
+
+        val conflict = assertThrows<BusinessException> {
+            transaction(db) { adminService.updateContractStatus(id, managerId, ContractStatus.ACTIVE, null) }
+        }
+        assertThat(conflict.result).isEqualTo(ContractResult.CONTRACT_INVALID_STATE_TRANSITION)
+        transaction(db) {
+            val cancelled = ContractRepository().findById(id)
+            assertThat(cancelled?.status).isEqualTo(ContractStatus.CANCELLED)
+            assertThat(cancelled?.cancelReason).isEqualTo("고객 요청")
+            assertThat(cancelled?.cancelledAt).isNotNull()
+            assertThat(contractService.createContract(stop, request).id.value).isNotEqualTo(id)
+        }
+    }
+
+    @Test
+    fun `납부 완료 재요청은 납부 정보를 유지하고 미납으로 바꾸면 납부 정보를 비운다`() {
+        val adminService = InternalContractService(ContractRepository(), ContractDetailRepository())
+        val stop = stop()
+        val managerId = UUID.randomUUID()
+        val request = contractRequest(stop, "2027-01-01T00:00:00+09:00", "2027-02-01T00:00:00+09:00")
+        val id = transaction(db) { contractService.createContract(stop, request.copy(managerId = managerId)).id.value }
+        val paidAt = OffsetDateTime.parse("2027-01-02T00:00:00+09:00")
+        val paidAmount = BigDecimal("950000.00")
+
+        transaction(db) { adminService.updateContractPaymentStatus(id, managerId, PaymentStatus.PAID, paidAmount, paidAt) }
+        transaction(db) { adminService.updateContractPaymentStatus(id, managerId, PaymentStatus.PAID, null, null) }
+        val paid = transaction(db) { adminService.getContractDetail(id) }
+        assertThat(paid.paymentStatus).isEqualTo(PaymentStatus.PAID)
+        assertThat(paid.paidAmount).isEqualTo(paidAmount)
+        assertThat(paid.paidAt?.toInstant()).isEqualTo(paidAt.toInstant())
+        assertThat(paid.status).isEqualTo(ContractStatus.PENDING)
+
+        transaction(db) { adminService.updateContractPaymentStatus(id, managerId, PaymentStatus.UNPAID, null, null) }
+        val unpaid = transaction(db) { adminService.getContractDetail(id) }
+        assertThat(unpaid.paymentStatus).isEqualTo(PaymentStatus.UNPAID)
+        assertThat(unpaid.paidAmount).isNull()
+        assertThat(unpaid.paidAt).isNull()
     }
 
     @Test

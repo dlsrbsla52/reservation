@@ -81,7 +81,7 @@ class IamReservationAdminAdapterTest {
         val notFound = StorageException(ReservationResult.STOP_NOT_FOUND)
         every { contractFacade.createContract(any()) } throws notFound
         val request = CreateContractRequest(
-            UUID.randomUUID(), "계약", BigDecimal.TEN, null, "MONTHLY", "CARD", null, null, now, now.plusMonths(1),
+            UUID.randomUUID(), "계약", BigDecimal.TEN, null, "MONTHLY", "CARD", null, null, now, now.plusMonths(1), null, null,
         )
 
         val ex = assertThrows<StorageException> { adapter.createContract(request) }

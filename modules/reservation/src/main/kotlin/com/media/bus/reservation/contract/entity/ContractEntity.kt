@@ -15,16 +15,22 @@ class ContractEntity(id: EntityID<UUID>) : DateBaseEntity(id, ContractTable) {
     companion object : UUIDEntityClass<ContractEntity>(ContractTable) {
 
         /** 정류소 정보, 요청 DTO로부터 Contract 엔티티를 생성하는 팩토리 메서드. */
-        fun create(stopInfo: StopInfo, request: CreateContractRequest, slotNo: Short): ContractEntity =
+        fun create(
+            stopInfo: StopInfo,
+            request: CreateContractRequest,
+            slotNo: Short,
+            endDate: OffsetDateTime,
+        ): ContractEntity =
             new(UuidV7.generate()) {
                 stopId = stopInfo.id
                 this.slotNo = slotNo
                 memberId = request.memberId
+                managerId = request.managerId
                 contractName = request.contractName
                 status = ContractStatus.PENDING
                 autoRenewal = false
                 contractStartDate = request.contractStartDate
-                contractEndDate = request.contractEndDate
+                contractEndDate = endDate
             }
     }
 

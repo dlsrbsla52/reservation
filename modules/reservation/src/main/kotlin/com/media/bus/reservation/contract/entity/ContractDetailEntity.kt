@@ -6,6 +6,7 @@ import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.entity.enums.PaymentStatus
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.dao.java.UUIDEntityClass
+import java.math.BigDecimal
 import java.util.*
 
 /** 계약 상세 Exposed DAO 엔티티 */
@@ -13,10 +14,14 @@ class ContractDetailEntity(id: EntityID<UUID>) : DateBaseEntity(id, ContractDeta
     companion object : UUIDEntityClass<ContractDetailEntity>(ContractDetailTable) {
 
         /** Contract 엔티티와 요청 DTO로부터 ContractDetail을 생성하는 팩토리 메서드. */
-        fun create(contract: ContractEntity, request: CreateContractRequest): ContractDetailEntity =
+        fun create(
+            contract: ContractEntity,
+            request: CreateContractRequest,
+            amount: BigDecimal,
+        ): ContractDetailEntity =
             new(UuidV7.generate()) {
                 contractId = contract.id.value
-                totalAmount = request.totalAmount
+                totalAmount = amount
                 payAmount = request.payAmount
                 paymentCycle = request.paymentCycle
                 paymentMethod = request.paymentMethod

@@ -1,10 +1,7 @@
 package com.media.bus.app.web
 
-import com.media.bus.iam.port.dto.content.AdminFaqRequest
-import com.media.bus.iam.port.dto.content.AdminImageUploadRequest
-import com.media.bus.iam.port.dto.content.AdminInquiryStatusRequest
-import com.media.bus.iam.port.dto.content.AdminNoticeRequest
-import com.media.bus.iam.port.dto.content.AdminPortfolioRequest
+import com.media.bus.iam.admin.dto.CreateAdminContractRequest
+import com.media.bus.iam.port.dto.content.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,6 +43,28 @@ class RequestBodyDeserializationTest {
         assertThat(faq.visible).isNull()
         assertThat(upload.thumbnail).isNull()
         assertThat(status.memo).isNull()
+    }
+
+    @Test
+    fun `개월 계약 요청은 종료일과 금액과 담당자를 생략할 수 있다`() {
+        val request = mapper.readValue(
+            """
+            {
+              "stopId": "018f1e2a-0000-7000-8000-000000000001",
+              "contractName": "정류소 광고 계약",
+              "paymentCycle": "MONTHLY",
+              "paymentMethod": "CARD",
+              "contractStartDate": "2027-01-31T00:00:00+09:00",
+              "durationMonths": 1
+            }
+            """.trimIndent(),
+            CreateAdminContractRequest::class.java,
+        )
+
+        assertThat(request.durationMonths).isEqualTo(1)
+        assertThat(request.contractEndDate).isNull()
+        assertThat(request.managerId).isNull()
+        assertThat(request.totalAmount).isNull()
     }
 
     @Test

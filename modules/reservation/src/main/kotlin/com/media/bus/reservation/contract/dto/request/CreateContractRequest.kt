@@ -3,10 +3,7 @@ package com.media.bus.reservation.contract.dto.request
 import com.media.bus.reservation.contract.entity.enums.PaymentCycle
 import com.media.bus.reservation.contract.entity.enums.PaymentMethod
 import io.swagger.v3.oas.annotations.media.Schema
-import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.NotNull
-import jakarta.validation.constraints.Positive
-import jakarta.validation.constraints.Size
+import jakarta.validation.constraints.*
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
@@ -23,12 +20,13 @@ data class CreateContractRequest(
     @param:Schema(description = "계약명", example = "광역버스 정류소 광고 계약")
     val contractName: String,
 
-    @field:NotNull
     @field:Positive
+    @field:Digits(integer = 13, fraction = 2)
     @param:Schema(description = "총 계약금액", example = "1200000.00")
-    val totalAmount: BigDecimal,
+    val totalAmount: BigDecimal?,
 
     @field:Positive
+    @field:Digits(integer = 13, fraction = 2)
     @param:Schema(description = "납부금액 (분할납 1회 금액)", example = "100000.00")
     val payAmount: BigDecimal?,
 
@@ -50,7 +48,10 @@ data class CreateContractRequest(
     @param:Schema(description = "계약 시작일", example = "2026-04-01T00:00:00+09:00")
     val contractStartDate: OffsetDateTime,
 
-    @field:NotNull
     @param:Schema(description = "계약 종료일", example = "2027-03-31T23:59:59+09:00")
-    val contractEndDate: OffsetDateTime
+    val contractEndDate: OffsetDateTime?,
+
+    @field:Positive
+    val durationMonths: Int? = null,
+    val managerId: UUID? = null,
 )

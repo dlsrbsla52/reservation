@@ -7,10 +7,14 @@ import com.media.bus.reservation.contract.dto.request.AdminContractSearchConditi
 import com.media.bus.reservation.contract.dto.request.CreateContractRequest
 import com.media.bus.reservation.contract.dto.response.AdminContractView
 import com.media.bus.reservation.contract.dto.response.ContractResponse
+import com.media.bus.reservation.contract.entity.enums.ContractStatus
+import com.media.bus.reservation.contract.entity.enums.PaymentStatus
 import com.media.bus.reservation.contract.result.ContractResult
 import com.media.bus.reservation.reservation.service.StopResolutionService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.time.OffsetDateTime
 import java.util.*
 
 /** 관리자 전용 계약 조회 Facade */
@@ -75,6 +79,29 @@ class InternalContractFacade(
         val raw = internalContractService.getContractDetail(contractId)
         val info = stopResolutionService.resolveStops(setOf(raw.stopId))[raw.stopId]
         return raw.copy(stopNumber = info?.stopId, stopName = info?.stopName)
+    }
+
+    fun updateContractStatus(contractId: UUID, requiredManagerId: UUID?, status: ContractStatus, cancelReason: String?) {
+        if (cancelReason != null && (status != ContractStatus.CANCELLED || cancelReason.length > 500)) {
+            throw BusinessException(ContractResult.CONTRACT_INVALID_CANCEL_REASON)
+        }
+        internalContractService.updateContractStatus(contractId, requiredManagerId, status, cancelReason)
+    }
+
+    fun updateContractPaymentStatus(
+        contractId: UUID,
+        requiredManagerId: UUID?,
+        status: PaymentStatus,
+        paidAmount: BigDecimal?,
+        paidAt: OffsetDateTime?,
+    ) {
+        if (status != PaymentStatus.PAID && (paidAmount != null || paidAt != null)) {
+            throw BusinessException(ContractResult.CONTRACT_PAYMENT_DETAILS_REQUIRE_PAID)
+        }
+        if (paidAmount != null && (paidAmount.signum() <= 0 || paidAmount.scale() > 2 || paidAmount >= BigDecimal.TEN.pow(13))) {
+            throw BusinessException(ContractResult.CONTRACT_INVALID_PAID_AMOUNT)
+        }
+        internalContractService.updateContractPaymentStatus(contractId, requiredManagerId, status, paidAmount, paidAt)
     }
 
     private fun validateSearchCondition(condition: AdminContractSearchCondition) {

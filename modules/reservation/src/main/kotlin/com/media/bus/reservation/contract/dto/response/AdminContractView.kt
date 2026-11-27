@@ -64,6 +64,7 @@ data class AdminContractView(
 
     @param:Schema(description = "계약 생성일시")
     val createdAt: OffsetDateTime,
+    val managerId: UUID? = null,
 ) {
     companion object {
         /** Contract + ContractDetail 엔티티로부터 admin view DTO를 생성한다. */
@@ -74,6 +75,7 @@ data class AdminContractView(
                 stopNumber = null,
                 stopName = null,
                 memberId = contract.memberId,
+                managerId = contract.managerId,
                 contractName = contract.contractName,
                 status = contract.status,
                 contractStartDate = contract.contractStartDate,

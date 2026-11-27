@@ -1,6 +1,7 @@
 package com.media.bus.iam.port
 
 import com.media.bus.iam.port.dto.reservation.*
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -21,6 +22,16 @@ interface ReservationAdminPort {
 
     /** 관리자 요청으로 계약을 생성한다. */
     fun createContract(request: CreateContractRequest): ContractView
+
+    fun updateContractStatus(contractId: UUID, requiredManagerId: UUID?, status: String, cancelReason: String?)
+
+    fun updateContractPaymentStatus(
+        contractId: UUID,
+        requiredManagerId: UUID?,
+        status: String,
+        paidAmount: BigDecimal?,
+        paidAt: OffsetDateTime?,
+    )
 
     /** 소유자 제한 없이 계약 상세를 조회한다. */
     fun getContractDetail(contractId: UUID): AdminContractView
